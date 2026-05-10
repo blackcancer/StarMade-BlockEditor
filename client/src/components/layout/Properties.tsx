@@ -74,6 +74,18 @@ export function Properties() {
     updateDraft({ [field]: value } as Record<string, unknown>);
   };
 
+  const updateExtraProperties = (raw: string) => {
+    try {
+      const parsed = raw.trim() ? JSON.parse(raw) : {};
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        throw new Error('Expected a JSON object');
+      }
+      updateDraft({ extraProperties: parsed });
+    } catch (e) {
+      alert(`Invalid extra properties JSON: ${e}`);
+    }
+  };
+
   const importIcon = async (file: File | null) => {
     if (!file) return;
     setImportingIcon(true);
@@ -249,6 +261,19 @@ export function Properties() {
               min={0}
               value={draft.lodShapeFromFar}
               onChange={e => onChange('lodShapeFromFar', +e.target.value)}
+            />
+          </Field>
+        </section>
+
+        {/* Additional raw properties */}
+        <section>
+          <h4>Additional BlockConfig properties</h4>
+          <Field label="Raw XML fields" tooltip="Unmodeled direct BlockConfig.xml properties preserved as JSON. Use this for fields not yet promoted to dedicated UI controls.">
+            <textarea
+              key={`extra-${draft.id}`}
+              rows={6}
+              defaultValue={JSON.stringify(draft.extraProperties ?? {}, null, 2)}
+              onBlur={e => updateExtraProperties(e.target.value)}
             />
           </Field>
         </section>

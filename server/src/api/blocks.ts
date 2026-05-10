@@ -53,6 +53,7 @@ export interface BlockDef {
   onlyDrawnInBuildMode: boolean;
   lodShapeFromFar: number;
   animated:         boolean;
+  extraProperties:  Record<string, unknown>;
   isCustom:         boolean;
 }
 
@@ -135,6 +136,25 @@ function serializeEffectArmor(v: Record<string, number>): Record<string, number>
   const entries = Object.entries(v ?? {}).filter(([, value]) => typeof value === 'number' && !isNaN(value));
   if (entries.length === 0) return undefined;
   return Object.fromEntries(entries);
+}
+
+const KNOWN_BLOCK_TAGS = new Set([
+  'Hitpoints', 'Mass', 'Volume', 'Price', 'Description', 'ArmorValue',
+  'Placable', 'InShop', 'Orientation', 'CanActivate', 'Deprecated',
+  'BlockStyle', 'Slab', 'SlabIds', 'StyleIds', 'EffectArmor',
+  'BlockComputerReference', 'LightSource', 'LightSourceColor', 'Transparency',
+  'Door', 'LogicBlock', 'IndividualSides', 'SideTexturesPointToOrientation',
+  'HasActivationTexture', 'ExtendedTexture4x4', 'OnlyDrawnInBuildMode',
+  'LodShapeFromFar', 'Animated',
+]);
+
+function collectExtraProperties(node: Record<string, unknown>): Record<string, unknown> {
+  const extra: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(node)) {
+    if (key.startsWith('@_') || KNOWN_BLOCK_TAGS.has(key)) continue;
+    extra[key] = value;
+  }
+  return extra;
 }
 
 function parseLightColor(v: unknown): number[] {
@@ -239,6 +259,7 @@ function parseBlock(node: Record<string, unknown>, typeIds: Map<string, number>,
     onlyDrawnInBuildMode: parseBool(node.OnlyDrawnInBuildMode, false),
     lodShapeFromFar:   parseInt(String(node.LodShapeFromFar ?? '0'), 10) || 0,
     animated:          parseBool(node.Animated, false),
+    extraProperties:   collectExtraProperties(node),
     isCustom,
   };
 }
@@ -295,6 +316,7 @@ function serializeType(def: BlockDef): string | number {
 
 function serializeBlock(def: BlockDef): Record<string, unknown> {
   return {
+    ...(def.extraProperties ?? {}),
     '@_icon':                String(def.icon),
     '@_name':                def.name,
     '@_textureId':           def.textureId.join(', '),
@@ -414,6 +436,7 @@ blocksRouter.put('/:id', (req: Request, res: Response) => {
       styleIds: Array.isArray(req.body?.styleIds) ? req.body.styleIds : existing.styleIds,
       effectArmor: req.body?.effectArmor && typeof req.body.effectArmor === 'object' ? req.body.effectArmor : existing.effectArmor,
       lightSourceColor: Array.isArray(req.body?.lightSourceColor) ? req.body.lightSourceColor : existing.lightSourceColor,
+      extraProperties: req.body?.extraProperties && typeof req.body.extraProperties === 'object' ? req.body.extraProperties : existing.extraProperties,
     };
 
     saveCustomBlock(updated);
@@ -462,6 +485,7 @@ blocksRouter.post('/', (req: Request, res: Response) => {
       onlyDrawnInBuildMode: false,
       lodShapeFromFar:   0,
       animated:          false,
+      extraProperties:   {},
       isCustom:          true,
       ...req.body,
       id,

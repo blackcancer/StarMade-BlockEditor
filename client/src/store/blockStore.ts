@@ -49,6 +49,7 @@ export interface BlockDef {
   onlyDrawnInBuildMode: boolean;
   lodShapeFromFar: number;
   animated:         boolean;
+  extraProperties:  Record<string, unknown>;
   isCustom:         boolean;
 }
 

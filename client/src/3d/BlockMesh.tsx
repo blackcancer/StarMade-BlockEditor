@@ -112,8 +112,8 @@ export function BlockMesh({
 
   const lightEnabled = block.lightSource && isActive;
 
-  const slabHeight = block.slab === 1 ? 0.75 : block.slab === 2 ? 0.5 : block.slab === 3 ? 0.25 : 1;
-  const slabOffsetY = (slabHeight - 1) / 2;
+  const slabThickness = block.slab === 1 ? 0.75 : block.slab === 2 ? 0.5 : block.slab === 3 ? 0.25 : 1;
+  const slabOffsetZ = (slabThickness - 1) / 2;
 
   // ── Build material(s) ─────────────────────────────────────────────────────
   const material = useMemo(() => {
@@ -152,8 +152,8 @@ export function BlockMesh({
       <mesh
         geometry={geometry}
         material={material}
-        scale={[1, slabHeight, 1]}
-        position={[0, slabOffsetY, 0]}
+        scale={[1, 1, slabThickness]}
+        position={[0, 0, slabOffsetZ]}
         castShadow
         receiveShadow
       />
