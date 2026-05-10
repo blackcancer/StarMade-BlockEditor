@@ -46,6 +46,15 @@ const RESOURCE_TYPE_OPTIONS = [
   { value: 6, label: '6 — Capsule' },
 ];
 
+const FACTORY_OPTIONS = [
+  { value: 0, label: 'None' },
+  { value: 1, label: 'Capsule refinery' },
+  { value: 2, label: 'Micro assembler' },
+  { value: 3, label: 'Component factory' },
+  { value: 4, label: 'Block assembler' },
+  { value: 5, label: 'Chemical factory' },
+];
+
 const EXTRA_PROPERTY_GROUPS = [
   { title: 'Resources / Recipes', keys: ['Consistence', 'CubatomConsistence', 'InRecipe', 'RecipeBuyResource', 'BlockResourceType'] },
   { title: 'Factory / Production', keys: ['ProducedInFactory', 'BasicResourceFactory', 'FactoryBakeTime', 'Factory'] },
@@ -280,6 +289,7 @@ export function Properties() {
           <h4>Additional BlockConfig properties</h4>
           <ExtraPropertiesEditor
             value={draft.extraProperties ?? {}}
+            blocks={blocks}
             onChange={extraProperties => updateDraft({ extraProperties })}
           />
         </section>
@@ -499,7 +509,7 @@ function hexToRgba(hex: string, alpha = 1): number[] {
   return [r, g, b, alpha];
 }
 
-function ExtraPropertiesEditor({ value, onChange }: { value: Record<string, unknown>; onChange: (value: Record<string, unknown>) => void }) {
+function ExtraPropertiesEditor({ value, blocks, onChange }: { value: Record<string, unknown>; blocks: BlockDef[]; onChange: (value: Record<string, unknown>) => void }) {
   const [filter, setFilter] = useState('');
   const grouped = new Set(EXTRA_PROPERTY_GROUPS.flatMap(group => group.keys));
   const otherKeys = Object.keys(value).filter(key => !grouped.has(key)).sort();
@@ -541,7 +551,13 @@ function ExtraPropertiesEditor({ value, onChange }: { value: Record<string, unkn
           </summary>
           <div className="extra-property-fields">
             {group.title === 'Resources / Recipes' ? (
-              <ResourceRecipeEditor value={value} onChange={onChange} />
+              <ResourceRecipeEditor value={value} blocks={blocks} onChange={onChange} />
+            ) : group.title === 'Factory / Production' ? (
+              <FactoryProductionEditor value={value} blocks={blocks} onChange={onChange} />
+            ) : group.title === 'Chambers' ? (
+              <ChambersEditor value={value} blocks={blocks} onChange={onChange} />
+            ) : group.title === 'Controllers' ? (
+              <ControllersEditor value={value} blocks={blocks} onChange={onChange} />
             ) : group.keys.map(key => (
               <Field key={key} label={formatPropertyLabel(key)} tooltip={key}>
                 <ExtraValueEditor value={value[key]} onChange={next => updateKey(key, next)} />
@@ -556,64 +572,76 @@ function ExtraPropertiesEditor({ value, onChange }: { value: Record<string, unkn
 
 type ResourceEntry = { name: string; count: number };
 
-function ResourceRecipeEditor({ value, onChange }: { value: Record<string, unknown>; onChange: (value: Record<string, unknown>) => void }) {
+function ResourceRecipeEditor({ value, blocks, onChange }: { value: Record<string, unknown>; blocks: BlockDef[]; onChange: (value: Record<string, unknown>) => void }) {
   const updateKey = (key: string, next: unknown) => onChange({ ...value, [key]: next });
+  const inRecipe = Boolean(value.InRecipe);
 
   return (
     <div className="resource-recipe-editor">
       <div className="resource-summary-card">
         <div>
           <strong>Recipe participation</strong>
-          <p>Controls if this block appears in production recipes and which economy resource category it belongs to.</p>
+          <p>When disabled, recipe inputs remain preserved but are hidden because StarMade will not use them for crafting.</p>
         </div>
         <label className="inline-check">
           <input
             type="checkbox"
-            checked={Boolean(value.InRecipe)}
+            checked={inRecipe}
             onChange={e => updateKey('InRecipe', e.target.checked)}
           />
           In recipe
         </label>
       </div>
 
-      <div className="resource-two-col">
-        <Field label="Resource type" tooltip="BlockResourceType: ore, plant, basic, cubatom-splittable, manufactory, advanced or capsule.">
-          <select value={Number(value.BlockResourceType ?? 2)} onChange={e => updateKey('BlockResourceType', +e.target.value)}>
-            {RESOURCE_TYPE_OPTIONS.map(option => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Buy recipe resources" tooltip="RecipeBuyResource: block type names consumed when buying/crafting this block.">
-          <ElementListEditor
-            value={normalizeElementList(value.RecipeBuyResource)}
-            onChange={items => updateKey('RecipeBuyResource', serializeElementList(items))}
-            placeholder="BLOCK_TYPE"
+      {!inRecipe ? (
+        <div className="variant-empty">Recipe fields are inactive because InRecipe is false.</div>
+      ) : (
+        <>
+          <div className="resource-two-col">
+            <Field label="Resource type" tooltip="BlockResourceType category used by economy/factory grouping.">
+              <select value={Number(value.BlockResourceType ?? 2)} onChange={e => updateKey('BlockResourceType', +e.target.value)}>
+                {RESOURCE_TYPE_OPTIONS.map(option => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Buy recipe resources" tooltip="RecipeBuyResource entries use BlockTypes keys; the dropdown stores the XML type name used by StarMade.">
+              <ElementListEditor
+                value={normalizeElementList(value.RecipeBuyResource)}
+                blocks={blocks}
+                onChange={items => updateKey('RecipeBuyResource', serializeElementList(items))}
+                addLabel="+ Add buy resource"
+              />
+            </Field>
+          </div>
+
+          <ResourceListEditor
+            title="Material requirements"
+            help="Consistence resources. Each row stores a count and a BlockTypes key."
+            value={normalizeResourceList(value.Consistence)}
+            blocks={blocks}
+            addLabel="+ Add material"
+            onChange={items => updateKey('Consistence', serializeResourceList(items))}
           />
-        </Field>
-      </div>
 
-      <ResourceListEditor
-        title="Consistence"
-        help="Direct resource/material requirements: rows are saved as Item entries with a count and block/resource type."
-        value={normalizeResourceList(value.Consistence)}
-        onChange={items => updateKey('Consistence', serializeResourceList(items))}
-      />
-
-      <details className="resource-subsection">
-        <summary>Cubatom consistence <span>deprecated/specialized</span></summary>
-        <ResourceListEditor
-          title="Cubatom Consistence"
-          help="Used by cubatom-splitting logic for capsule-like resources. Usually empty for normal blocks."
-          value={normalizeResourceList(value.CubatomConsistence)}
-          onChange={items => updateKey('CubatomConsistence', serializeResourceList(items))}
-        />
-      </details>
+          <details className="resource-subsection">
+            <summary>Cubatom consistence <span>specialized</span></summary>
+            <ResourceListEditor
+              title="Cubatom materials"
+              help="Used by cubatom/capsule splitting logic. Usually empty for normal blocks."
+              value={normalizeResourceList(value.CubatomConsistence)}
+              blocks={blocks}
+              addLabel="+ Add cubatom material"
+              onChange={items => updateKey('CubatomConsistence', serializeResourceList(items))}
+            />
+          </details>
+        </>
+      )}
     </div>
   );
 }
 
-function ResourceListEditor({ title, help, value, onChange }: { title: string; help: string; value: ResourceEntry[]; onChange: (value: ResourceEntry[]) => void }) {
+function ResourceListEditor({ title, help, value, blocks, addLabel, onChange }: { title: string; help: string; value: ResourceEntry[]; blocks: BlockDef[]; addLabel: string; onChange: (value: ResourceEntry[]) => void }) {
   const update = (index: number, patch: Partial<ResourceEntry>) => {
     onChange(value.map((item, i) => i === index ? { ...item, ...patch } : item));
   };
@@ -625,7 +653,7 @@ function ResourceListEditor({ title, help, value, onChange }: { title: string; h
           <strong>{title}</strong>
           <p>{help}</p>
         </div>
-        <button type="button" className="btn-secondary" onClick={() => onChange([...value, { name: '', count: 1 }])}>+ Add</button>
+        <button type="button" className="btn-secondary" onClick={() => onChange([...value, { name: blocks[0]?.xmlTypeName ?? '', count: 1 }])}>{addLabel}</button>
       </div>
       {value.length === 0 ? (
         <div className="variant-empty">No resources.</div>
@@ -638,10 +666,10 @@ function ResourceListEditor({ title, help, value, onChange }: { title: string; h
             value={item.count}
             onChange={e => update(index, { count: +e.target.value })}
           />
-          <input
+          <BlockTypeSelect
+            blocks={blocks}
             value={item.name}
-            placeholder="RESOURCE_OR_BLOCK_TYPE"
-            onChange={e => update(index, { name: e.target.value })}
+            onChange={name => update(index, { name })}
           />
           <button type="button" className="btn-secondary" title="Remove" onClick={() => onChange(value.filter((_, i) => i !== index))}>×</button>
         </div>
@@ -650,16 +678,16 @@ function ResourceListEditor({ title, help, value, onChange }: { title: string; h
   );
 }
 
-function ElementListEditor({ value, onChange, placeholder }: { value: string[]; onChange: (value: string[]) => void; placeholder: string }) {
+function ElementListEditor({ value, blocks, onChange, addLabel }: { value: string[]; blocks: BlockDef[]; onChange: (value: string[]) => void; addLabel: string }) {
   return (
     <div className="element-list-editor">
       {value.map((item, index) => (
         <div key={index} className="element-row">
-          <input value={item} placeholder={placeholder} onChange={e => onChange(value.map((current, i) => i === index ? e.target.value : current))} />
+          <BlockTypeSelect blocks={blocks} value={item} onChange={name => onChange(value.map((current, i) => i === index ? name : current))} />
           <button type="button" className="btn-secondary" onClick={() => onChange(value.filter((_, i) => i !== index))}>×</button>
         </div>
       ))}
-      <button type="button" className="btn-secondary" onClick={() => onChange([...value, ''])}>+ Add resource</button>
+      <button type="button" className="btn-secondary" onClick={() => onChange([...value, blocks[0]?.xmlTypeName ?? ''])}>{addLabel}</button>
     </div>
   );
 }
@@ -706,6 +734,126 @@ function serializeElementList(items: string[]): Record<string, unknown> | string
   const clean = items.map(item => item.trim()).filter(Boolean);
   if (clean.length === 0) return '';
   return { Element: clean.length === 1 ? clean[0] : clean };
+}
+
+function FactoryProductionEditor({ value, blocks, onChange }: { value: Record<string, unknown>; blocks: BlockDef[]; onChange: (value: Record<string, unknown>) => void }) {
+  const updateKey = (key: string, next: unknown) => onChange({ ...value, [key]: next });
+  return (
+    <div className="production-editor">
+      <Field label="Produced in" tooltip="ProducedInFactory. Stored as FAC_* numeric value in XML.">
+        <select value={Number(value.ProducedInFactory ?? 0)} onChange={e => updateKey('ProducedInFactory', +e.target.value)}>
+          {FACTORY_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+        </select>
+      </Field>
+      <Field label="Basic resource factory" tooltip="BasicResourceFactory block id; 0 means none.">
+        <BlockIdSelect blocks={blocks} value={Number(value.BasicResourceFactory ?? 0)} onChange={id => updateKey('BasicResourceFactory', id)} allowNone />
+      </Field>
+      <Field label="Bake time" tooltip="FactoryBakeTime value from XML.">
+        <input type="number" min={0} step={0.1} value={Number(value.FactoryBakeTime ?? 0)} onChange={e => updateKey('FactoryBakeTime', +e.target.value)} />
+      </Field>
+      {'Factory' in value && (
+        <Field label="Factory slot" tooltip="Factory input/output slot marker.">
+          <select value={String(value.Factory ?? '')} onChange={e => updateKey('Factory', e.target.value)}>
+            <option value="">None</option>
+            <option value="INPUT">Input</option>
+            <option value="OUTPUT">Output</option>
+          </select>
+        </Field>
+      )}
+    </div>
+  );
+}
+
+function ChambersEditor({ value, blocks, onChange }: { value: Record<string, unknown>; blocks: BlockDef[]; onChange: (value: Record<string, unknown>) => void }) {
+  const updateKey = (key: string, next: unknown) => onChange({ ...value, [key]: next });
+  return (
+    <div className="chambers-editor">
+      <label className="inline-check">
+        <input type="checkbox" checked={Boolean(value.GeneralChamber)} onChange={e => updateKey('GeneralChamber', e.target.checked)} />
+        General chamber
+      </label>
+      <Field label="Capacity" tooltip="ChamberCapacity contribution.">
+        <input type="number" step={0.01} value={Number(value.ChamberCapacity ?? 0)} onChange={e => updateKey('ChamberCapacity', +e.target.value)} />
+      </Field>
+      <Field label="Root chamber" tooltip="ChamberRoot block id.">
+        <BlockIdSelect blocks={blocks} value={Number(value.ChamberRoot ?? 0)} onChange={id => updateKey('ChamberRoot', id)} allowNone />
+      </Field>
+      <Field label="Parent chamber" tooltip="ChamberParent block id.">
+        <BlockIdSelect blocks={blocks} value={Number(value.ChamberParent ?? 0)} onChange={id => updateKey('ChamberParent', id)} allowNone />
+      </Field>
+      <Field label="Upgrades to" tooltip="ChamberUpgradesTo block id.">
+        <BlockIdSelect blocks={blocks} value={Number(value.ChamberUpgradesTo ?? 0)} onChange={id => updateKey('ChamberUpgradesTo', id)} allowNone />
+      </Field>
+      <Field label="Permission" tooltip="ChamberPermission numeric mode from XML.">
+        <input type="number" value={Number(value.ChamberPermission ?? 0)} onChange={e => updateKey('ChamberPermission', +e.target.value)} />
+      </Field>
+      <Field label="Config groups" tooltip="ChamberConfigGroups labels.">
+        <StringElementListEditor value={normalizeElementList(value.ChamberConfigGroups)} onChange={items => updateKey('ChamberConfigGroups', serializeElementList(items))} addLabel="+ Add group" />
+      </Field>
+    </div>
+  );
+}
+
+function ControllersEditor({ value, blocks, onChange }: { value: Record<string, unknown>; blocks: BlockDef[]; onChange: (value: Record<string, unknown>) => void }) {
+  const updateKey = (key: string, next: unknown) => onChange({ ...value, [key]: next });
+  return (
+    <div className="controllers-editor">
+      <ControllerListEditor title="Controlled by" value={normalizeElementList(value.ControlledBy)} blocks={blocks} onChange={items => updateKey('ControlledBy', serializeElementList(items))} />
+      <ControllerListEditor title="Controls" value={normalizeElementList(value.Controlling)} blocks={blocks} onChange={items => updateKey('Controlling', serializeElementList(items))} />
+      <div className="flags-grid">
+        {(['MainCombinationController', 'SupportCombinationController', 'EffectCombinationController'] as const).map(key => (
+          <label key={key} className="flag-toggle">
+            <input type="checkbox" checked={Boolean(value[key])} onChange={e => updateKey(key, e.target.checked)} />
+            {formatPropertyLabel(key)}
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ControllerListEditor({ title, value, blocks, onChange }: { title: string; value: string[]; blocks: BlockDef[]; onChange: (value: string[]) => void }) {
+  return (
+    <Field label={title} tooltip="Stores BlockTypes keys in XML.">
+      <ElementListEditor value={value} blocks={blocks} onChange={onChange} addLabel={`+ Add ${title.toLowerCase()}`} />
+    </Field>
+  );
+}
+
+function BlockTypeSelect({ blocks, value, onChange }: { blocks: BlockDef[]; value: string; onChange: (value: string) => void }) {
+  return (
+    <select value={value} onChange={e => onChange(e.target.value)}>
+      <option value="">None</option>
+      {blocks.map(block => (
+        <option key={block.id} value={block.xmlTypeName}>{block.xmlTypeName} — {block.name}</option>
+      ))}
+    </select>
+  );
+}
+
+function BlockIdSelect({ blocks, value, onChange, allowNone = false }: { blocks: BlockDef[]; value: number; onChange: (value: number) => void; allowNone?: boolean }) {
+  return (
+    <select value={value} onChange={e => onChange(+e.target.value)}>
+      {allowNone && <option value={0}>0 — None</option>}
+      {blocks.map(block => (
+        <option key={block.id} value={block.id}>{block.id} — {block.name}</option>
+      ))}
+    </select>
+  );
+}
+
+function StringElementListEditor({ value, onChange, addLabel }: { value: string[]; onChange: (value: string[]) => void; addLabel: string }) {
+  return (
+    <div className="element-list-editor">
+      {value.map((item, index) => (
+        <div key={index} className="element-row">
+          <input value={item} onChange={e => onChange(value.map((current, i) => i === index ? e.target.value : current))} />
+          <button type="button" className="btn-secondary" onClick={() => onChange(value.filter((_, i) => i !== index))}>×</button>
+        </div>
+      ))}
+      <button type="button" className="btn-secondary" onClick={() => onChange([...value, ''])}>{addLabel}</button>
+    </div>
+  );
 }
 
 function ExtraValueEditor({ value, onChange }: { value: unknown; onChange: (value: unknown) => void }) {
