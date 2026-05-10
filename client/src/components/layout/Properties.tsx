@@ -55,6 +55,17 @@ const FACTORY_OPTIONS = [
   { value: 5, label: 'Chemical factory' },
 ];
 
+const RESOURCE_INJECTION_OPTIONS = [
+  { value: 0, label: 'Off' },
+  { value: 1, label: 'Ore / terrain resource' },
+  { value: 2, label: 'Flora resource' },
+];
+
+const LOD_ACTIVATION_ANIMATION_OPTIONS = [
+  { value: 0, label: 'No active LOD switch' },
+  { value: 1, label: 'Use active LOD shape while active' },
+];
+
 const EXTRA_PROPERTY_GROUPS = [
   { title: 'Resources / Recipes', keys: ['Consistence', 'CubatomConsistence', 'InRecipe', 'RecipeBuyResource', 'BlockResourceType'] },
   { title: 'Factory / Production', keys: ['ProducedInFactory', 'BasicResourceFactory', 'FactoryBakeTime', 'Factory'] },
@@ -94,21 +105,21 @@ const EXTRA_TOOLTIPS: Record<string, string> = {
   SupportCombinationController: 'Marks this block as a support controller in combination systems.',
   EffectCombinationController: 'Marks this block as an effect controller in combination systems.',
   Physical: 'Whether the block participates as a physical/collidable object.',
-  CollisionDefault: 'Default collision behavior for the block.',
+  CollisionDefault: 'Default collision shape. Source supports None, a block-style collision shape with slab thickness, or a convex hull mesh.',
   CubeCubeCollision: 'Uses simple cube-vs-cube collision handling.',
   UseDetailedCollisionForAstronautMode: 'Enables detailed collision when the player is in astronaut mode.',
-  DetailedCollisionForAstronautMode: 'Detailed astronaut-mode collision profile.',
+  DetailedCollisionForAstronautMode: 'Optional detailed collision shape used in astronaut mode; often a named convex hull mesh for non-cube blocks.',
   LodCollisionPhysical: 'Physical collision behavior for low-detail LOD meshes.',
   Enterable: 'Whether an entity/player can enter or pass into the block volume.',
   LodShape: 'Low-detail mesh used when LOD rendering is active.',
   LodShapeSwitchStyleActive: 'Controls how the LOD shape switches when active/inactive.',
-  LodActivationAnimationStyle: 'Animation style used when activating/deactivating LOD meshes.',
+  LodActivationAnimationStyle: 'LOD activation behavior. Style “Use active LOD shape while active” enables the active LOD shape field in the source editor.',
   SensorInput: 'Allows the block to act as a sensor input in logic systems.',
   DrawLogicConnection: 'Draws visible logic connection lines for this block.',
   LogicSignaledByRail: 'Allows rail state/signals to feed the logic system.',
   LogicBlockButton: 'Treats the block as a logic button/input.',
   Beacon: 'Marks this block as beacon-like for gameplay/UI behavior.',
-  ResourceInjection: 'Resource injection mode used by factory/reactor systems.',
+  ResourceInjection: 'Resource injection mode. Source enum maps Off, Ore/terrain resources, and Flora resources for generated/resource blocks.',
   ExplosionAbsorbtion: 'Explosion absorption factor used by damage calculations.',
   StructureHPContribution: 'Additional structure hit points contributed by this block.',
   SourceReference: 'References another block/system as source for this entry.',
@@ -626,6 +637,12 @@ function ExtraPropertiesEditor({ value, blocks, onChange }: { value: Record<stri
               <ChambersEditor value={value} blocks={blocks} onChange={onChange} />
             ) : group.title === 'Controllers' ? (
               <ControllersEditor value={value} blocks={blocks} onChange={onChange} />
+            ) : group.title === 'Collision / Physical' ? (
+              <CollisionPhysicalEditor value={value} onChange={onChange} />
+            ) : group.title === 'LOD / Mesh' ? (
+              <LodMeshEditor value={value} onChange={onChange} />
+            ) : group.title === 'Logic / Gameplay' ? (
+              <LogicGameplayEditor value={value} onChange={onChange} />
             ) : group.keys.map(key => (
               <Field key={key} label={formatPropertyLabel(key)} tooltip={tooltipForExtraProperty(key)}>
                 <ExtraValueEditor value={value[key]} onChange={next => updateKey(key, next)} />
@@ -886,6 +903,126 @@ function ControllerListEditor({ title, value, blocks, onChange }: { title: strin
       <ElementListEditor value={value} blocks={blocks} onChange={onChange} addLabel={`+ Add ${title.toLowerCase()}`} />
     </Field>
   );
+}
+
+function CollisionPhysicalEditor({ value, onChange }: { value: Record<string, unknown>; onChange: (value: Record<string, unknown>) => void }) {
+  const updateKey = (key: string, next: unknown) => onChange({ ...value, [key]: next });
+  return (
+    <div className="collision-editor">
+      <label className="inline-check" title={tooltipForExtraProperty('Physical')}>
+        <input type="checkbox" checked={Boolean(value.Physical)} onChange={e => updateKey('Physical', e.target.checked)} />
+        Physical collision <span className="field-help" aria-label={tooltipForExtraProperty('Physical')}>ⓘ</span>
+      </label>
+      <label className="inline-check" title={tooltipForExtraProperty('CubeCubeCollision')}>
+        <input type="checkbox" checked={Boolean(value.CubeCubeCollision)} onChange={e => updateKey('CubeCubeCollision', e.target.checked)} />
+        Cube collision algorithm <span className="field-help" aria-label={tooltipForExtraProperty('CubeCubeCollision')}>ⓘ</span>
+      </label>
+      <label className="inline-check" title={tooltipForExtraProperty('LodCollisionPhysical')}>
+        <input type="checkbox" checked={Boolean(value.LodCollisionPhysical)} onChange={e => updateKey('LodCollisionPhysical', e.target.checked)} />
+        LOD collision is physical <span className="field-help" aria-label={tooltipForExtraProperty('LodCollisionPhysical')}>ⓘ</span>
+      </label>
+      <label className="inline-check" title={tooltipForExtraProperty('UseDetailedCollisionForAstronautMode')}>
+        <input type="checkbox" checked={Boolean(value.UseDetailedCollisionForAstronautMode)} onChange={e => updateKey('UseDetailedCollisionForAstronautMode', e.target.checked)} />
+        Detailed astronaut collision <span className="field-help" aria-label={tooltipForExtraProperty('UseDetailedCollisionForAstronautMode')}>ⓘ</span>
+      </label>
+      <label className="inline-check" title={tooltipForExtraProperty('Enterable')}>
+        <input type="checkbox" checked={Boolean(value.Enterable)} onChange={e => updateKey('Enterable', e.target.checked)} />
+        Enterable <span className="field-help" aria-label={tooltipForExtraProperty('Enterable')}>ⓘ</span>
+      </label>
+      <CollisionShapeEditor label="Default collision" value={value.CollisionDefault} onChange={next => updateKey('CollisionDefault', next)} />
+      <CollisionShapeEditor label="Astronaut collision" value={value.DetailedCollisionForAstronautMode} onChange={next => updateKey('DetailedCollisionForAstronautMode', next)} />
+    </div>
+  );
+}
+
+function CollisionShapeEditor({ label, value, onChange }: { label: string; value: unknown; onChange: (value: unknown) => void }) {
+  const shape = normalizeCollisionShape(value);
+  return (
+    <Field label={label} tooltip="Collision shape. Block type uses a named block style and slab thickness; convex hull uses a named mesh resource.">
+      <div className="collision-shape-editor">
+        <select value={shape.type} onChange={e => onChange(defaultCollisionShape(e.target.value))}>
+          <option value="None">None</option>
+          <option value="BlockType">Block style</option>
+          <option value="ConvexHull">Convex hull mesh</option>
+        </select>
+        {shape.type === 'BlockType' && (
+          <>
+            <select value={shape.styleId} onChange={e => onChange({ ...shape.raw, '@_type': 'BlockType', StyleId: +e.target.value })}>
+              {BLOCK_STYLES.map(style => <option key={style} value={style}>{blockStyleName(style)}</option>)}
+            </select>
+            <select value={shape.slab} onChange={e => onChange({ ...shape.raw, '@_type': 'BlockType', '@_slab': String(+e.target.value) })}>
+              {SLAB_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
+          </>
+        )}
+        {shape.type === 'ConvexHull' && (
+          <input value={shape.mesh} placeholder="Collision mesh name" onChange={e => onChange({ ...shape.raw, '@_type': 'ConvexHull', Mesh: e.target.value })} />
+        )}
+      </div>
+    </Field>
+  );
+}
+
+function LodMeshEditor({ value, onChange }: { value: Record<string, unknown>; onChange: (value: Record<string, unknown>) => void }) {
+  const updateKey = (key: string, next: unknown) => onChange({ ...value, [key]: next });
+  return (
+    <div className="lod-editor">
+      <Field label="Default LOD model" tooltip={tooltipForExtraProperty('LodShape')}>
+        <input value={String(value.LodShape ?? '')} onChange={e => updateKey('LodShape', e.target.value)} />
+      </Field>
+      <Field label="Active LOD model" tooltip={tooltipForExtraProperty('LodShapeSwitchStyleActive')}>
+        <input value={String(value.LodShapeSwitchStyleActive ?? '')} onChange={e => updateKey('LodShapeSwitchStyleActive', e.target.value)} />
+      </Field>
+      <Field label="Activation LOD behavior" tooltip={tooltipForExtraProperty('LodActivationAnimationStyle')}>
+        <select value={Number(value.LodActivationAnimationStyle ?? 0)} onChange={e => updateKey('LodActivationAnimationStyle', +e.target.value)}>
+          {LOD_ACTIVATION_ANIMATION_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+        </select>
+      </Field>
+    </div>
+  );
+}
+
+function LogicGameplayEditor({ value, onChange }: { value: Record<string, unknown>; onChange: (value: Record<string, unknown>) => void }) {
+  const updateKey = (key: string, next: unknown) => onChange({ ...value, [key]: next });
+  const flags = ['SensorInput', 'DrawLogicConnection', 'LogicSignaledByRail', 'LogicBlockButton', 'Beacon'] as const;
+  return (
+    <div className="logic-editor">
+      <div className="flags-grid">
+        {flags.map(key => (
+          <label key={key} className="flag-toggle" title={tooltipForExtraProperty(key)}>
+            <input type="checkbox" checked={Boolean(value[key])} onChange={e => updateKey(key, e.target.checked)} />
+            {formatPropertyLabel(key)} <span className="field-help" aria-label={tooltipForExtraProperty(key)}>ⓘ</span>
+          </label>
+        ))}
+      </div>
+      <Field label="Resource injection" tooltip={tooltipForExtraProperty('ResourceInjection')}>
+        <select value={Number(value.ResourceInjection ?? 0)} onChange={e => updateKey('ResourceInjection', +e.target.value)}>
+          {RESOURCE_INJECTION_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+        </select>
+      </Field>
+      <Field label="Explosion absorption" tooltip={tooltipForExtraProperty('ExplosionAbsorbtion')}>
+        <input type="number" step={0.01} value={Number(value.ExplosionAbsorbtion ?? 0)} onChange={e => updateKey('ExplosionAbsorbtion', +e.target.value)} />
+      </Field>
+    </div>
+  );
+}
+
+function normalizeCollisionShape(value: unknown): { type: string; styleId: number; slab: number; mesh: string; raw: Record<string, unknown> } {
+  const raw = value && typeof value === 'object' ? value as Record<string, unknown> : {};
+  const type = String(raw['@_type'] ?? 'None');
+  return {
+    type,
+    styleId: Number(raw.StyleId ?? 0),
+    slab: Number(raw['@_slab'] ?? 0),
+    mesh: String(raw.Mesh ?? ''),
+    raw,
+  };
+}
+
+function defaultCollisionShape(type: string): Record<string, unknown> {
+  if (type === 'BlockType') return { '@_type': 'BlockType', StyleId: 0, '@_slab': '0' };
+  if (type === 'ConvexHull') return { '@_type': 'ConvexHull', Mesh: '' };
+  return { '@_type': 'None' };
 }
 
 function BlockTypeSelect({ blocks, value, onChange }: { blocks: BlockDef[]; value: string; onChange: (value: string) => void }) {
