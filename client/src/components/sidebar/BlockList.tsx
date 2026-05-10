@@ -41,7 +41,7 @@ function BlockCard({ block, selected, onSelect }: {
     <div
       className={`block-card ${selected ? 'selected' : ''} ${block.isCustom ? 'custom' : ''}`}
       onClick={() => onSelect(block)}
-      title={`ID: ${block.id}  Style: ${blockStyleName(block.blockStyle)}`}
+      title={blockStyleName(block.blockStyle)}
     >
       <div className="block-card-icon">
         <img
@@ -54,7 +54,7 @@ function BlockCard({ block, selected, onSelect }: {
       <div className="block-card-body">
         <div className="block-card-name">{block.name}</div>
         <div className="block-card-meta">
-          ID {block.id} · {blockStyleName(block.blockStyle)}
+          {blockStyleName(block.blockStyle)}
           <BlockBadge block={block} />
         </div>
       </div>
@@ -107,7 +107,7 @@ export function Sidebar() {
       <div className="sidebar-search">
         <input
           type="text"
-          placeholder="🔍 Search name, type, ID…"
+          placeholder="🔍 Search block…"
           value={filter.search}
           onChange={e => setFilter({ search: e.target.value })}
         />

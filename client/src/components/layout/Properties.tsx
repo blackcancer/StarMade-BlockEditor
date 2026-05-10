@@ -20,30 +20,30 @@ const BLOCK_STYLES = [0, 1, 2, 3, 4, 5, 6];
 
 /** individualSides options. */
 const IND_SIDES_OPTIONS = [
-  { value: 1, label: '1 — All faces same tile' },
-  { value: 3, label: '3 — Front/back · Top/bottom · Sides' },
-  { value: 6, label: '6 — Each face independent' },
+  { value: 1, label: 'All faces same tile' },
+  { value: 3, label: 'Grouped faces: front/back · top/bottom · sides' },
+  { value: 6, label: 'Each face independent' },
 ];
 
 const LIGHT_PRESETS = ['#ffffff', '#60b8ff', '#34d399', '#fbbf24', '#f87171', '#a78bfa', '#22d3ee', '#f97316'];
 
 const SLAB_OPTIONS = [
-  { value: 0, label: '0 — Full block' },
-  { value: 1, label: '1 — 3/4 slab' },
-  { value: 2, label: '2 — 1/2 slab' },
-  { value: 3, label: '3 — 1/4 slab' },
+  { value: 0, label: 'Full block' },
+  { value: 1, label: '3/4 slab' },
+  { value: 2, label: '1/2 slab' },
+  { value: 3, label: '1/4 slab' },
 ];
 
 const EFFECT_ARMOR_TYPES = ['Heat', 'Kinetic', 'EM'];
 
 const RESOURCE_TYPE_OPTIONS = [
-  { value: 0, label: '0 — Ore' },
-  { value: 1, label: '1 — Plant' },
-  { value: 2, label: '2 — Basic resource' },
-  { value: 3, label: '3 — Cubatom-splittable' },
-  { value: 4, label: '4 — Manufactory' },
-  { value: 5, label: '5 — Advanced' },
-  { value: 6, label: '6 — Capsule' },
+  { value: 0, label: 'Ore' },
+  { value: 1, label: 'Plant' },
+  { value: 2, label: 'Basic resource' },
+  { value: 3, label: 'Cubatom-splittable' },
+  { value: 4, label: 'Manufactory' },
+  { value: 5, label: 'Advanced' },
+  { value: 6, label: 'Capsule' },
 ];
 
 const FACTORY_OPTIONS = [
@@ -134,7 +134,7 @@ export function Properties() {
           {draft.isCustom   && <span className="badge badge-custom">Custom</span>}
           {draft.isDeprecated && <span className="badge badge-deprecated">Deprecated</span>}
         </div>
-        <div className="properties-id">ID {draft.id}</div>
+        <div className="properties-id">{draft.isCustom ? 'Custom block' : 'Vanilla block'}</div>
       </div>
 
       {isVanilla && (
@@ -151,9 +151,6 @@ export function Properties() {
           <h4>Identity</h4>
           <Field label="Name" tooltip="Display name shown in inventories, shops and config lists.">
             <input value={draft.name} onChange={e => onChange('name', e.target.value)} />
-          </Field>
-          <Field label="XML Type (read-only)" tooltip="Internal StarMade block type key from BlockTypes.properties. Kept read-only to avoid breaking ID mapping.">
-            <input value={draft.xmlTypeName} readOnly />
           </Field>
           <Field label="Build icon" tooltip="Icon index from data/image-resource/build-icons-[sheet]-16x16-gui-.png. Custom blocks can pick their inventory/build icon here.">
             <div className="icon-field">
@@ -230,7 +227,7 @@ export function Properties() {
           <Field label="Block Style" tooltip="Geometric shape: cube, wedge, corner, cross, tetra, penta, etc.">
             <select value={draft.blockStyle} onChange={e => onChange('blockStyle', +e.target.value)}>
               {BLOCK_STYLES.map(s => (
-                <option key={s} value={s}>{s} — {blockStyleName(s)}</option>
+                <option key={s} value={s}>{blockStyleName(s)}</option>
               ))}
             </select>
           </Field>
@@ -248,9 +245,8 @@ export function Properties() {
               ))}
             </select>
           </Field>
-          <Field label="Computer Reference ID" tooltip="ID of the controller/computer block linked to this block, when applicable.">
-            <input type="number" value={draft.computerReference} min={0}
-              onChange={e => onChange('computerReference', +e.target.value)} />
+          <Field label="Computer reference" tooltip="Controller/computer block linked to this block, when applicable.">
+            <BlockIdSelect blocks={blocks} value={draft.computerReference} onChange={id => onChange('computerReference', id)} allowNone />
           </Field>
         </section>
 
@@ -383,17 +379,17 @@ export function Properties() {
           </section>
         )}
 
-        {/* Variant IDs */}
+        {/* Variants */}
         <section>
           <h4>Variants</h4>
-          <Field label="Slab IDs" tooltip="Choose slab variant block IDs associated with this block.">
+          <Field label="Slab variants" tooltip="Choose slab variant blocks associated with this block.">
             <VariantSelector
               ids={draft.slabIds}
               options={blockOptions}
               onChange={ids => updateDraft({ slabIds: ids })}
             />
           </Field>
-          <Field label="Style IDs" tooltip="Choose alternate style variant block IDs associated with this block.">
+          <Field label="Style variants" tooltip="Choose alternate style variant blocks associated with this block.">
             <VariantSelector
               ids={draft.styleIds}
               options={blockOptions}
@@ -414,7 +410,7 @@ export function Properties() {
             className="btn-delete"
             title="Remove this block from customBlockConfig/BlockConfigImport.xml"
             onClick={() => {
-              if (window.confirm(`Delete custom block ${draft.name} (${draft.id})?`)) deleteBlock(draft);
+              if (window.confirm(`Delete custom block ${draft.name}?`)) deleteBlock(draft);
             }}
           >
             🗑 Delete
@@ -472,7 +468,7 @@ function VariantSelector({ ids, options, onChange }: { ids: number[]; options: B
       <select value="" onChange={e => addId(+e.target.value)}>
         <option value="">+ Add variant…</option>
         {options.filter(b => !selected.has(b.id)).map(block => (
-          <option key={block.id} value={block.id}>{block.id} — {block.name}</option>
+          <option key={block.id} value={block.id}>{block.name}</option>
         ))}
       </select>
       <div className="variant-chips">
@@ -487,7 +483,7 @@ function VariantSelector({ ids, options, onChange }: { ids: number[]; options: B
               title="Remove variant"
               onClick={() => onChange(ids.filter(v => v !== id))}
             >
-              {id}{block ? ` — ${block.name}` : ''} ×
+              {block ? block.name : 'Unknown block'} ×
             </button>
           );
         })}
@@ -745,7 +741,7 @@ function FactoryProductionEditor({ value, blocks, onChange }: { value: Record<st
           {FACTORY_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
         </select>
       </Field>
-      <Field label="Basic resource factory" tooltip="BasicResourceFactory block id; 0 means none.">
+      <Field label="Basic resource factory" tooltip="Factory block used as BasicResourceFactory. Saved in StarMade's expected format.">
         <BlockIdSelect blocks={blocks} value={Number(value.BasicResourceFactory ?? 0)} onChange={id => updateKey('BasicResourceFactory', id)} allowNone />
       </Field>
       <Field label="Bake time" tooltip="FactoryBakeTime value from XML.">
@@ -775,13 +771,13 @@ function ChambersEditor({ value, blocks, onChange }: { value: Record<string, unk
       <Field label="Capacity" tooltip="ChamberCapacity contribution.">
         <input type="number" step={0.01} value={Number(value.ChamberCapacity ?? 0)} onChange={e => updateKey('ChamberCapacity', +e.target.value)} />
       </Field>
-      <Field label="Root chamber" tooltip="ChamberRoot block id.">
+      <Field label="Root chamber" tooltip="Top-level chamber block. Saved in StarMade's expected format.">
         <BlockIdSelect blocks={blocks} value={Number(value.ChamberRoot ?? 0)} onChange={id => updateKey('ChamberRoot', id)} allowNone />
       </Field>
-      <Field label="Parent chamber" tooltip="ChamberParent block id.">
+      <Field label="Parent chamber" tooltip="Parent chamber block. Saved in StarMade's expected format.">
         <BlockIdSelect blocks={blocks} value={Number(value.ChamberParent ?? 0)} onChange={id => updateKey('ChamberParent', id)} allowNone />
       </Field>
-      <Field label="Upgrades to" tooltip="ChamberUpgradesTo block id.">
+      <Field label="Upgrades to" tooltip="Target chamber block this entry upgrades to. Saved in StarMade's expected format.">
         <BlockIdSelect blocks={blocks} value={Number(value.ChamberUpgradesTo ?? 0)} onChange={id => updateKey('ChamberUpgradesTo', id)} allowNone />
       </Field>
       <Field label="Permission" tooltip="ChamberPermission numeric mode from XML.">
@@ -825,7 +821,7 @@ function BlockTypeSelect({ blocks, value, onChange }: { blocks: BlockDef[]; valu
     <select value={value} onChange={e => onChange(e.target.value)}>
       <option value="">None</option>
       {blocks.map(block => (
-        <option key={block.id} value={block.xmlTypeName} title={block.xmlTypeName}>{block.name}</option>
+        <option key={block.id} value={block.xmlTypeName}>{block.name}</option>
       ))}
     </select>
   );
@@ -836,7 +832,7 @@ function BlockIdSelect({ blocks, value, onChange, allowNone = false }: { blocks:
     <select value={value} onChange={e => onChange(+e.target.value)}>
       {allowNone && <option value={0}>None</option>}
       {blocks.map(block => (
-        <option key={block.id} value={block.id} title={String(block.id)}>{block.name}</option>
+        <option key={block.id} value={block.id}>{block.name}</option>
       ))}
     </select>
   );

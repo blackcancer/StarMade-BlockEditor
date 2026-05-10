@@ -111,7 +111,7 @@ export function IconPicker({ selectedIconId, onSelect, onClose }: IconPickerProp
     <div className="atlas-picker-overlay" onClick={onClose}>
       <div className="atlas-picker-modal icon-picker-modal" onClick={e => e.stopPropagation()}>
         <div className="atlas-picker-header">
-          <span>Build Icons — icon {selectedIconId}</span>
+          <span>Build Icons</span>
           <button onClick={onClose}>✕</button>
         </div>
         <div className="atlas-picker-canvas-wrap">
@@ -142,7 +142,7 @@ export function IconPicker({ selectedIconId, onSelect, onClose }: IconPickerProp
           )}
         </div>
         <div className="atlas-picker-footer">
-          Click an icon to select · Escape to close · Icon {hoveredIcon >= 0 ? hoveredIcon : '—'}
+          Click an icon to select · Escape to close
         </div>
       </div>
     </div>

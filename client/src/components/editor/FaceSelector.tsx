@@ -100,7 +100,7 @@ export function FaceSelector() {
               key={i}
               className={`face-btn ${highlightFace === i ? 'active' : ''}`}
               onClick={() => openPicker(i as FaceIndex)}
-              title={`${label} — tile ID ${tileIds[i]}`}
+              title={label}
             >
               <span className="face-btn-label">{label}</span>
               <span className="face-btn-id">#{tileIds[i]}</span>
