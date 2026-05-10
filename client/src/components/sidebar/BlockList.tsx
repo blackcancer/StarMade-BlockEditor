@@ -43,7 +43,14 @@ function BlockCard({ block, selected, onSelect }: {
       onClick={() => onSelect(block)}
       title={`ID: ${block.id}  Style: ${blockStyleName(block.blockStyle)}`}
     >
-      <div className="block-card-icon">{block.id}</div>
+      <div className="block-card-icon">
+        <img
+          src={`/api/textures/icon/${block.icon}`}
+          alt=""
+          loading="lazy"
+          onError={e => { e.currentTarget.style.display = 'none'; }}
+        />
+      </div>
       <div className="block-card-body">
         <div className="block-card-name">{block.name}</div>
         <div className="block-card-meta">

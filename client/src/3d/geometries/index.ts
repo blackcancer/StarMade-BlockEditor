@@ -24,7 +24,7 @@ import { makeCornerGeometry }       from './CornerGeom.js';
 import { makeCrossGeometry }        from './CrossGeom.js';
 import { makeTetraGeometry, makePentaGeometry } from './TetraPentaGeom.js';
 
-export { ATLAS_COLS, ATLAS_ROWS, tileUV, quadUVs } from './uvUtils.js';
+export { ATLAS_COLS, ATLAS_ROWS, PAGE_COLS, PAGE_ROWS, PAGE_TILES, PAGE_GRID_COLS, PAGE_GRID_ROWS, tileUV, quadUVs } from './uvUtils.js';
 
 /**
  * Build the Three.js BufferGeometry for a StarMade block.

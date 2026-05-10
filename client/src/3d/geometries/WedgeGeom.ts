@@ -20,7 +20,7 @@
  */
 
 import * as THREE from 'three';
-import { quadUVs, tileUV } from './uvUtils.js';
+import { starMadeFaceQuadUVs, starMadeFaceTriUVs } from './uvUtils.js';
 
 /**
  * Build a Wedge BufferGeometry.
@@ -58,17 +58,12 @@ export function makeWedgeGeometry(textureIds: number[]): THREE.BufferGeometry {
   ]);
 
   // ── UVs ───────────────────────────────────────────────────────────────────
-  const { x, y, x1, y1 } = tileUV(rightId);
-  // Triangles: use the lower-right half of the tile
-  const triUV = [x, y1, x1, y, x, y];   // right triangle
-  const triUVL = [x, y1, x1, y1, x, y]; // left triangle
-
   const uvs = new Float32Array([
-    ...quadUVs(frontId),
-    ...quadUVs(bottomId),
-    ...quadUVs(topId),
-    ...triUV,
-    ...triUVL,
+    ...starMadeFaceQuadUVs(frontId, 'front'),
+    ...starMadeFaceQuadUVs(bottomId, 'bottom'),
+    ...starMadeFaceQuadUVs(topId, 'top'),
+    ...starMadeFaceTriUVs(rightId, 'right', 0),
+    ...starMadeFaceTriUVs(leftId, 'left', 0),
   ]);
 
   // ── Normals (approximate) ─────────────────────────────────────────────────

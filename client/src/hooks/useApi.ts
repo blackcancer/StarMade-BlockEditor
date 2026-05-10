@@ -8,6 +8,7 @@
 import { useCallback, useEffect } from 'react';
 import { useBlockStore, type BlockDef } from '../store/blockStore.js';
 import { useConfigStore } from '../store/configStore.js';
+import { invalidateAtlasCache } from '../3d/AtlasTexture.js';
 
 const API = '/api';
 
@@ -16,29 +17,38 @@ const API = '/api';
 /**
  * Load starmadeDir from the API on mount and expose a save function.
  */
-export function useConfig() {
+export function useConfig(autoload = true) {
   const setConfig = useConfigStore(s => s.setConfig);
 
   useEffect(() => {
+    if (!autoload) return;
     fetch(`${API}/config`)
       .then(r => r.json())
       .then(data => setConfig({
         starmadeDir: data.starmadeDir ?? '',
         worldDir:    data.worldDir   ?? 'world0',
         atlasSize:   data.atlasSize  ?? 256,
+        texturePack: data.texturePack ?? 'Default',
         isValid:     data.isValid    ?? false,
       }))
       .catch(console.error);
-  }, [setConfig]);
+  }, [autoload, setConfig]);
 
-  const saveConfig = useCallback(async (patch: { starmadeDir?: string; atlasSize?: number }) => {
+  const saveConfig = useCallback(async (patch: { starmadeDir?: string; atlasSize?: number; texturePack?: string }) => {
     const res  = await fetch(`${API}/config`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify(patch),
     });
     const data = await res.json();
-    setConfig({ starmadeDir: data.starmadeDir, isValid: data.isValid });
+    invalidateAtlasCache();
+    setConfig({
+      starmadeDir: data.starmadeDir,
+      worldDir: data.worldDir ?? 'world0',
+      atlasSize: data.atlasSize ?? 256,
+      texturePack: data.texturePack ?? 'Default',
+      isValid: data.isValid,
+    });
     return data;
   }, [setConfig]);
 
@@ -50,7 +60,7 @@ export function useConfig() {
 /**
  * Load all block definitions from the API on mount.
  */
-export function useBlocks() {
+export function useBlocks(autoload = true) {
   const setBlocks  = useBlockStore(s => s.setBlocks);
   const setLoading = useBlockStore(s => s.setLoading);
   const setError   = useBlockStore(s => s.setError);
@@ -71,7 +81,10 @@ export function useBlocks() {
     }
   }, [isValid, setBlocks, setError, setLoading]);
 
-  useEffect(() => { reload(); }, [reload]);
+  useEffect(() => {
+    if (!autoload) return;
+    reload();
+  }, [autoload, reload]);
 
   return { reload };
 }
@@ -116,6 +129,28 @@ export function useSaveBlock() {
  *
  * @returns {{ createBlock: () => Promise<void> }} Create function.
  */
+export function useDeleteBlock() {
+  const blocks      = useBlockStore(s => s.blocks);
+  const setBlocks   = useBlockStore(s => s.setBlocks);
+  const selectBlock = useBlockStore(s => s.selectBlock);
+  const setError    = useBlockStore(s => s.setError);
+
+  const deleteBlock = useCallback(async (block: BlockDef) => {
+    try {
+      const res = await fetch(`${API}/blocks/${block.id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(`Delete failed: ${res.statusText}`);
+      const nextBlocks = blocks.filter(b => b.id !== block.id);
+      setBlocks(nextBlocks);
+      selectBlock(nextBlocks[0] ?? null);
+      setError(null);
+    } catch (e) {
+      setError(String(e));
+    }
+  }, [blocks, setBlocks, selectBlock, setError]);
+
+  return { deleteBlock };
+}
+
 export function useCreateBlock() {
   const blocks     = useBlockStore(s => s.blocks);
   const setBlocks  = useBlockStore(s => s.setBlocks);

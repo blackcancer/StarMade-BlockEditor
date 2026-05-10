@@ -9,7 +9,7 @@
  */
 
 import * as THREE from 'three';
-import { quadUVs, tileUV } from './uvUtils.js';
+import { starMadeFaceQuadUVs, starMadeFaceTriUVs } from './uvUtils.js';
 
 // =============================================================================
 // TETRA — BlockStyle 4
@@ -29,12 +29,14 @@ import { quadUVs, tileUV } from './uvUtils.js';
  * Faces (from starmade_gl.js):
  *   front  (0,1,2) · bottom (0,3,1) · top (2,1,3) · left (0,2,3)
  *
- * @param {number[]} textureIds Atlas tile IDs. [0] is used for all faces.
+ * @param {number[]} textureIds Atlas tile IDs [front, back, top, bottom, right, left].
  * @returns {THREE.BufferGeometry} Tetrahedron geometry.
  */
 export function makeTetraGeometry(textureIds: number[]): THREE.BufferGeometry {
-  const tileId = textureIds[0] ?? 0;
-  const { x, y, x1, y1 } = tileUV(tileId);
+  const frontId  = textureIds[0] ?? 0;
+  const topId    = textureIds[2] ?? frontId;
+  const bottomId = textureIds[3] ?? topId ?? frontId;
+  const leftId   = textureIds[5] ?? textureIds[4] ?? frontId;
 
   const V: [number, number, number][] = [
     [-0.5, -0.5,  0.5],  // 0
@@ -54,9 +56,12 @@ export function makeTetraGeometry(textureIds: number[]): THREE.BufferGeometry {
     ...tri(0, 2, 3),   // left
   ]);
 
-  // Map all triangles to the lower-left half of the tile quad
-  const triUV = [x, y1, x1, y, x, y];
-  const uvs = new Float32Array([...triUV, ...triUV, ...triUV, ...triUV]);
+  const uvs = new Float32Array([
+    ...starMadeFaceTriUVs(frontId, 'front', 0),
+    ...starMadeFaceTriUVs(bottomId, 'bottom', 0),
+    ...starMadeFaceTriUVs(topId, 'top', 0),
+    ...starMadeFaceTriUVs(leftId, 'left', 0),
+  ]);
 
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -122,18 +127,13 @@ export function makePentaGeometry(textureIds: number[]): THREE.BufferGeometry {
     ...tri(0, 2, 4), ...tri(6, 4, 2),  // left   (quad)
   ]);
 
-  const bk  = tileUV(backId);
-  const rt  = tileUV(rightId);
-  const lf  = tileUV(leftId);
-
   const uvs = new Float32Array([
-    ...quadUVs(frontId),
-    bk.x, bk.y1, bk.x1, bk.y, bk.x, bk.y,       // back triangle
-    ...quadUVs(bottomId),
-    ...quadUVs(topId),
-    rt.x, rt.y1, rt.x1, rt.y, rt.x, rt.y,        // right triangle
-    lf.x, lf.y1, lf.x1, lf.y1, lf.x, lf.y,
-    lf.x1, lf.y, lf.x, lf.y,                      // left (2 tris, partial)
+    ...starMadeFaceQuadUVs(frontId, 'front'),
+    ...starMadeFaceTriUVs(backId, 'back', 0),
+    ...starMadeFaceQuadUVs(bottomId, 'bottom'),
+    ...starMadeFaceQuadUVs(topId, 'top'),
+    ...starMadeFaceTriUVs(rightId, 'right', 0),
+    ...starMadeFaceQuadUVs(leftId, 'left'),
   ]);
 
   const geo = new THREE.BufferGeometry();

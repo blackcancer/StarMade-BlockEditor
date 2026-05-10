@@ -41,6 +41,11 @@ export interface BlockDef {
   door:             boolean;
   logicBlock:       boolean;
   individualSides:  number;
+  sideTexturesPointToOrientation: boolean;
+  hasActivationTexture: boolean;
+  extendedTexture4x4: boolean;
+  onlyDrawnInBuildMode: boolean;
+  lodShapeFromFar: number;
   animated:         boolean;
   isCustom:         boolean;
 }
@@ -73,6 +78,8 @@ interface BlockStore {
   // ── 3D viewer state ────────────────────────────────────────────────────────
   orientation:   number;
   setOrientation:(n: number) => void;
+  previewActive: boolean;
+  setPreviewActive:(v: boolean) => void;
   highlightFace: number;            // -1 = none, 0=front … 5=left
   setHighlightFace:(n: number) => void;
 
@@ -92,7 +99,7 @@ export const useBlockStore = create<BlockStore>((set, get) => ({
   setBlocks:     (blocks) => set({ blocks }),
 
   selectedBlock: null,
-  selectBlock:   (block) => set({ selectedBlock: block, draft: block ? { ...block } : null, isDirty: false }),
+  selectBlock:   (block) => set({ selectedBlock: block, draft: block ? { ...block } : null, isDirty: false, previewActive: true }),
 
   draft:         null,
   setDraft:      (draft) => set({ draft }),
@@ -106,6 +113,8 @@ export const useBlockStore = create<BlockStore>((set, get) => ({
 
   orientation:   0,
   setOrientation:(orientation) => set({ orientation }),
+  previewActive: true,
+  setPreviewActive:(previewActive) => set({ previewActive }),
   highlightFace: -1,
   setHighlightFace:(highlightFace) => set({ highlightFace }),
 

@@ -12,6 +12,7 @@
 import { Router } from 'express';
 import fs from 'fs';
 import path from 'path';
+import { resolveStarmadeRoot } from '../utils/path.js';
 
 const CONFIG_FILE = path.resolve(process.cwd(), 'SMToolConfig.json');
 
@@ -27,6 +28,7 @@ interface EditorConfig {
   starmadeDir: string;
   worldDir:    string;
   atlasSize:   AtlasSize;
+  texturePack: string;
 }
 
 /**
@@ -36,11 +38,17 @@ interface EditorConfig {
  */
 function loadConfig(): EditorConfig {
   if (!fs.existsSync(CONFIG_FILE)) {
-    const defaults: EditorConfig = { starmadeDir: '', worldDir: 'world0', atlasSize: 256 };
+    const defaults: EditorConfig = { starmadeDir: '', worldDir: 'world0', atlasSize: 256, texturePack: 'Default' };
     fs.writeFileSync(CONFIG_FILE, JSON.stringify(defaults, null, 2), 'utf8');
     return defaults;
   }
-  return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')) as EditorConfig;
+  const cfg = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')) as Partial<EditorConfig>;
+  return {
+    starmadeDir: cfg.starmadeDir ?? '',
+    worldDir: cfg.worldDir ?? 'world0',
+    atlasSize: VALID_SIZES.includes(cfg.atlasSize as AtlasSize) ? cfg.atlasSize as AtlasSize : 256,
+    texturePack: cfg.texturePack ?? 'Default',
+  };
 }
 
 /**
@@ -59,9 +67,10 @@ function saveConfig(cfg: EditorConfig): void {
  * @returns {{ valid: boolean; missing: string[] }} Validation result.
  */
 function validateDir(dir: string): { valid: boolean; missing: string[] } {
+  const resolved = resolveStarmadeRoot(dir);
   const required = [
-    path.join(dir, 'data', 'config', 'BlockConfig.xml'),
-    path.join(dir, 'customBlockTextures', '256', 'custom.png'),
+    path.join(resolved, 'data', 'config', 'BlockConfig.xml'),
+    path.join(resolved, 'customBlockTextures', '256', 'custom.png'),
   ];
   const missing = required.filter(p => !fs.existsSync(p));
   return { valid: missing.length === 0, missing };
@@ -78,10 +87,11 @@ configRouter.get('/', (_req, res) => {
 
 /** POST /api/config — update config */
 configRouter.post('/', (req, res) => {
-  const { starmadeDir, worldDir, atlasSize } = req.body as Partial<EditorConfig>;
+  const { starmadeDir, worldDir, atlasSize, texturePack } = req.body as Partial<EditorConfig>;
   const cfg = loadConfig();
   if (starmadeDir !== undefined) cfg.starmadeDir = starmadeDir;
   if (worldDir    !== undefined) cfg.worldDir    = worldDir;
+  if (texturePack !== undefined) cfg.texturePack = texturePack;
   if (atlasSize   !== undefined && VALID_SIZES.includes(atlasSize as AtlasSize)) {
     cfg.atlasSize = atlasSize as AtlasSize;
   }

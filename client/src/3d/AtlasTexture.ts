@@ -1,79 +1,72 @@
 /**
  * @fileoverview Atlas texture loader for Three.js.
  *
- * Loads the StarMade block texture atlas from the local API
- * (/api/textures/atlas) and exposes helpers to compute UV
- * coordinates and access individual tile data.
- *
- * @author InitSysRev
- * @version 1.0.0
+ * Loads StarMade diffuse and normal atlas textures from the local API.
  */
 
 import * as THREE from 'three';
 
-/** Number of tiles per row/column in the StarMade atlas. */
-export const ATLAS_COLS = 16;
-export const ATLAS_ROWS = 16;
+export const ATLAS_COLS = 32;
+export const ATLAS_ROWS = 32;
+export const PAGE_COLS = 16;
+export const PAGE_ROWS = 16;
+export const PAGE_TILES = PAGE_COLS * PAGE_ROWS;
 
-/** Texture loader singleton. */
+export type AtlasMapKind = 'diffuse' | 'normal';
+
 const _loader = new THREE.TextureLoader();
+const _cachedTextures = new Map<string, THREE.Texture>();
+const _loadingPromises = new Map<string, Promise<THREE.Texture>>();
 
-let _cachedTexture: THREE.Texture | null = null;
-let _loadingPromise: Promise<THREE.Texture> | null = null;
+export async function loadAtlasTexture(
+  size = 256,
+  texturePack = 'Default',
+  mapKind: AtlasMapKind = 'diffuse',
+): Promise<THREE.Texture> {
+  const key = `${texturePack}:${size}:${mapKind}`;
+  const cached = _cachedTextures.get(key);
+  if (cached) return cached;
 
-/**
- * Load the block texture atlas from the API, caching it for reuse.
- *
- * @param {number} size Atlas tile size in pixels (default 256).
- * @returns {Promise<THREE.Texture>} Loaded Three.js texture.
- */
-export async function loadAtlasTexture(size = 256): Promise<THREE.Texture> {
-  if (_cachedTexture) return _cachedTexture;
-  if (_loadingPromise)  return _loadingPromise;
+  const pending = _loadingPromises.get(key);
+  if (pending) return pending;
 
-  _loadingPromise = new Promise((resolve, reject) => {
+  const promise = new Promise<THREE.Texture>((resolve, reject) => {
     _loader.load(
-      `/api/textures/atlas?size=${size}`,
+      `/api/textures/atlas?size=${size}&pack=${encodeURIComponent(texturePack)}&map=${mapKind}&v=4`,
       (tex) => {
         tex.magFilter = THREE.NearestFilter;
         tex.minFilter = THREE.NearestFilter;
-        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.colorSpace = mapKind === 'diffuse' ? THREE.SRGBColorSpace : THREE.NoColorSpace;
         tex.needsUpdate = true;
-        _cachedTexture = tex;
-        _loadingPromise = null;
+        _cachedTextures.set(key, tex);
+        _loadingPromises.delete(key);
         resolve(tex);
       },
       undefined,
       (err) => {
-        _loadingPromise = null;
+        _loadingPromises.delete(key);
         reject(err);
-      }
+      },
     );
   });
 
-  return _loadingPromise;
+  _loadingPromises.set(key, promise);
+  return promise;
 }
 
-/**
- * Invalidate the atlas cache (call after the user uploads a new texture).
- */
 export function invalidateAtlasCache(): void {
-  if (_cachedTexture) {
-    _cachedTexture.dispose();
-    _cachedTexture = null;
-  }
-  _loadingPromise = null;
+  for (const tex of _cachedTextures.values()) tex.dispose();
+  _cachedTextures.clear();
+  _loadingPromises.clear();
 }
 
-/**
- * Compute UV rect for a tile ID in the 16×16 atlas.
- *
- * @param {number} tileId Tile index (0–255).
- * @returns {{ u: number; v: number; u1: number; v1: number }} UV corners.
- */
 export function tileUVRect(tileId: number): { u: number; v: number; u1: number; v1: number } {
-  const col = tileId % ATLAS_COLS;
-  const row = Math.floor(tileId / ATLAS_COLS);
+  const page = Math.floor(tileId / PAGE_TILES);
+  const local = tileId % PAGE_TILES;
+  const pageCol = page % 2;
+  const pageRow = Math.floor(page / 2);
+  const col = pageCol * PAGE_COLS + (local % PAGE_COLS);
+  const row = pageRow * PAGE_ROWS + Math.floor(local / PAGE_COLS);
   return {
     u:  col / ATLAS_COLS,
     v:  1 - (row + 1) / ATLAS_ROWS,

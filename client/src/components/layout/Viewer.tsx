@@ -7,7 +7,7 @@
  * @version 1.0.0
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BlockViewer } from '../../3d/BlockViewer.js';
 import { FaceSelector } from '../editor/FaceSelector.js';
 import { useBlockStore } from '../../store/blockStore.js';
@@ -24,11 +24,18 @@ const ORIENTATION_COUNT: Record<number, number> = {
  * @component
  */
 export function ViewerColumn() {
-  const draft         = useBlockStore(s => s.draft);
-  const orientation   = useBlockStore(s => s.orientation);
-  const setOrientation = useBlockStore(s => s.setOrientation);
+  const draft             = useBlockStore(s => s.draft);
+  const orientation       = useBlockStore(s => s.orientation);
+  const setOrientation    = useBlockStore(s => s.setOrientation);
+  const previewActive     = useBlockStore(s => s.previewActive);
+  const setPreviewActive  = useBlockStore(s => s.setPreviewActive);
 
   const maxOrient = draft ? (ORIENTATION_COUNT[draft.blockStyle] ?? 6) : 6;
+  const showActiveStatePreview = draft?.lightSource === true || draft?.hasActivationTexture === true;
+
+  useEffect(() => {
+    if (orientation >= maxOrient) setOrientation(0);
+  }, [orientation, maxOrient, setOrientation]);
 
   return (
     <div className="viewer-column">
@@ -72,6 +79,27 @@ export function ViewerColumn() {
               title="Next orientation"
             >▶</button>
           </div>
+
+          {showActiveStatePreview && (
+            <div className="orientation-row active-preview-row">
+              <label title="Affiché uniquement pour LightSource ou HasActivationTexture. CanActivate seul n'a pas de state texture.">
+                <input
+                  type="checkbox"
+                  checked={previewActive}
+                  onChange={e => setPreviewActive(e.target.checked)}
+                  style={{ marginRight: 8 }}
+                />
+                {draft.hasActivationTexture ? 'Activation texture preview' : 'Light preview'}: <strong>{previewActive ? 'ON' : 'OFF'}</strong>
+              </label>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setPreviewActive(!previewActive)}
+              >
+                Toggle
+              </button>
+            </div>
+          )}
         </>
       )}
     </div>

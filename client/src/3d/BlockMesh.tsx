@@ -11,7 +11,8 @@
  * @version 1.0.0
  */
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { makeBlockGeometry, needsDoubleSide } from './geometries/index.js';
 import type { BlockDef } from '../store/blockStore.js';
@@ -35,8 +36,10 @@ const ORIENTATIONS: Array<[number, number, number]> = [
 interface BlockMeshProps {
   /** Full block definition from the API. */
   block:         BlockDef;
-  /** Atlas Three.js texture (already loaded). */
+  /** Diffuse atlas Three.js texture (already loaded). */
   atlasTexture:  THREE.Texture;
+  /** Normal atlas Three.js texture (already loaded). */
+  normalTexture?: THREE.Texture | null;
   /** Orientation index (0–11). Defaults to 0. */
   orientation?:  number;
   /** Whether to show the block in "active" texture state. */
@@ -53,29 +56,81 @@ interface BlockMeshProps {
 export function BlockMesh({
   block,
   atlasTexture,
+  normalTexture = null,
   orientation  = 0,
+  isActive = true,
   highlightFace = -1,
 }: BlockMeshProps) {
 
+  const [animationFrame, setAnimationFrame] = useState(0);
+
+  useFrame(({ clock }) => {
+    if (!block.animated) return;
+    const nextFrame = Math.floor(clock.elapsedTime / 0.5) % 4;
+    setAnimationFrame(prev => (prev === nextFrame ? prev : nextFrame));
+  });
+
+  const effectiveTextureIds = useMemo(
+    () => block.textureId.map((tileId, sideIndex) => {
+      // Engine behavior:
+      // - getTextureId(active, side) uses tile + 1 when the block has an active/off texture and active=false.
+      // - animated blocks then add animationTime, cycling 4 frames at ~0.5s per frame.
+      const stateOffset = block.hasActivationTexture && !isActive ? 1 : 0;
+      const animatesSide = block.animated && (block.individualSides !== 3 || (sideIndex !== 2 && sideIndex !== 3));
+      const animationOffset = animatesSide ? animationFrame : 0;
+      return tileId + stateOffset + animationOffset;
+    }),
+    [block.textureId, block.hasActivationTexture, block.canActivate, block.animated, block.individualSides, isActive, animationFrame],
+  );
+
   // ── Build geometry ─────────────────────────────────────────────────────────
   const geometry = useMemo(
-    () => makeBlockGeometry(block.blockStyle, block.textureId, block.individualSides),
-    [block.blockStyle, block.textureId, block.individualSides],
+    () => makeBlockGeometry(block.blockStyle, effectiveTextureIds, block.individualSides),
+    [block.blockStyle, effectiveTextureIds, block.individualSides],
   );
+
+  const lightColor = useMemo(() => {
+    const [r = 1, g = 1, b = 1] = block.lightSourceColor ?? [1, 1, 1, 1];
+    return new THREE.Color(
+      THREE.MathUtils.clamp(r, 0, 1),
+      THREE.MathUtils.clamp(g, 0, 1),
+      THREE.MathUtils.clamp(b, 0, 1),
+    );
+  }, [block.lightSourceColor]);
+
+  const lightIntensity = useMemo(
+    () => Math.max(0, block.lightSourceColor?.[3] ?? 1),
+    [block.lightSourceColor],
+  );
+
+  // The engine propagates emitted light to surrounding geometry; the source block
+  // itself should not become a washed-out fullbright surface in the preview.
+  const emissiveStrength = useMemo(
+    () => Math.min(0.85, 0.18 + lightIntensity * 0.25),
+    [lightIntensity],
+  );
+
+  const lightEnabled = block.lightSource && isActive;
 
   // ── Build material(s) ─────────────────────────────────────────────────────
   const material = useMemo(() => {
-    const tex = atlasTexture.clone();
-    tex.needsUpdate = true;
     return new THREE.MeshStandardMaterial({
-      map:         tex,
+      map:         atlasTexture,
+      normalMap:   normalTexture,
+      // StarMade normal maps are authored in the opposite Y convention to Three.js/OpenGL.
+      normalScale: new THREE.Vector2(2.2, -2.2),
+      emissive:    lightEnabled ? lightColor : new THREE.Color(0x000000),
+      emissiveIntensity: lightEnabled ? emissiveStrength : 0,
       side:        needsDoubleSide(block.blockStyle) ? THREE.DoubleSide : THREE.FrontSide,
       transparent: block.transparency,
       alphaTest:   block.transparency ? 0.1 : 0,
       metalness:   0,
       roughness:   0.8,
     });
-  }, [atlasTexture, block.blockStyle, block.transparency]);
+  }, [atlasTexture, normalTexture, block.blockStyle, block.transparency, lightEnabled, emissiveStrength, lightColor]);
+
+  useEffect(() => () => geometry.dispose(), [geometry]);
+  useEffect(() => () => material.dispose(), [material]);
 
   // ── Orientation quaternion from starmade_gl.js Cube.setOrientation ────────
   const quaternion = useMemo(() => {
@@ -90,12 +145,25 @@ export function BlockMesh({
   }, [orientation]);
 
   return (
-    <mesh
-      geometry={geometry}
-      material={material}
-      quaternion={quaternion}
-      castShadow
-      receiveShadow
-    />
+    <group quaternion={quaternion}>
+      <mesh
+        geometry={geometry}
+        material={material}
+        castShadow
+        receiveShadow
+      />
+      {lightEnabled && (
+        <pointLight
+          position={[0, 0.22, 0]}
+          color={lightColor}
+          intensity={2.5 * lightIntensity}
+          distance={22}
+          decay={1}
+          castShadow
+          shadow-mapSize={[512, 512]}
+          shadow-bias={-0.0008}
+        />
+      )}
+    </group>
   );
 }

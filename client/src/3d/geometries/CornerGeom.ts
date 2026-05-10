@@ -26,7 +26,7 @@
  */
 
 import * as THREE from 'three';
-import { quadUVs, tileUV } from './uvUtils.js';
+import { starMadeFaceQuadUVs, starMadeFaceTriUVs } from './uvUtils.js';
 
 /**
  * Build a Corner BufferGeometry.
@@ -63,24 +63,12 @@ export function makeCornerGeometry(textureIds: number[]): THREE.BufferGeometry {
     ...tri(0, 2, 3),          // left triangle
   ]);
 
-  const { x, y, x1, y1 } = tileUV(frontId);
-  const { x: bx, y: by, x1: bx1, y1: by1 } = tileUV(backId);
-
   const uvs = new Float32Array([
-    // front tri
-    x, y1, x1, y1, x, y,
-    // back tri
-    bx, by1, bx1, by, bx1, by1,
-    // bottom quad
-    ...quadUVs(bottomId),
-    // right tri
-    tileUV(rightId).x, tileUV(rightId).y1,
-    tileUV(rightId).x1, tileUV(rightId).y,
-    tileUV(rightId).x, tileUV(rightId).y,
-    // left tri
-    tileUV(leftId).x, tileUV(leftId).y1,
-    tileUV(leftId).x, tileUV(leftId).y,
-    tileUV(leftId).x1, tileUV(leftId).y,
+    ...starMadeFaceTriUVs(frontId, 'front', 0),
+    ...starMadeFaceTriUVs(backId, 'back', 0),
+    ...starMadeFaceQuadUVs(bottomId, 'bottom'),
+    ...starMadeFaceTriUVs(rightId, 'right', 0),
+    ...starMadeFaceTriUVs(leftId, 'left', 0),
   ]);
 
   const geo = new THREE.BufferGeometry();
