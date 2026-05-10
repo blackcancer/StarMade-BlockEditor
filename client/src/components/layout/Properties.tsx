@@ -36,6 +36,16 @@ const SLAB_OPTIONS = [
 
 const EFFECT_ARMOR_TYPES = ['Heat', 'Kinetic', 'EM'];
 
+const RESOURCE_TYPE_OPTIONS = [
+  { value: 0, label: '0 — Ore' },
+  { value: 1, label: '1 — Plant' },
+  { value: 2, label: '2 — Basic resource' },
+  { value: 3, label: '3 — Cubatom-splittable' },
+  { value: 4, label: '4 — Manufactory' },
+  { value: 5, label: '5 — Advanced' },
+  { value: 6, label: '6 — Capsule' },
+];
+
 const EXTRA_PROPERTY_GROUPS = [
   { title: 'Resources / Recipes', keys: ['Consistence', 'CubatomConsistence', 'InRecipe', 'RecipeBuyResource', 'BlockResourceType'] },
   { title: 'Factory / Production', keys: ['ProducedInFactory', 'BasicResourceFactory', 'FactoryBakeTime', 'Factory'] },
@@ -530,7 +540,9 @@ function ExtraPropertiesEditor({ value, onChange }: { value: Record<string, unkn
             <span className="extra-property-count">{group.keys.length}</span>
           </summary>
           <div className="extra-property-fields">
-            {group.keys.map(key => (
+            {group.title === 'Resources / Recipes' ? (
+              <ResourceRecipeEditor value={value} onChange={onChange} />
+            ) : group.keys.map(key => (
               <Field key={key} label={formatPropertyLabel(key)} tooltip={key}>
                 <ExtraValueEditor value={value[key]} onChange={next => updateKey(key, next)} />
               </Field>
@@ -540,6 +552,160 @@ function ExtraPropertiesEditor({ value, onChange }: { value: Record<string, unkn
       ))}
     </div>
   );
+}
+
+type ResourceEntry = { name: string; count: number };
+
+function ResourceRecipeEditor({ value, onChange }: { value: Record<string, unknown>; onChange: (value: Record<string, unknown>) => void }) {
+  const updateKey = (key: string, next: unknown) => onChange({ ...value, [key]: next });
+
+  return (
+    <div className="resource-recipe-editor">
+      <div className="resource-summary-card">
+        <div>
+          <strong>Recipe participation</strong>
+          <p>Controls if this block appears in production recipes and which economy resource category it belongs to.</p>
+        </div>
+        <label className="inline-check">
+          <input
+            type="checkbox"
+            checked={Boolean(value.InRecipe)}
+            onChange={e => updateKey('InRecipe', e.target.checked)}
+          />
+          In recipe
+        </label>
+      </div>
+
+      <div className="resource-two-col">
+        <Field label="Resource type" tooltip="BlockResourceType: ore, plant, basic, cubatom-splittable, manufactory, advanced or capsule.">
+          <select value={Number(value.BlockResourceType ?? 2)} onChange={e => updateKey('BlockResourceType', +e.target.value)}>
+            {RESOURCE_TYPE_OPTIONS.map(option => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Buy recipe resources" tooltip="RecipeBuyResource: block type names consumed when buying/crafting this block.">
+          <ElementListEditor
+            value={normalizeElementList(value.RecipeBuyResource)}
+            onChange={items => updateKey('RecipeBuyResource', serializeElementList(items))}
+            placeholder="BLOCK_TYPE"
+          />
+        </Field>
+      </div>
+
+      <ResourceListEditor
+        title="Consistence"
+        help="Direct resource/material requirements: rows are saved as Item entries with a count and block/resource type."
+        value={normalizeResourceList(value.Consistence)}
+        onChange={items => updateKey('Consistence', serializeResourceList(items))}
+      />
+
+      <details className="resource-subsection">
+        <summary>Cubatom consistence <span>deprecated/specialized</span></summary>
+        <ResourceListEditor
+          title="Cubatom Consistence"
+          help="Used by cubatom-splitting logic for capsule-like resources. Usually empty for normal blocks."
+          value={normalizeResourceList(value.CubatomConsistence)}
+          onChange={items => updateKey('CubatomConsistence', serializeResourceList(items))}
+        />
+      </details>
+    </div>
+  );
+}
+
+function ResourceListEditor({ title, help, value, onChange }: { title: string; help: string; value: ResourceEntry[]; onChange: (value: ResourceEntry[]) => void }) {
+  const update = (index: number, patch: Partial<ResourceEntry>) => {
+    onChange(value.map((item, i) => i === index ? { ...item, ...patch } : item));
+  };
+
+  return (
+    <div className="resource-list-editor">
+      <div className="resource-list-header">
+        <div>
+          <strong>{title}</strong>
+          <p>{help}</p>
+        </div>
+        <button type="button" className="btn-secondary" onClick={() => onChange([...value, { name: '', count: 1 }])}>+ Add</button>
+      </div>
+      {value.length === 0 ? (
+        <div className="variant-empty">No resources.</div>
+      ) : value.map((item, index) => (
+        <div key={index} className="resource-row">
+          <input
+            className="resource-count"
+            type="number"
+            min={0}
+            value={item.count}
+            onChange={e => update(index, { count: +e.target.value })}
+          />
+          <input
+            value={item.name}
+            placeholder="RESOURCE_OR_BLOCK_TYPE"
+            onChange={e => update(index, { name: e.target.value })}
+          />
+          <button type="button" className="btn-secondary" title="Remove" onClick={() => onChange(value.filter((_, i) => i !== index))}>×</button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ElementListEditor({ value, onChange, placeholder }: { value: string[]; onChange: (value: string[]) => void; placeholder: string }) {
+  return (
+    <div className="element-list-editor">
+      {value.map((item, index) => (
+        <div key={index} className="element-row">
+          <input value={item} placeholder={placeholder} onChange={e => onChange(value.map((current, i) => i === index ? e.target.value : current))} />
+          <button type="button" className="btn-secondary" onClick={() => onChange(value.filter((_, i) => i !== index))}>×</button>
+        </div>
+      ))}
+      <button type="button" className="btn-secondary" onClick={() => onChange([...value, ''])}>+ Add resource</button>
+    </div>
+  );
+}
+
+function normalizeResourceList(raw: unknown): ResourceEntry[] {
+  if (!raw || raw === '') return [];
+  if (Array.isArray(raw)) return raw.flatMap(normalizeResourceList);
+  if (typeof raw !== 'object') return [];
+  const obj = raw as Record<string, unknown>;
+  const item = obj.Item ?? obj.item;
+  if (item !== undefined) return normalizeResourceItems(Array.isArray(item) ? item : [item]);
+  if ('#text' in obj || '@_count' in obj) return normalizeResourceItems([obj]);
+  return [];
+}
+
+function normalizeResourceItems(items: unknown[]): ResourceEntry[] {
+  return items
+    .filter((item): item is Record<string, unknown> => !!item && typeof item === 'object')
+    .map(item => ({
+      name: String(item['#text'] ?? ''),
+      count: Number(item['@_count'] ?? 1),
+    }));
+}
+
+function serializeResourceList(items: ResourceEntry[]): Record<string, unknown> | string {
+  const clean = items.filter(item => item.name.trim());
+  if (clean.length === 0) return '';
+  return {
+    Item: clean.map(item => ({ '#text': item.name.trim(), '@_count': String(Math.max(0, item.count || 0)) })),
+  };
+}
+
+function normalizeElementList(raw: unknown): string[] {
+  if (!raw || raw === '') return [];
+  if (typeof raw === 'string') return [raw].filter(Boolean);
+  if (Array.isArray(raw)) return raw.flatMap(normalizeElementList);
+  if (typeof raw !== 'object') return [];
+  const element = (raw as Record<string, unknown>).Element;
+  if (element === undefined) return [];
+  return Array.isArray(element) ? element.map(String) : [String(element)];
+}
+
+function serializeElementList(items: string[]): Record<string, unknown> | string {
+  const clean = items.map(item => item.trim()).filter(Boolean);
+  if (clean.length === 0) return '';
+  return { Element: clean.length === 1 ? clean[0] : clean };
 }
 
 function ExtraValueEditor({ value, onChange }: { value: unknown; onChange: (value: unknown) => void }) {
