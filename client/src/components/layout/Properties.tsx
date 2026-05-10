@@ -825,7 +825,7 @@ function BlockTypeSelect({ blocks, value, onChange }: { blocks: BlockDef[]; valu
     <select value={value} onChange={e => onChange(e.target.value)}>
       <option value="">None</option>
       {blocks.map(block => (
-        <option key={block.id} value={block.xmlTypeName}>{block.xmlTypeName} — {block.name}</option>
+        <option key={block.id} value={block.xmlTypeName} title={block.xmlTypeName}>{block.name}</option>
       ))}
     </select>
   );
@@ -834,9 +834,9 @@ function BlockTypeSelect({ blocks, value, onChange }: { blocks: BlockDef[]; valu
 function BlockIdSelect({ blocks, value, onChange, allowNone = false }: { blocks: BlockDef[]; value: number; onChange: (value: number) => void; allowNone?: boolean }) {
   return (
     <select value={value} onChange={e => onChange(+e.target.value)}>
-      {allowNone && <option value={0}>0 — None</option>}
+      {allowNone && <option value={0}>None</option>}
       {blocks.map(block => (
-        <option key={block.id} value={block.id}>{block.id} — {block.name}</option>
+        <option key={block.id} value={block.id} title={String(block.id)}>{block.name}</option>
       ))}
     </select>
   );
