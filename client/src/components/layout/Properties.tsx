@@ -490,14 +490,23 @@ function hexToRgba(hex: string, alpha = 1): number[] {
 }
 
 function ExtraPropertiesEditor({ value, onChange }: { value: Record<string, unknown>; onChange: (value: Record<string, unknown>) => void }) {
+  const [filter, setFilter] = useState('');
   const grouped = new Set(EXTRA_PROPERTY_GROUPS.flatMap(group => group.keys));
   const otherKeys = Object.keys(value).filter(key => !grouped.has(key)).sort();
+  const normalizedFilter = filter.trim().toLowerCase();
+  const matchesFilter = (key: string) => {
+    if (!normalizedFilter) return true;
+    return key.toLowerCase().includes(normalizedFilter)
+      || formatPropertyLabel(key).toLowerCase().includes(normalizedFilter)
+      || JSON.stringify(value[key] ?? '').toLowerCase().includes(normalizedFilter);
+  };
   const groups = [
-    ...EXTRA_PROPERTY_GROUPS.map(group => ({ ...group, keys: group.keys.filter(key => key in value) })).filter(group => group.keys.length > 0),
-    ...(otherKeys.length > 0 ? [{ title: 'Other', keys: otherKeys }] : []),
+    ...EXTRA_PROPERTY_GROUPS.map(group => ({ ...group, keys: group.keys.filter(key => key in value && matchesFilter(key)) })).filter(group => group.keys.length > 0),
+    ...(otherKeys.filter(matchesFilter).length > 0 ? [{ title: 'Other', keys: otherKeys.filter(matchesFilter) }] : []),
   ];
+  const propertyCount = Object.keys(value).length;
 
-  if (groups.length === 0) {
+  if (propertyCount === 0) {
     return <div className="variant-empty">No additional BlockConfig properties.</div>;
   }
 
@@ -505,9 +514,21 @@ function ExtraPropertiesEditor({ value, onChange }: { value: Record<string, unkn
 
   return (
     <div className="extra-properties-editor">
+      <div className="extra-properties-toolbar">
+        <input
+          value={filter}
+          onChange={e => setFilter(e.target.value)}
+          placeholder={`Search ${propertyCount} properties…`}
+        />
+        {filter && <button type="button" className="btn-secondary" onClick={() => setFilter('')}>Clear</button>}
+      </div>
+      {groups.length === 0 && <div className="variant-empty">No property matches “{filter}”.</div>}
       {groups.map(group => (
-        <details key={group.title} className="extra-property-group" open={group.title !== 'Other'}>
-          <summary>{group.title}</summary>
+        <details key={group.title} className="extra-property-group" open={normalizedFilter !== '' || group.title !== 'Other'}>
+          <summary>
+            <span>{group.title}</span>
+            <span className="extra-property-count">{group.keys.length}</span>
+          </summary>
           <div className="extra-property-fields">
             {group.keys.map(key => (
               <Field key={key} label={formatPropertyLabel(key)} tooltip={key}>
