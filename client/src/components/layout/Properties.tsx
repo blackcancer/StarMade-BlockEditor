@@ -36,6 +36,18 @@ const SLAB_OPTIONS = [
 
 const EFFECT_ARMOR_TYPES = ['Heat', 'Kinetic', 'EM'];
 
+const EXTRA_PROPERTY_GROUPS = [
+  { title: 'Resources / Recipes', keys: ['Consistence', 'CubatomConsistence', 'InRecipe', 'RecipeBuyResource', 'BlockResourceType'] },
+  { title: 'Factory / Production', keys: ['ProducedInFactory', 'BasicResourceFactory', 'FactoryBakeTime', 'Factory'] },
+  { title: 'Chambers', keys: ['GeneralChamber', 'ChamberCapacity', 'ChamberRoot', 'ChamberParent', 'ChamberUpgradesTo', 'ChamberPermission', 'ChamberAppliesTo', 'ChamberPrerequisites', 'ChamberMutuallyExclusive', 'ChamberChildren', 'ChamberConfigGroups'] },
+  { title: 'Controllers', keys: ['ControlledBy', 'Controlling', 'MainCombinationController', 'SupportCombinationController', 'EffectCombinationController'] },
+  { title: 'Collision / Physical', keys: ['Physical', 'CollisionDefault', 'CubeCubeCollision', 'UseDetailedCollisionForAstronautMode', 'DetailedCollisionForAstronautMode', 'LodCollisionPhysical', 'Enterable'] },
+  { title: 'LOD / Mesh', keys: ['LodShape', 'LodShapeSwitchStyleActive', 'LodActivationAnimationStyle'] },
+  { title: 'Logic / Gameplay', keys: ['SensorInput', 'DrawLogicConnection', 'LogicSignaledByRail', 'LogicBlockButton', 'Beacon', 'ResourceInjection', 'ExplosionAbsorbtion'] },
+  { title: 'Reactor / Structure', keys: ['StructureHPContribution', 'SourceReference', 'ReactorHp', 'ReactorGeneralIconIndex', 'LowHpSetting', 'OldHitpoints', 'SystemBlock'] },
+  { title: 'Inventory / Metadata', keys: ['InventoryGroup', 'FullName', 'WildcardIds'] },
+];
+
 /**
  * Properties panel component.
  *
@@ -72,18 +84,6 @@ export function Properties() {
   /** Text/number field change handler. */
   const onChange = (field: string, value: string | number | boolean) => {
     updateDraft({ [field]: value } as Record<string, unknown>);
-  };
-
-  const updateExtraProperties = (raw: string) => {
-    try {
-      const parsed = raw.trim() ? JSON.parse(raw) : {};
-      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-        throw new Error('Expected a JSON object');
-      }
-      updateDraft({ extraProperties: parsed });
-    } catch (e) {
-      alert(`Invalid extra properties JSON: ${e}`);
-    }
   };
 
   const importIcon = async (file: File | null) => {
@@ -265,17 +265,13 @@ export function Properties() {
           </Field>
         </section>
 
-        {/* Additional raw properties */}
+        {/* Additional structured properties */}
         <section>
           <h4>Additional BlockConfig properties</h4>
-          <Field label="Raw XML fields" tooltip="Unmodeled direct BlockConfig.xml properties preserved as JSON. Use this for fields not yet promoted to dedicated UI controls.">
-            <textarea
-              key={`extra-${draft.id}`}
-              rows={6}
-              defaultValue={JSON.stringify(draft.extraProperties ?? {}, null, 2)}
-              onBlur={e => updateExtraProperties(e.target.value)}
-            />
-          </Field>
+          <ExtraPropertiesEditor
+            value={draft.extraProperties ?? {}}
+            onChange={extraProperties => updateDraft({ extraProperties })}
+          />
         </section>
 
         {/* Flags */}
@@ -491,4 +487,98 @@ function hexToRgba(hex: string, alpha = 1): number[] {
   const g = parseInt(clean.slice(2, 4), 16) / 255;
   const b = parseInt(clean.slice(4, 6), 16) / 255;
   return [r, g, b, alpha];
+}
+
+function ExtraPropertiesEditor({ value, onChange }: { value: Record<string, unknown>; onChange: (value: Record<string, unknown>) => void }) {
+  const grouped = new Set(EXTRA_PROPERTY_GROUPS.flatMap(group => group.keys));
+  const otherKeys = Object.keys(value).filter(key => !grouped.has(key)).sort();
+  const groups = [
+    ...EXTRA_PROPERTY_GROUPS.map(group => ({ ...group, keys: group.keys.filter(key => key in value) })).filter(group => group.keys.length > 0),
+    ...(otherKeys.length > 0 ? [{ title: 'Other', keys: otherKeys }] : []),
+  ];
+
+  if (groups.length === 0) {
+    return <div className="variant-empty">No additional BlockConfig properties.</div>;
+  }
+
+  const updateKey = (key: string, next: unknown) => onChange({ ...value, [key]: next });
+
+  return (
+    <div className="extra-properties-editor">
+      {groups.map(group => (
+        <details key={group.title} className="extra-property-group" open={group.title !== 'Other'}>
+          <summary>{group.title}</summary>
+          <div className="extra-property-fields">
+            {group.keys.map(key => (
+              <Field key={key} label={formatPropertyLabel(key)} tooltip={key}>
+                <ExtraValueEditor value={value[key]} onChange={next => updateKey(key, next)} />
+              </Field>
+            ))}
+          </div>
+        </details>
+      ))}
+    </div>
+  );
+}
+
+function ExtraValueEditor({ value, onChange }: { value: unknown; onChange: (value: unknown) => void }) {
+  if (typeof value === 'boolean') {
+    return <input type="checkbox" checked={value} onChange={e => onChange(e.target.checked)} />;
+  }
+
+  if (typeof value === 'number') {
+    return <input type="number" value={value} step={Number.isInteger(value) ? 1 : 0.01} onChange={e => onChange(+e.target.value)} />;
+  }
+
+  if (typeof value === 'string') {
+    const multiline = value.length > 70 || value.includes('\n');
+    if (multiline) {
+      return <textarea rows={3} value={value} onChange={e => onChange(e.target.value)} />;
+    }
+    return <input value={value} onChange={e => onChange(e.target.value)} />;
+  }
+
+  if (Array.isArray(value)) {
+    return (
+      <div className="extra-array-editor">
+        {value.map((item, index) => (
+          <div key={index} className="extra-array-item">
+            <span className="extra-array-index">#{index + 1}</span>
+            <ExtraValueEditor
+              value={item}
+              onChange={next => onChange(value.map((current, i) => i === index ? next : current))}
+            />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (value && typeof value === 'object') {
+    const objectValue = value as Record<string, unknown>;
+    return (
+      <div className="extra-object-editor">
+        {Object.entries(objectValue).map(([key, nestedValue]) => (
+          <div key={key} className="extra-object-row">
+            <label>{formatPropertyLabel(key)}</label>
+            <ExtraValueEditor
+              value={nestedValue}
+              onChange={next => onChange({ ...objectValue, [key]: next })}
+            />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return <input value="" onChange={e => onChange(e.target.value)} />;
+}
+
+function formatPropertyLabel(key: string): string {
+  const cleaned = key.replace(/^@_/, '').replace(/^#/, '');
+  return cleaned
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/_/g, ' ')
+    .replace(/^text$/i, 'Value')
+    .replace(/^count$/i, 'Count');
 }

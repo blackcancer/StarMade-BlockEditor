@@ -602,6 +602,44 @@ button:disabled { opacity: 0.4; cursor: default; }
   color: var(--text-muted);
   font-size: 0.72rem;
 }
+.extra-properties-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.extra-property-group {
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.02);
+}
+.extra-property-group summary {
+  cursor: pointer;
+  padding: 7px 9px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+.extra-property-fields {
+  padding: 0 8px 8px;
+}
+.extra-object-editor,
+.extra-array-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.extra-object-row,
+.extra-array-item {
+  display: grid;
+  grid-template-columns: 105px 1fr;
+  gap: 6px;
+  align-items: center;
+}
+.extra-object-row label,
+.extra-array-index {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
 .icon-preview {
   width: 34px;
   height: 34px;
