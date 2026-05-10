@@ -130,7 +130,7 @@ export function Properties() {
       {/* Header */}
       <div className="properties-header">
         <div className="properties-title">
-          {draft.name || 'Unnamed block'}
+          {displayBlockName(draft) || 'Unnamed block'}
           {draft.isCustom   && <span className="badge badge-custom">Custom</span>}
           {draft.isDeprecated && <span className="badge badge-deprecated">Deprecated</span>}
         </div>
@@ -238,7 +238,7 @@ export function Properties() {
               ))}
             </select>
           </Field>
-          <Field label="Individual Sides" tooltip="Texture assignment mode: 1 = same tile everywhere, 3 = grouped faces, 6 = one tile per face.">
+          <Field label="Texture face mode" tooltip="Controls whether textures are shared, grouped, or independent per face.">
             <select value={draft.individualSides} onChange={e => onChange('individualSides', +e.target.value)}>
               {IND_SIDES_OPTIONS.map(o => (
                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -270,7 +270,7 @@ export function Properties() {
               </label>
             ))}
           </div>
-          <Field label="LOD shape from far" tooltip="Raw LodShapeFromFar value from BlockConfig.xml.">
+          <Field label="Far-distance model" tooltip="Low-detail model used from far away.">
             <input
               type="number"
               min={0}
@@ -389,7 +389,7 @@ export function Properties() {
               onChange={ids => updateDraft({ slabIds: ids })}
             />
           </Field>
-          <Field label="Style variants" tooltip="Choose alternate style variant blocks associated with this block.">
+          <Field label="Style variants" tooltip="Choose alternate shape/style variants associated with this block.">
             <VariantSelector
               ids={draft.styleIds}
               options={blockOptions}
@@ -444,6 +444,23 @@ export function Properties() {
 }
 
 /** Generic labeled field wrapper. */
+function displayBlockName(block: BlockDef): string {
+  const name = block.name?.trim() || '';
+  const typePrefix = block.xmlTypeName?.trim();
+  if (name.includes('--')) return name.split('--').pop()!.trim();
+  if (typePrefix && name.toLowerCase().startsWith(typePrefix.toLowerCase())) {
+    return name.slice(typePrefix.length).replace(/^\s*[-–—:]\s*/, '').trim() || prettifyTypeName(typePrefix);
+  }
+  return name || prettifyTypeName(typePrefix || String(block.id));
+}
+
+function prettifyTypeName(typeName: string): string {
+  return typeName
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, c => c.toUpperCase());
+}
+
 function Field({ label, tooltip, children }: { label: string; tooltip?: string; children: React.ReactNode }) {
   return (
     <div className="field">
@@ -468,7 +485,7 @@ function VariantSelector({ ids, options, onChange }: { ids: number[]; options: B
       <select value="" onChange={e => addId(+e.target.value)}>
         <option value="">+ Add variant…</option>
         {options.filter(b => !selected.has(b.id)).map(block => (
-          <option key={block.id} value={block.id}>{block.name}</option>
+          <option key={block.id} value={block.id}>{displayBlockName(block)}</option>
         ))}
       </select>
       <div className="variant-chips">
@@ -483,7 +500,7 @@ function VariantSelector({ ids, options, onChange }: { ids: number[]; options: B
               title="Remove variant"
               onClick={() => onChange(ids.filter(v => v !== id))}
             >
-              {block ? block.name : 'Unknown block'} ×
+              {block ? displayBlockName(block) : 'Unknown block'} ×
             </button>
           );
         })}
@@ -594,14 +611,14 @@ function ResourceRecipeEditor({ value, blocks, onChange }: { value: Record<strin
       ) : (
         <>
           <div className="resource-two-col">
-            <Field label="Resource type" tooltip="BlockResourceType category used by economy/factory grouping.">
+            <Field label="Resource category" tooltip="Economy/factory grouping used by StarMade.">
               <select value={Number(value.BlockResourceType ?? 2)} onChange={e => updateKey('BlockResourceType', +e.target.value)}>
                 {RESOURCE_TYPE_OPTIONS.map(option => (
                   <option key={option.value} value={option.value}>{option.label}</option>
                 ))}
               </select>
             </Field>
-            <Field label="Buy recipe resources" tooltip="RecipeBuyResource entries use BlockTypes keys; the dropdown stores the XML type name used by StarMade.">
+            <Field label="Buy recipe resources" tooltip="Resources consumed by buy/craft recipes.">
               <ElementListEditor
                 value={normalizeElementList(value.RecipeBuyResource)}
                 blocks={blocks}
@@ -613,7 +630,7 @@ function ResourceRecipeEditor({ value, blocks, onChange }: { value: Record<strin
 
           <ResourceListEditor
             title="Material requirements"
-            help="Consistence resources. Each row stores a count and a BlockTypes key."
+            help="Material requirements for crafting this block."
             value={normalizeResourceList(value.Consistence)}
             blocks={blocks}
             addLabel="+ Add material"
@@ -736,7 +753,7 @@ function FactoryProductionEditor({ value, blocks, onChange }: { value: Record<st
   const updateKey = (key: string, next: unknown) => onChange({ ...value, [key]: next });
   return (
     <div className="production-editor">
-      <Field label="Produced in" tooltip="ProducedInFactory. Stored as FAC_* numeric value in XML.">
+      <Field label="Produced in" tooltip="Factory category that can produce this block.">
         <select value={Number(value.ProducedInFactory ?? 0)} onChange={e => updateKey('ProducedInFactory', +e.target.value)}>
           {FACTORY_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
         </select>
@@ -744,7 +761,7 @@ function FactoryProductionEditor({ value, blocks, onChange }: { value: Record<st
       <Field label="Basic resource factory" tooltip="Factory block used as BasicResourceFactory. Saved in StarMade's expected format.">
         <BlockIdSelect blocks={blocks} value={Number(value.BasicResourceFactory ?? 0)} onChange={id => updateKey('BasicResourceFactory', id)} allowNone />
       </Field>
-      <Field label="Bake time" tooltip="FactoryBakeTime value from XML.">
+      <Field label="Bake time" tooltip="Production time used by factories.">
         <input type="number" min={0} step={0.1} value={Number(value.FactoryBakeTime ?? 0)} onChange={e => updateKey('FactoryBakeTime', +e.target.value)} />
       </Field>
       {'Factory' in value && (
@@ -780,7 +797,7 @@ function ChambersEditor({ value, blocks, onChange }: { value: Record<string, unk
       <Field label="Upgrades to" tooltip="Target chamber block this entry upgrades to. Saved in StarMade's expected format.">
         <BlockIdSelect blocks={blocks} value={Number(value.ChamberUpgradesTo ?? 0)} onChange={id => updateKey('ChamberUpgradesTo', id)} allowNone />
       </Field>
-      <Field label="Permission" tooltip="ChamberPermission numeric mode from XML.">
+      <Field label="Permission" tooltip="Chamber permission mode used by the reactor system.">
         <input type="number" value={Number(value.ChamberPermission ?? 0)} onChange={e => updateKey('ChamberPermission', +e.target.value)} />
       </Field>
       <Field label="Config groups" tooltip="ChamberConfigGroups labels.">
@@ -810,7 +827,7 @@ function ControllersEditor({ value, blocks, onChange }: { value: Record<string, 
 
 function ControllerListEditor({ title, value, blocks, onChange }: { title: string; value: string[]; blocks: BlockDef[]; onChange: (value: string[]) => void }) {
   return (
-    <Field label={title} tooltip="Stores BlockTypes keys in XML.">
+    <Field label={title} tooltip="Choose blocks by display name; values are saved in StarMade's expected format.">
       <ElementListEditor value={value} blocks={blocks} onChange={onChange} addLabel={`+ Add ${title.toLowerCase()}`} />
     </Field>
   );
@@ -821,7 +838,7 @@ function BlockTypeSelect({ blocks, value, onChange }: { blocks: BlockDef[]; valu
     <select value={value} onChange={e => onChange(e.target.value)}>
       <option value="">None</option>
       {blocks.map(block => (
-        <option key={block.id} value={block.xmlTypeName}>{block.name}</option>
+        <option key={block.id} value={block.xmlTypeName}>{displayBlockName(block)}</option>
       ))}
     </select>
   );
@@ -832,7 +849,7 @@ function BlockIdSelect({ blocks, value, onChange, allowNone = false }: { blocks:
     <select value={value} onChange={e => onChange(+e.target.value)}>
       {allowNone && <option value={0}>None</option>}
       {blocks.map(block => (
-        <option key={block.id} value={block.id}>{block.name}</option>
+        <option key={block.id} value={block.id}>{displayBlockName(block)}</option>
       ))}
     </select>
   );

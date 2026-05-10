@@ -103,7 +103,6 @@ export function FaceSelector() {
               title={label}
             >
               <span className="face-btn-label">{label}</span>
-              <span className="face-btn-id">#{tileIds[i]}</span>
             </button>
           ))}
         </div>
