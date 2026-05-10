@@ -130,7 +130,14 @@ function Scene() {
 
   const [atlasTexture, setAtlasTexture]   = useState<THREE.Texture | null>(null);
   const [normalTexture, setNormalTexture] = useState<THREE.Texture | null>(null);
+  const [atlasVersion, setAtlasVersion]   = useState(0);
   const [error, setError]                 = useState<string | null>(null);
+
+  useEffect(() => {
+    const handler = () => setAtlasVersion(v => v + 1);
+    window.addEventListener('atlas-imported', handler);
+    return () => window.removeEventListener('atlas-imported', handler);
+  }, []);
 
   useEffect(() => {
     if (!isValid) {
@@ -150,7 +157,7 @@ function Scene() {
         setError(null);
       })
       .catch(e => setError(String(e)));
-  }, [atlasSize, texturePack, isValid]);
+  }, [atlasSize, texturePack, isValid, atlasVersion]);
 
   const lightEnabled = !!draft?.lightSource && previewActive;
   const lightColor = useMemo(() => {

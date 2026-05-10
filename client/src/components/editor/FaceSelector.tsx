@@ -8,9 +8,8 @@
  * @version 1.0.0
  */
 
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { useBlockStore } from '../../store/blockStore.js';
-import { useConfigStore } from '../../store/configStore.js';
 import { AtlasPicker } from './AtlasPicker.js';
 
 /** Face labels in textureId array order. */
@@ -27,12 +26,8 @@ export function FaceSelector() {
   const updateDraft    = useBlockStore(s => s.updateDraft);
   const highlightFace  = useBlockStore(s => s.highlightFace);
   const setHighlightFace = useBlockStore(s => s.setHighlightFace);
-  const atlasSize = useConfigStore(s => s.atlasSize);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
   const [pickerFace, setPickerFace] = useState<FaceIndex | null>(null);
-  const [importFace, setImportFace] = useState<FaceIndex>(0);
-  const [importing, setImporting] = useState(false);
+  const [atlasManagerOpen, setAtlasManagerOpen] = useState(false);
 
   if (!draft) return null;
 
@@ -69,27 +64,6 @@ export function FaceSelector() {
     setPickerFace(null);
   };
 
-  const importTexture = async (file: File | null) => {
-    if (!file) return;
-    const baseTile = tileIds[importFace] ?? 0;
-    const targetTile = 1792 + (baseTile % 256);
-    setImporting(true);
-    try {
-      const res = await fetch(`/api/textures/custom-tile/${targetTile}?size=${atlasSize}&map=diffuse`, {
-        method: 'PUT',
-        headers: { 'Content-Type': file.type || 'application/octet-stream' },
-        body: file,
-      });
-      if (!res.ok) throw new Error(await res.text());
-      assignTileToFace(importFace, targetTile);
-    } catch (e) {
-      alert(`Texture import failed: ${e}`);
-    } finally {
-      setImporting(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  };
-
   return (
     <>
       <div className="face-selector">
@@ -107,19 +81,9 @@ export function FaceSelector() {
           ))}
         </div>
         <div className="face-import-row">
-          <select value={importFace} onChange={e => setImportFace(+e.target.value as FaceIndex)}>
-            {FACE_LABELS.map((label, i) => <option key={label} value={i}>{label}</option>)}
-          </select>
-          <button type="button" className="btn-secondary" disabled={importing} onClick={() => fileInputRef.current?.click()}>
-            {importing ? 'Importing…' : 'Import texture → custom atlas'}
+          <button type="button" className="btn-secondary" onClick={() => setAtlasManagerOpen(true)}>
+            Manage custom atlas…
           </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            style={{ display: 'none' }}
-            onChange={e => importTexture(e.target.files?.[0] ?? null)}
-          />
         </div>
         <div className="face-selector-hint">
           Click a face to change its texture tile.
@@ -130,6 +94,13 @@ export function FaceSelector() {
           {draft.animated && ' Animated preview cycles a 4-tile texture range every 0.5s.'}
         </div>
       </div>
+
+      {atlasManagerOpen && (
+        <AtlasPicker
+          selectedTileId={1792}
+          onClose={() => setAtlasManagerOpen(false)}
+        />
+      )}
 
       {pickerFace !== null && (
         <AtlasPicker

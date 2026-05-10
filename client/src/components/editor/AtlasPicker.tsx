@@ -9,6 +9,7 @@
  */
 
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { invalidateAtlasCache } from '../../3d/AtlasTexture.js';
 import { useConfigStore } from '../../store/configStore.js';
 import { ATLAS_COLS, ATLAS_ROWS, PAGE_COLS, PAGE_ROWS, PAGE_TILES, PAGE_GRID_COLS } from '../../3d/geometries/index.js';
 
@@ -17,8 +18,8 @@ const DISPLAY_TILE = 48; // px per tile in the picker grid
 interface AtlasPickerProps {
   /** Currently selected tile ID. */
   selectedTileId: number;
-  /** Called when the user clicks a tile. */
-  onSelect: (tileId: number) => void;
+  /** Called when the user clicks a tile. If omitted, picker only manages the custom atlas. */
+  onSelect?: (tileId: number) => void;
   /** Called when the picker should close (click outside or Escape). */
   onClose: () => void;
 }
@@ -32,7 +33,11 @@ export function AtlasPicker({ selectedTileId, onSelect, onClose }: AtlasPickerPr
   const atlasSize   = useConfigStore(s => s.atlasSize);
   const texturePack = useConfigStore(s => s.texturePack);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [hoveredTile, setHoveredTile] = useState(-1);
+  const [customSlot, setCustomSlot] = useState(selectedTileId >= PAGE_TILES * 7 ? selectedTileId - PAGE_TILES * 7 : 0);
+  const [importing, setImporting] = useState(false);
+  const [atlasVersion, setAtlasVersion] = useState(0);
 
   const tileRect = useCallback((tileId: number) => {
     if (tileId < 0) return null;
@@ -59,7 +64,7 @@ export function AtlasPicker({ selectedTileId, onSelect, onClose }: AtlasPickerPr
     if (!ctx) return;
 
     const img = new Image();
-    img.src   = `/api/textures/atlas?size=${atlasSize}&pack=${encodeURIComponent(texturePack)}&v=3`;
+    img.src   = `/api/textures/atlas?size=${atlasSize}&pack=${encodeURIComponent(texturePack)}&v=3&refresh=${atlasVersion}`;
     img.onload = () => {
       canvas.width  = ATLAS_COLS * DISPLAY_TILE;
       canvas.height = ATLAS_ROWS * DISPLAY_TILE;
@@ -79,7 +84,7 @@ export function AtlasPicker({ selectedTileId, onSelect, onClose }: AtlasPickerPr
         }
       }
     };
-  }, [atlasSize, texturePack]);
+  }, [atlasSize, texturePack, atlasVersion]);
 
   // ── Hit-test helpers ─────────────────────────────────────────────────────
   const tileFromEvent = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -94,6 +99,28 @@ export function AtlasPicker({ selectedTileId, onSelect, onClose }: AtlasPickerPr
     return (pageRow * PAGE_GRID_COLS + pageCol) * PAGE_TILES + localRow * PAGE_COLS + localCol;
   }, []);
 
+  const importCustomTexture = async (file: File | null) => {
+    if (!file) return;
+    const targetTile = PAGE_TILES * 7 + Math.max(0, Math.min(PAGE_TILES - 1, customSlot));
+    setImporting(true);
+    try {
+      const res = await fetch(`/api/textures/custom-tile/${targetTile}?size=${atlasSize}&map=diffuse`, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type || 'application/octet-stream' },
+        body: file,
+      });
+      if (!res.ok) throw new Error(await res.text());
+      invalidateAtlasCache();
+      window.dispatchEvent(new CustomEvent('atlas-imported'));
+      setAtlasVersion(v => v + 1);
+    } catch (e) {
+      alert(`Texture import failed: ${e}`);
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   // ── Keyboard close ────────────────────────────────────────────────────────
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -105,7 +132,7 @@ export function AtlasPicker({ selectedTileId, onSelect, onClose }: AtlasPickerPr
     <div className="atlas-picker-overlay" onClick={onClose}>
       <div className="atlas-picker-modal" onClick={e => e.stopPropagation()}>
         <div className="atlas-picker-header">
-          <span>Texture Atlas — tile {selectedTileId}</span>
+          <span>{onSelect ? 'Pick texture' : 'Custom atlas manager'}</span>
           <button onClick={onClose}>✕</button>
         </div>
         <div className="atlas-picker-canvas-wrap">
@@ -119,7 +146,13 @@ export function AtlasPicker({ selectedTileId, onSelect, onClose }: AtlasPickerPr
             onMouseLeave={() => setHoveredTile(-1)}
             onClick={e => {
               const id = tileFromEvent(e);
-              if (id >= 0) { onSelect(id); onClose(); }
+              if (id < 0) return;
+              if (onSelect) {
+                onSelect(id);
+                onClose();
+              } else if (id >= PAGE_TILES * 7 && id < PAGE_TILES * 8) {
+                setCustomSlot(id - PAGE_TILES * 7);
+              }
             }}
           />
           {selectedRect && (
@@ -135,8 +168,28 @@ export function AtlasPicker({ selectedTileId, onSelect, onClose }: AtlasPickerPr
             />
           )}
         </div>
-        <div className="atlas-picker-footer">
-          Click a tile to select · Escape to close · Tile {hoveredTile >= 0 ? hoveredTile : '—'}
+        <div className="atlas-picker-footer atlas-manager-footer">
+          <span>{onSelect ? 'Click a tile to select · Escape to close' : 'Click a custom-layer tile to choose the import slot'}</span>
+          <label>
+            Custom slot
+            <input
+              type="number"
+              min={0}
+              max={PAGE_TILES - 1}
+              value={customSlot}
+              onChange={e => setCustomSlot(Math.max(0, Math.min(PAGE_TILES - 1, +e.target.value || 0)))}
+            />
+          </label>
+          <button type="button" className="btn-secondary" disabled={importing} onClick={() => fileInputRef.current?.click()}>
+            {importing ? 'Importing…' : 'Import texture into custom atlas…'}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            style={{ display: 'none' }}
+            onChange={e => importCustomTexture(e.target.files?.[0] ?? null)}
+          />
         </div>
       </div>
     </div>

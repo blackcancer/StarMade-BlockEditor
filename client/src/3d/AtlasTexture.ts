@@ -6,7 +6,9 @@
 
 import * as THREE from 'three';
 
-export const ATLAS_COLS = 32;
+export const PAGE_GRID_COLS = 4;
+export const PAGE_GRID_ROWS = 2;
+export const ATLAS_COLS = 64;
 export const ATLAS_ROWS = 32;
 export const PAGE_COLS = 16;
 export const PAGE_ROWS = 16;
@@ -63,8 +65,8 @@ export function invalidateAtlasCache(): void {
 export function tileUVRect(tileId: number): { u: number; v: number; u1: number; v1: number } {
   const page = Math.floor(tileId / PAGE_TILES);
   const local = tileId % PAGE_TILES;
-  const pageCol = page % 2;
-  const pageRow = Math.floor(page / 2);
+  const pageCol = page % PAGE_GRID_COLS;
+  const pageRow = Math.floor(page / PAGE_GRID_COLS);
   const col = pageCol * PAGE_COLS + (local % PAGE_COLS);
   const row = pageRow * PAGE_ROWS + Math.floor(local / PAGE_COLS);
   return {
