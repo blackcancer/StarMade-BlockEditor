@@ -67,6 +67,61 @@ const EXTRA_PROPERTY_GROUPS = [
   { title: 'Inventory / Metadata', keys: ['InventoryGroup', 'FullName', 'WildcardIds'] },
 ];
 
+const EXTRA_TOOLTIPS: Record<string, string> = {
+  Consistence: 'Crafting/material requirements. StarMade reads Item entries with a count and a block/resource type.',
+  CubatomConsistence: 'Special material list used by cubatom/capsule splitting logic. Usually empty for regular blocks.',
+  InRecipe: 'Controls whether StarMade includes this block in recipe/production systems.',
+  RecipeBuyResource: 'Additional resources consumed by buy/craft recipes.',
+  BlockResourceType: 'Economy/resource category used to group ores, plants, basic resources, manufactory outputs, advanced parts and capsules.',
+  ProducedInFactory: 'Factory tier/category that can produce this block.',
+  BasicResourceFactory: 'Factory/resource block associated with basic-resource production.',
+  FactoryBakeTime: 'Production time used by the factory pipeline.',
+  Factory: 'Marks a factory slot role, typically input or output.',
+  GeneralChamber: 'Marks a reactor chamber as a general/root-capable chamber.',
+  ChamberCapacity: 'Capacity contribution for reactor chamber systems.',
+  ChamberRoot: 'Root chamber this chamber belongs to.',
+  ChamberParent: 'Parent chamber required in the upgrade tree.',
+  ChamberUpgradesTo: 'Target chamber unlocked/upgraded from this chamber.',
+  ChamberPermission: 'Permission mode used by the chamber system.',
+  ChamberAppliesTo: 'Block/chamber targets this chamber can apply to.',
+  ChamberPrerequisites: 'Required chambers before this chamber can be used.',
+  ChamberMutuallyExclusive: 'Chambers that cannot be combined with this one.',
+  ChamberChildren: 'Child chambers in the chamber upgrade tree.',
+  ChamberConfigGroups: 'Named chamber configuration groups used by reactor UI/configuration.',
+  ControlledBy: 'Controller block types that can control this block.',
+  Controlling: 'Block types this controller can control.',
+  MainCombinationController: 'Marks this block as the main controller in a controller/support/effect combination.',
+  SupportCombinationController: 'Marks this block as a support controller in combination systems.',
+  EffectCombinationController: 'Marks this block as an effect controller in combination systems.',
+  Physical: 'Whether the block participates as a physical/collidable object.',
+  CollisionDefault: 'Default collision behavior for the block.',
+  CubeCubeCollision: 'Uses simple cube-vs-cube collision handling.',
+  UseDetailedCollisionForAstronautMode: 'Enables detailed collision when the player is in astronaut mode.',
+  DetailedCollisionForAstronautMode: 'Detailed astronaut-mode collision profile.',
+  LodCollisionPhysical: 'Physical collision behavior for low-detail LOD meshes.',
+  Enterable: 'Whether an entity/player can enter or pass into the block volume.',
+  LodShape: 'Low-detail mesh used when LOD rendering is active.',
+  LodShapeSwitchStyleActive: 'Controls how the LOD shape switches when active/inactive.',
+  LodActivationAnimationStyle: 'Animation style used when activating/deactivating LOD meshes.',
+  SensorInput: 'Allows the block to act as a sensor input in logic systems.',
+  DrawLogicConnection: 'Draws visible logic connection lines for this block.',
+  LogicSignaledByRail: 'Allows rail state/signals to feed the logic system.',
+  LogicBlockButton: 'Treats the block as a logic button/input.',
+  Beacon: 'Marks this block as beacon-like for gameplay/UI behavior.',
+  ResourceInjection: 'Resource injection mode used by factory/reactor systems.',
+  ExplosionAbsorbtion: 'Explosion absorption factor used by damage calculations.',
+  StructureHPContribution: 'Additional structure hit points contributed by this block.',
+  SourceReference: 'References another block/system as source for this entry.',
+  ReactorHp: 'Reactor hit point contribution/value.',
+  ReactorGeneralIconIndex: 'Icon index used by reactor/chamber UI.',
+  LowHpSetting: 'Behavior/threshold setting used when structure HP is low.',
+  OldHitpoints: 'Legacy hit point value retained for compatibility/migration.',
+  SystemBlock: 'Marks the block as part of a ship/station system.',
+  InventoryGroup: 'Inventory/build menu grouping.',
+  FullName: 'Long display name used by game UI.',
+  WildcardIds: 'Alternative block IDs/types accepted as equivalent by some systems.',
+};
+
 /**
  * Properties panel component.
  *
@@ -149,10 +204,10 @@ export function Properties() {
         {/* Identity */}
         <section>
           <h4>Identity</h4>
-          <Field label="Name" tooltip="Display name shown in inventories, shops and config lists.">
+          <Field label="Name" tooltip="Display name shown by StarMade in inventories, shop/build UI and block lists.">
             <input value={draft.name} onChange={e => onChange('name', e.target.value)} />
           </Field>
-          <Field label="Build icon" tooltip="Icon index from data/image-resource/build-icons-[sheet]-16x16-gui-.png. Custom blocks can pick their inventory/build icon here.">
+          <Field label="Build icon" tooltip="Inventory/build-menu icon. StarMade stores these in build-icons sheets; this picker writes the correct sheet slot for custom icons.">
             <div className="icon-field">
               <button type="button" className="icon-preview" onClick={() => setIconPickerOpen(true)} title="Pick build icon">
                 <img src={`/api/textures/icon/${draft.icon}`} alt="" />
@@ -171,7 +226,7 @@ export function Properties() {
               />
             </div>
           </Field>
-          <Field label="Description" tooltip="Text used by StarMade to describe the block to players.">
+          <Field label="Description" tooltip="Description text shown to players in StarMade UI/tooltips.">
             <textarea
               value={draft.description}
               rows={3}
@@ -183,22 +238,22 @@ export function Properties() {
         {/* Stats */}
         <section>
           <h4>Stats</h4>
-          <Field label="HP" tooltip="Hit points. Higher values make the block more resistant to damage.">
+          <Field label="HP" tooltip="Hitpoints used by damage/destruction code. Higher values make each placed block harder to destroy.">
             <input type="number" value={draft.hp} min={0} onChange={e => onChange('hp', +e.target.value)} />
           </Field>
-          <Field label="Mass" tooltip="Mass contribution per block. Impacts ship mass, acceleration and handling.">
+          <Field label="Mass" tooltip="Mass contribution of one block. Used by ship/station mass and therefore affects movement and handling.">
             <input type="number" value={draft.mass} step={0.01} min={0} onChange={e => onChange('mass', +e.target.value)} />
           </Field>
-          <Field label="Volume" tooltip="Block volume used by StarMade stats and balancing systems.">
+          <Field label="Volume" tooltip="Volume value used by balancing/stat systems for this block type.">
             <input type="number" value={draft.volume} step={0.01} min={0} onChange={e => onChange('volume', +e.target.value)} />
           </Field>
-          <Field label="Price" tooltip="Shop and economy price in credits.">
+          <Field label="Price" tooltip="Base shop/economy price used when the block is available for trade.">
             <input type="number" value={draft.price} min={0} onChange={e => onChange('price', +e.target.value)} />
           </Field>
-          <Field label="Armor value" tooltip="Armor/resistance value used by StarMade damage calculations.">
+          <Field label="Armor value" tooltip="General armor/resistance factor used by StarMade damage calculations.">
             <input type="number" value={draft.armor} step={0.01} min={0} max={1} onChange={e => onChange('armor', +e.target.value)} />
           </Field>
-          <Field label="Effect Armor" tooltip="EffectArmor resistances from BlockConfig.xml. StarMade currently exposes Heat, Kinetic and EM here.">
+          <Field label="Effect Armor" tooltip="Per-damage-type armor modifiers. Source exposes Heat, Kinetic and EM resistances through EffectArmor.">
             <div className="effect-armor-grid">
               {EFFECT_ARMOR_TYPES.map(type => (
                 <label key={type}>
@@ -224,28 +279,28 @@ export function Properties() {
         {/* Shape */}
         <section>
           <h4>Shape</h4>
-          <Field label="Block Style" tooltip="Geometric shape: cube, wedge, corner, cross, tetra, penta, etc.">
+          <Field label="Block Style" tooltip="Mesh shape selected by BlockStyle: cube, wedge, corner, cross, tetra, penta, etc.">
             <select value={draft.blockStyle} onChange={e => onChange('blockStyle', +e.target.value)}>
               {BLOCK_STYLES.map(s => (
                 <option key={s} value={s}>{blockStyleName(s)}</option>
               ))}
             </select>
           </Field>
-          <Field label="Slab geometry" tooltip="Slab height from BlockConfig.xml. StarMade uses 1=3/4, 2=1/2, 3=1/4.">
+          <Field label="Slab geometry" tooltip="Vertical slab thickness used by the engine: full, 3/4, 1/2 or 1/4 block.">
             <select value={draft.slab ?? 0} onChange={e => onChange('slab', +e.target.value)}>
               {SLAB_OPTIONS.map(o => (
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </select>
           </Field>
-          <Field label="Texture face mode" tooltip="Controls whether textures are shared, grouped, or independent per face.">
+          <Field label="Texture face mode" tooltip="How texture IDs are interpreted: one texture for all faces, grouped faces, or six independent face textures.">
             <select value={draft.individualSides} onChange={e => onChange('individualSides', +e.target.value)}>
               {IND_SIDES_OPTIONS.map(o => (
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </select>
           </Field>
-          <Field label="Computer reference" tooltip="Controller/computer block linked to this block, when applicable.">
+          <Field label="Computer reference" tooltip="Optional linked controller/computer block used by system blocks that reference a control block.">
             <BlockIdSelect blocks={blocks} value={draft.computerReference} onChange={id => onChange('computerReference', id)} allowNone />
           </Field>
         </section>
@@ -255,10 +310,10 @@ export function Properties() {
           <h4>Rendering / Texture</h4>
           <div className="flags-grid">
             {([
-              ['sideTexturesPointToOrientation', 'Textures follow orientation', 'Uses SideTexturesPointToOrientation from BlockConfig.xml; important for rails and oriented texture layouts.'],
-              ['hasActivationTexture', 'Activation texture', 'Uses HasActivationTexture from BlockConfig.xml for blocks with an alternate active state texture.'],
-              ['extendedTexture4x4', 'Extended 4×4 texture', 'Uses ExtendedTexture4x4 from BlockConfig.xml for blocks that span a larger atlas area.'],
-              ['onlyDrawnInBuildMode', 'Build-mode only', 'Uses OnlyDrawnInBuildMode from BlockConfig.xml.'],
+              ['sideTexturesPointToOrientation', 'Textures follow orientation', 'Rotates side texture lookup with block orientation. Used by oriented/rail-like blocks so faces keep the expected texture after placement rotation.'],
+              ['hasActivationTexture', 'Activation texture', 'Enables active/inactive texture state. In source, inactive state uses the tile immediately to the right of the base texture.'],
+              ['extendedTexture4x4', 'Extended 4×4 texture', 'Uses an extended 4×4 texture footprint instead of a single tile for blocks requiring larger texture areas.'],
+              ['onlyDrawnInBuildMode', 'Build-mode only', 'Only rendered in build/edit contexts; used for helper/preview-only blocks that should not render normally.'],
             ] as [keyof typeof draft, string, string][]).map(([field, label, tooltip]) => (
               <label key={field} className="flag-toggle" title={tooltip}>
                 <input
@@ -270,7 +325,7 @@ export function Properties() {
               </label>
             ))}
           </div>
-          <Field label="Far-distance model" tooltip="Low-detail model used from far away.">
+          <Field label="Far-distance model" tooltip="LOD shape used at distance. StarMade switches to this low-detail representation when rendering far-away blocks.">
             <input
               type="number"
               min={0}
@@ -295,16 +350,16 @@ export function Properties() {
           <h4>Flags</h4>
           <div className="flags-grid">
             {([
-              ['isPlacable',     'Placable',     'Can be placed by players in build mode.'],
-              ['inShop',         'In Shop',      'Can appear in shops/economy systems.'],
-              ['hasOrientation', 'Orientation',  'Supports orientation/rotation when placed.'],
-              ['canActivate',    'Can Activate', 'Can be toggled or activated by game logic.'],
-              ['isDeprecated',   'Deprecated',   'Marks the block as obsolete; normally hidden/avoided.'],
-              ['lightSource',    'Light Source', 'Emits light using the configured RGBA color.'],
-              ['transparency',   'Transparency', 'Uses alpha transparency for glass/transparent blocks.'],
-              ['door',           'Door',         'Flags the block as a door-like block.'],
-              ['logicBlock',     'Logic Block',  'Participates in StarMade logic systems.'],
-              ['animated',       'Animated',     'Uses animated texture/behavior when supported.'],
+              ['isPlacable',     'Placable',     'Allows players/build systems to place this block in the world.'],
+              ['inShop',         'In Shop',      'Makes the block available to shop/economy systems when applicable.'],
+              ['hasOrientation', 'Orientation',  'Stores orientation when placed; enables rotated geometry/texture behavior.'],
+              ['canActivate',    'Can Activate', 'Gameplay interaction flag: the block can be toggled/used. This alone does not imply a texture change.'],
+              ['isDeprecated',   'Deprecated',   'Marks the block as obsolete for game/UI systems while preserving compatibility.'],
+              ['lightSource',    'Light Source', 'When active, contributes light using LightSourceColor: RGB color plus W intensity.'],
+              ['transparency',   'Transparency', 'Enables transparent/blended rendering for glass-like blocks.'],
+              ['door',           'Door',         'Door-specific behavior flag used by door/opening systems.'],
+              ['logicBlock',     'Logic Block',  'Participates in the logic network as a logic-capable block.'],
+              ['animated',       'Animated',     'Cycles through a 4-tile texture range; source advances animation frames every ~0.5s.'],
             ] as [keyof typeof draft, string, string][]).map(([field, label, tooltip]) => (
               <label key={field} className="flag-toggle" title={tooltip}>
                 <input
@@ -322,7 +377,7 @@ export function Properties() {
         {draft.lightSource && (
           <section>
             <h4>Light Color</h4>
-            <Field label="Color" tooltip="Emissive color emitted by this block and preview light. Pick a color or enter HEX.">
+            <Field label="Color" tooltip="RGB color emitted by an active light source. StarMade reads this as direct RGB, not HSL.">
               <div className="color-editor">
                 <input
                   type="color"
@@ -363,7 +418,7 @@ export function Properties() {
                 ))}
               </div>
             </Field>
-            <Field label="R G B Intensity" tooltip="Raw normalized values. RGB are 0–1; intensity may go up to 2 for preview/emissive strength.">
+            <Field label="R G B Intensity" tooltip="LightSourceColor values. RGB are color channels; the fourth value is the W intensity multiplier used by engine lighting.">
               <div className="light-color-row">
                 {draft.lightSourceColor.map((v, i) => (
                   <input key={i} type="number" step={0.01} min={0} max={i === 3 ? 2 : 1} value={v}
@@ -382,14 +437,14 @@ export function Properties() {
         {/* Variants */}
         <section>
           <h4>Variants</h4>
-          <Field label="Slab variants" tooltip="Choose slab variant blocks associated with this block.">
+          <Field label="Slab variants" tooltip="Links to this block's slab variants. StarMade uses these associations to navigate related slab forms.">
             <VariantSelector
               ids={draft.slabIds}
               options={blockOptions}
               onChange={ids => updateDraft({ slabIds: ids })}
             />
           </Field>
-          <Field label="Style variants" tooltip="Choose alternate shape/style variants associated with this block.">
+          <Field label="Style variants" tooltip="Links to alternate style/shape variants associated with this block.">
             <VariantSelector
               ids={draft.styleIds}
               options={blockOptions}
@@ -572,7 +627,7 @@ function ExtraPropertiesEditor({ value, blocks, onChange }: { value: Record<stri
             ) : group.title === 'Controllers' ? (
               <ControllersEditor value={value} blocks={blocks} onChange={onChange} />
             ) : group.keys.map(key => (
-              <Field key={key} label={formatPropertyLabel(key)} tooltip={key}>
+              <Field key={key} label={formatPropertyLabel(key)} tooltip={tooltipForExtraProperty(key)}>
                 <ExtraValueEditor value={value[key]} onChange={next => updateKey(key, next)} />
               </Field>
             ))}
@@ -594,7 +649,7 @@ function ResourceRecipeEditor({ value, blocks, onChange }: { value: Record<strin
       <div className="resource-summary-card">
         <div>
           <strong>Recipe participation</strong>
-          <p>When disabled, recipe inputs remain preserved but are hidden because StarMade will not use them for crafting.</p>
+          <p>Controls whether StarMade includes this block in recipe and production systems. Disabled blocks keep their data but are ignored by recipes.</p>
         </div>
         <label className="inline-check">
           <input
@@ -611,14 +666,14 @@ function ResourceRecipeEditor({ value, blocks, onChange }: { value: Record<strin
       ) : (
         <>
           <div className="resource-two-col">
-            <Field label="Resource category" tooltip="Economy/factory grouping used by StarMade.">
+            <Field label="Resource category" tooltip={tooltipForExtraProperty('BlockResourceType')}>
               <select value={Number(value.BlockResourceType ?? 2)} onChange={e => updateKey('BlockResourceType', +e.target.value)}>
                 {RESOURCE_TYPE_OPTIONS.map(option => (
                   <option key={option.value} value={option.value}>{option.label}</option>
                 ))}
               </select>
             </Field>
-            <Field label="Buy recipe resources" tooltip="Resources consumed by buy/craft recipes.">
+            <Field label="Buy recipe resources" tooltip={tooltipForExtraProperty('RecipeBuyResource')}>
               <ElementListEditor
                 value={normalizeElementList(value.RecipeBuyResource)}
                 blocks={blocks}
@@ -630,7 +685,7 @@ function ResourceRecipeEditor({ value, blocks, onChange }: { value: Record<strin
 
           <ResourceListEditor
             title="Material requirements"
-            help="Material requirements for crafting this block."
+            help={tooltipForExtraProperty('Consistence')}
             value={normalizeResourceList(value.Consistence)}
             blocks={blocks}
             addLabel="+ Add material"
@@ -641,7 +696,7 @@ function ResourceRecipeEditor({ value, blocks, onChange }: { value: Record<strin
             <summary>Cubatom consistence <span>specialized</span></summary>
             <ResourceListEditor
               title="Cubatom materials"
-              help="Used by cubatom/capsule splitting logic. Usually empty for normal blocks."
+              help={tooltipForExtraProperty('CubatomConsistence')}
               value={normalizeResourceList(value.CubatomConsistence)}
               blocks={blocks}
               addLabel="+ Add cubatom material"
@@ -753,19 +808,19 @@ function FactoryProductionEditor({ value, blocks, onChange }: { value: Record<st
   const updateKey = (key: string, next: unknown) => onChange({ ...value, [key]: next });
   return (
     <div className="production-editor">
-      <Field label="Produced in" tooltip="Factory category that can produce this block.">
+      <Field label="Produced in" tooltip={tooltipForExtraProperty('ProducedInFactory')}>
         <select value={Number(value.ProducedInFactory ?? 0)} onChange={e => updateKey('ProducedInFactory', +e.target.value)}>
           {FACTORY_OPTIONS.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
         </select>
       </Field>
-      <Field label="Basic resource factory" tooltip="Factory block used as BasicResourceFactory. Saved in StarMade's expected format.">
+      <Field label="Basic resource factory" tooltip={tooltipForExtraProperty('BasicResourceFactory')}>
         <BlockIdSelect blocks={blocks} value={Number(value.BasicResourceFactory ?? 0)} onChange={id => updateKey('BasicResourceFactory', id)} allowNone />
       </Field>
-      <Field label="Bake time" tooltip="Production time used by factories.">
+      <Field label="Bake time" tooltip={tooltipForExtraProperty('FactoryBakeTime')}>
         <input type="number" min={0} step={0.1} value={Number(value.FactoryBakeTime ?? 0)} onChange={e => updateKey('FactoryBakeTime', +e.target.value)} />
       </Field>
       {'Factory' in value && (
-        <Field label="Factory slot" tooltip="Factory input/output slot marker.">
+        <Field label="Factory slot" tooltip={tooltipForExtraProperty('Factory')}>
           <select value={String(value.Factory ?? '')} onChange={e => updateKey('Factory', e.target.value)}>
             <option value="">None</option>
             <option value="INPUT">Input</option>
@@ -781,26 +836,26 @@ function ChambersEditor({ value, blocks, onChange }: { value: Record<string, unk
   const updateKey = (key: string, next: unknown) => onChange({ ...value, [key]: next });
   return (
     <div className="chambers-editor">
-      <label className="inline-check">
+      <label className="inline-check" title={tooltipForExtraProperty('GeneralChamber')}>
         <input type="checkbox" checked={Boolean(value.GeneralChamber)} onChange={e => updateKey('GeneralChamber', e.target.checked)} />
-        General chamber
+        General chamber <span className="field-help" aria-label={tooltipForExtraProperty('GeneralChamber')}>ⓘ</span>
       </label>
-      <Field label="Capacity" tooltip="ChamberCapacity contribution.">
+      <Field label="Capacity" tooltip={tooltipForExtraProperty('ChamberCapacity')}>
         <input type="number" step={0.01} value={Number(value.ChamberCapacity ?? 0)} onChange={e => updateKey('ChamberCapacity', +e.target.value)} />
       </Field>
-      <Field label="Root chamber" tooltip="Top-level chamber block. Saved in StarMade's expected format.">
+      <Field label="Root chamber" tooltip={tooltipForExtraProperty('ChamberRoot')}>
         <BlockIdSelect blocks={blocks} value={Number(value.ChamberRoot ?? 0)} onChange={id => updateKey('ChamberRoot', id)} allowNone />
       </Field>
-      <Field label="Parent chamber" tooltip="Parent chamber block. Saved in StarMade's expected format.">
+      <Field label="Parent chamber" tooltip={tooltipForExtraProperty('ChamberParent')}>
         <BlockIdSelect blocks={blocks} value={Number(value.ChamberParent ?? 0)} onChange={id => updateKey('ChamberParent', id)} allowNone />
       </Field>
-      <Field label="Upgrades to" tooltip="Target chamber block this entry upgrades to. Saved in StarMade's expected format.">
+      <Field label="Upgrades to" tooltip={tooltipForExtraProperty('ChamberUpgradesTo')}>
         <BlockIdSelect blocks={blocks} value={Number(value.ChamberUpgradesTo ?? 0)} onChange={id => updateKey('ChamberUpgradesTo', id)} allowNone />
       </Field>
-      <Field label="Permission" tooltip="Chamber permission mode used by the reactor system.">
+      <Field label="Permission" tooltip={tooltipForExtraProperty('ChamberPermission')}>
         <input type="number" value={Number(value.ChamberPermission ?? 0)} onChange={e => updateKey('ChamberPermission', +e.target.value)} />
       </Field>
-      <Field label="Config groups" tooltip="ChamberConfigGroups labels.">
+      <Field label="Config groups" tooltip={tooltipForExtraProperty('ChamberConfigGroups')}>
         <StringElementListEditor value={normalizeElementList(value.ChamberConfigGroups)} onChange={items => updateKey('ChamberConfigGroups', serializeElementList(items))} addLabel="+ Add group" />
       </Field>
     </div>
@@ -815,9 +870,9 @@ function ControllersEditor({ value, blocks, onChange }: { value: Record<string, 
       <ControllerListEditor title="Controls" value={normalizeElementList(value.Controlling)} blocks={blocks} onChange={items => updateKey('Controlling', serializeElementList(items))} />
       <div className="flags-grid">
         {(['MainCombinationController', 'SupportCombinationController', 'EffectCombinationController'] as const).map(key => (
-          <label key={key} className="flag-toggle">
+          <label key={key} className="flag-toggle" title={tooltipForExtraProperty(key)}>
             <input type="checkbox" checked={Boolean(value[key])} onChange={e => updateKey(key, e.target.checked)} />
-            {formatPropertyLabel(key)}
+            {formatPropertyLabel(key)} <span className="field-help" aria-label={tooltipForExtraProperty(key)}>ⓘ</span>
           </label>
         ))}
       </div>
@@ -827,7 +882,7 @@ function ControllersEditor({ value, blocks, onChange }: { value: Record<string, 
 
 function ControllerListEditor({ title, value, blocks, onChange }: { title: string; value: string[]; blocks: BlockDef[]; onChange: (value: string[]) => void }) {
   return (
-    <Field label={title} tooltip="Choose blocks by display name; values are saved in StarMade's expected format.">
+    <Field label={title} tooltip={title === 'Controlled by' ? tooltipForExtraProperty('ControlledBy') : tooltipForExtraProperty('Controlling')}>
       <ElementListEditor value={value} blocks={blocks} onChange={onChange} addLabel={`+ Add ${title.toLowerCase()}`} />
     </Field>
   );
@@ -920,6 +975,10 @@ function ExtraValueEditor({ value, onChange }: { value: unknown; onChange: (valu
   }
 
   return <input value="" onChange={e => onChange(e.target.value)} />;
+}
+
+function tooltipForExtraProperty(key: string): string {
+  return EXTRA_TOOLTIPS[key] ?? `${formatPropertyLabel(key)} from BlockConfig.xml. This field is preserved and saved back for StarMade compatibility.`;
 }
 
 function formatPropertyLabel(key: string): string {
