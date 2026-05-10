@@ -34,8 +34,10 @@ export function AtlasPicker({ selectedTileId, onSelect, onClose }: AtlasPickerPr
   const texturePack = useConfigStore(s => s.texturePack);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const tileFileInputRef = useRef<HTMLInputElement>(null);
   const [hoveredTile, setHoveredTile] = useState(-1);
   const [customSlot, setCustomSlot] = useState(selectedTileId >= PAGE_TILES * 7 ? selectedTileId - PAGE_TILES * 7 : 0);
+  const [mapKind, setMapKind] = useState<'diffuse' | 'normal'>('diffuse');
   const [importing, setImporting] = useState(false);
   const [atlasVersion, setAtlasVersion] = useState(0);
 
@@ -99,25 +101,48 @@ export function AtlasPicker({ selectedTileId, onSelect, onClose }: AtlasPickerPr
     return (pageRow * PAGE_GRID_COLS + pageCol) * PAGE_TILES + localRow * PAGE_COLS + localCol;
   }, []);
 
-  const importCustomTexture = async (file: File | null) => {
+  const refreshAtlas = () => {
+    invalidateAtlasCache();
+    window.dispatchEvent(new CustomEvent('atlas-imported'));
+    setAtlasVersion(v => v + 1);
+  };
+
+  const importCustomAtlas = async (file: File | null) => {
     if (!file) return;
-    const targetTile = PAGE_TILES * 7 + Math.max(0, Math.min(PAGE_TILES - 1, customSlot));
     setImporting(true);
     try {
-      const res = await fetch(`/api/textures/custom-tile/${targetTile}?size=${atlasSize}&map=diffuse`, {
+      const res = await fetch(`/api/textures/custom-atlas?size=${atlasSize}&map=${mapKind}`, {
         method: 'PUT',
         headers: { 'Content-Type': file.type || 'application/octet-stream' },
         body: file,
       });
       if (!res.ok) throw new Error(await res.text());
-      invalidateAtlasCache();
-      window.dispatchEvent(new CustomEvent('atlas-imported'));
-      setAtlasVersion(v => v + 1);
+      refreshAtlas();
     } catch (e) {
-      alert(`Texture import failed: ${e}`);
+      alert(`Custom atlas import failed: ${e}`);
     } finally {
       setImporting(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const importCustomTile = async (file: File | null) => {
+    if (!file) return;
+    const targetTile = PAGE_TILES * 7 + Math.max(0, Math.min(PAGE_TILES - 1, customSlot));
+    setImporting(true);
+    try {
+      const res = await fetch(`/api/textures/custom-tile/${targetTile}?size=${atlasSize}&map=${mapKind}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type || 'application/octet-stream' },
+        body: file,
+      });
+      if (!res.ok) throw new Error(await res.text());
+      refreshAtlas();
+    } catch (e) {
+      alert(`Tile import failed: ${e}`);
+    } finally {
+      setImporting(false);
+      if (tileFileInputRef.current) tileFileInputRef.current.value = '';
     }
   };
 
@@ -169,27 +194,50 @@ export function AtlasPicker({ selectedTileId, onSelect, onClose }: AtlasPickerPr
           )}
         </div>
         <div className="atlas-picker-footer atlas-manager-footer">
-          <span>{onSelect ? 'Click a tile to select · Escape to close' : 'Click a custom-layer tile to choose the import slot'}</span>
-          <label>
-            Custom slot
-            <input
-              type="number"
-              min={0}
-              max={PAGE_TILES - 1}
-              value={customSlot}
-              onChange={e => setCustomSlot(Math.max(0, Math.min(PAGE_TILES - 1, +e.target.value || 0)))}
-            />
-          </label>
-          <button type="button" className="btn-secondary" disabled={importing} onClick={() => fileInputRef.current?.click()}>
-            {importing ? 'Importing…' : 'Import texture into custom atlas…'}
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            style={{ display: 'none' }}
-            onChange={e => importCustomTexture(e.target.files?.[0] ?? null)}
-          />
+          {onSelect ? (
+            <span>Click a tile to select · Escape to close</span>
+          ) : (
+            <>
+              <span>Import a full StarMade custom atlas: {PAGE_COLS * atlasSize}×{PAGE_ROWS * atlasSize}px ({PAGE_COLS}×{PAGE_ROWS} tiles)</span>
+              <select value={mapKind} onChange={e => setMapKind(e.target.value as 'diffuse' | 'normal')}>
+                <option value="diffuse">Diffuse atlas</option>
+                <option value="normal">Normal atlas</option>
+              </select>
+              <button type="button" className="btn-secondary" disabled={importing} onClick={() => fileInputRef.current?.click()}>
+                {importing ? 'Importing…' : 'Import full custom atlas…'}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                style={{ display: 'none' }}
+                onChange={e => importCustomAtlas(e.target.files?.[0] ?? null)}
+              />
+              <details className="atlas-tile-import-details">
+                <summary>Advanced: replace one tile</summary>
+                <label>
+                  Slot
+                  <input
+                    type="number"
+                    min={0}
+                    max={PAGE_TILES - 1}
+                    value={customSlot}
+                    onChange={e => setCustomSlot(Math.max(0, Math.min(PAGE_TILES - 1, +e.target.value || 0)))}
+                  />
+                </label>
+                <button type="button" className="btn-secondary" disabled={importing} onClick={() => tileFileInputRef.current?.click()}>
+                  Replace selected tile…
+                </button>
+                <input
+                  ref={tileFileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  style={{ display: 'none' }}
+                  onChange={e => importCustomTile(e.target.files?.[0] ?? null)}
+                />
+              </details>
+            </>
+          )}
         </div>
       </div>
     </div>

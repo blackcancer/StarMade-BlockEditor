@@ -431,17 +431,32 @@ button:disabled { opacity: 0.4; cursor: default; }
 }
 .atlas-manager-footer {
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: 1fr auto auto auto;
   gap: 8px;
   align-items: center;
 }
-.atlas-manager-footer label {
+.atlas-manager-footer label,
+.atlas-tile-import-details label {
   display: flex;
   align-items: center;
   gap: 5px;
 }
 .atlas-manager-footer input[type=number] {
   width: 74px;
+}
+.atlas-tile-import-details {
+  grid-column: 1 / -1;
+  padding-top: 6px;
+}
+.atlas-tile-import-details summary {
+  cursor: pointer;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+.atlas-tile-import-details[open] {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 /* ── Properties panel ────────────────────────────────────────────────────── */

@@ -199,6 +199,19 @@ async function ensureCustomAtlas(size: TileSize, mapKind: TextureMapKind): Promi
   return customPath;
 }
 
+async function writeCustomAtlas(size: TileSize, mapKind: TextureMapKind, input: Buffer): Promise<void> {
+  const expected = PAGE_TILE_COLS * size;
+  const metadata = await sharp(input).metadata();
+  if (metadata.width !== expected || metadata.height !== expected) {
+    throw new Error(`Invalid custom atlas size. Expected ${expected}×${expected}px (${PAGE_TILE_COLS}×${PAGE_TILE_ROWS} tiles at ${size}px), got ${metadata.width ?? '?'}×${metadata.height ?? '?'}px.`);
+  }
+
+  const customPath = await ensureCustomAtlas(size, mapKind);
+  const normalized = await sharp(input).png().toBuffer();
+  fs.writeFileSync(customPath, normalized);
+  atlasBufferCache.clear();
+}
+
 async function writeCustomTile(tileId: number, size: TileSize, mapKind: TextureMapKind, input: Buffer): Promise<void> {
   const local = tileId >= PAGE_TILES * 7 ? tileId - PAGE_TILES * 7 : tileId;
   if (local < 0 || local >= PAGE_TILES) {
@@ -323,7 +336,21 @@ texturesRouter.get('/icons/sheet/:layer', async (req: Request, res: Response) =>
   }
 });
 
-const rawImage = express.raw({ type: ['image/png', 'image/jpeg', 'image/webp', 'application/octet-stream'], limit: '16mb' });
+const rawImage = express.raw({ type: ['image/png', 'image/jpeg', 'image/webp', 'application/octet-stream'], limit: '64mb' });
+
+texturesRouter.put('/custom-atlas', rawImage, async (req: Request, res: Response) => {
+  try {
+    if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
+      return void res.status(400).json({ error: 'Missing image payload.' });
+    }
+    const size = parseSize(req.query.size);
+    const mapKind = parseMapKind(req.query.map);
+    await writeCustomAtlas(size, mapKind, req.body);
+    res.json({ ok: true, size, map: mapKind });
+  } catch (e) {
+    res.status(400).json({ error: (e as Error).message });
+  }
+});
 
 texturesRouter.put('/custom-tile/:id', rawImage, async (req: Request, res: Response) => {
   try {
