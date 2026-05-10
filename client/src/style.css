@@ -590,6 +590,18 @@ button:disabled { opacity: 0.4; cursor: default; }
 .active-preview-row label {
   flex: 1;
 }
+.effect-armor-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.effect-armor-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
 .icon-preview {
   width: 34px;
   height: 34px;

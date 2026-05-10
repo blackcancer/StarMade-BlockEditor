@@ -32,8 +32,10 @@ export interface BlockDef {
   canActivate:      boolean;
   isDeprecated:     boolean;
   blockStyle:       number;
+  slab:             number;
   slabIds:          number[];
   styleIds:         number[];
+  effectArmor:      Record<string, number>;
   computerReference:number;
   lightSource:      boolean;
   lightSourceColor: number[];

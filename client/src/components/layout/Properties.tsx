@@ -27,6 +27,15 @@ const IND_SIDES_OPTIONS = [
 
 const LIGHT_PRESETS = ['#ffffff', '#60b8ff', '#34d399', '#fbbf24', '#f87171', '#a78bfa', '#22d3ee', '#f97316'];
 
+const SLAB_OPTIONS = [
+  { value: 0, label: '0 — Full block' },
+  { value: 1, label: '1 — 3/4 slab' },
+  { value: 2, label: '2 — 1/2 slab' },
+  { value: 3, label: '3 — 1/4 slab' },
+];
+
+const EFFECT_ARMOR_TYPES = ['Heat', 'Kinetic', 'EM'];
+
 /**
  * Properties panel component.
  *
@@ -161,6 +170,27 @@ export function Properties() {
           <Field label="Armor value" tooltip="Armor/resistance value used by StarMade damage calculations.">
             <input type="number" value={draft.armor} step={0.01} min={0} max={1} onChange={e => onChange('armor', +e.target.value)} />
           </Field>
+          <Field label="Effect Armor" tooltip="EffectArmor resistances from BlockConfig.xml. StarMade currently exposes Heat, Kinetic and EM here.">
+            <div className="effect-armor-grid">
+              {EFFECT_ARMOR_TYPES.map(type => (
+                <label key={type}>
+                  <span>{type}</span>
+                  <input
+                    type="number"
+                    step={0.01}
+                    min={0}
+                    value={draft.effectArmor?.[type] ?? 0}
+                    onChange={e => updateDraft({
+                      effectArmor: {
+                        ...(draft.effectArmor ?? {}),
+                        [type]: +e.target.value,
+                      },
+                    })}
+                  />
+                </label>
+              ))}
+            </div>
+          </Field>
         </section>
 
         {/* Shape */}
@@ -170,6 +200,13 @@ export function Properties() {
             <select value={draft.blockStyle} onChange={e => onChange('blockStyle', +e.target.value)}>
               {BLOCK_STYLES.map(s => (
                 <option key={s} value={s}>{s} — {blockStyleName(s)}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Slab geometry" tooltip="Slab height from BlockConfig.xml. StarMade uses 1=3/4, 2=1/2, 3=1/4.">
+            <select value={draft.slab ?? 0} onChange={e => onChange('slab', +e.target.value)}>
+              {SLAB_OPTIONS.map(o => (
+                <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </select>
           </Field>

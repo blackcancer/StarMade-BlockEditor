@@ -36,8 +36,10 @@ export interface BlockDef {
   canActivate:      boolean;
   isDeprecated:     boolean;
   blockStyle:       number;
+  slab:             number;
   slabIds:          number[];
   styleIds:         number[];
+  effectArmor:      Record<string, number>;
   computerReference:number;
   lightSource:      boolean;
   lightSourceColor: number[];
@@ -116,6 +118,23 @@ function parseBool(v: unknown, def = false): boolean {
 function parseIntList(v: unknown): number[] {
   if (!v || String(v).trim() === '') return [];
   return String(v).split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
+}
+
+function parseEffectArmor(v: unknown): Record<string, number> {
+  if (!v || typeof v !== 'object') return {};
+  const out: Record<string, number> = {};
+  for (const [key, value] of Object.entries(v as Record<string, unknown>)) {
+    if (key.startsWith('@_')) continue;
+    const parsed = parseFloat(String(value));
+    if (!isNaN(parsed)) out[key] = parsed;
+  }
+  return out;
+}
+
+function serializeEffectArmor(v: Record<string, number>): Record<string, number> | undefined {
+  const entries = Object.entries(v ?? {}).filter(([, value]) => typeof value === 'number' && !isNaN(value));
+  if (entries.length === 0) return undefined;
+  return Object.fromEntries(entries);
 }
 
 function parseLightColor(v: unknown): number[] {
@@ -203,8 +222,10 @@ function parseBlock(node: Record<string, unknown>, typeIds: Map<string, number>,
     canActivate:       parseBool(node.CanActivate, false),
     isDeprecated:      parseBool(node.Deprecated, false),
     blockStyle:        parseInt(String(node.BlockStyle ?? '0'), 10) || 0,
+    slab:              parseInt(String(node.Slab ?? '0'), 10) || 0,
     slabIds:           parseIntList(node.SlabIds),
     styleIds:          parseIntList(node.StyleIds),
+    effectArmor:       parseEffectArmor(node.EffectArmor),
     computerReference: parseInt(String(node.BlockComputerReference ?? '0'), 10) || 0,
     lightSource:       parseBool(node.LightSource, false),
     lightSourceColor:  parseLightColor(node.LightSourceColor),
@@ -290,8 +311,10 @@ function serializeBlock(def: BlockDef): Record<string, unknown> {
     CanActivate:             def.canActivate,
     Deprecated:              def.isDeprecated,
     BlockStyle:              def.blockStyle,
+    Slab:                    def.slab,
     SlabIds:                 def.slabIds.join(', '),
     StyleIds:                def.styleIds.join(', '),
+    EffectArmor:             serializeEffectArmor(def.effectArmor),
     BlockComputerReference:  def.computerReference,
     LightSource:             def.lightSource,
     LightSourceColor:        def.lightSourceColor.join(','),
@@ -386,8 +409,10 @@ blocksRouter.put('/:id', (req: Request, res: Response) => {
       id,
       isCustom: true,
       textureId: Array.isArray(req.body?.textureId) ? req.body.textureId : existing.textureId,
+      slab: typeof req.body?.slab === 'number' ? req.body.slab : existing.slab,
       slabIds: Array.isArray(req.body?.slabIds) ? req.body.slabIds : existing.slabIds,
       styleIds: Array.isArray(req.body?.styleIds) ? req.body.styleIds : existing.styleIds,
+      effectArmor: req.body?.effectArmor && typeof req.body.effectArmor === 'object' ? req.body.effectArmor : existing.effectArmor,
       lightSourceColor: Array.isArray(req.body?.lightSourceColor) ? req.body.lightSourceColor : existing.lightSourceColor,
     };
 
@@ -420,8 +445,10 @@ blocksRouter.post('/', (req: Request, res: Response) => {
       canActivate:       false,
       isDeprecated:      false,
       blockStyle:        0,
+      slab:              0,
       slabIds:           [],
       styleIds:          [],
+      effectArmor:       {},
       computerReference: 0,
       lightSource:       false,
       lightSourceColor:  [1, 1, 1, 1],
