@@ -220,4 +220,26 @@ describe('useApi hooks', () => {
     await act(async () => fireEvent.click(screen.getByText('save-block')));
     expect(fetch).not.toHaveBeenCalled();
   });
+
+  it('save replaces only the matching block and delete selects null when list becomes empty', async () => {
+    const b1 = makeBlock({ id: 1 });
+    const b2 = makeBlock({ id: 2, name: 'Other' });
+    const saved = makeBlock({ id: 1, name: 'Saved' });
+    // save: list has b1+b2, only b1 gets replaced (exercises false branch of b.id === saved.id)
+    useBlockStore.setState({ blocks: [b1, b2], draft: { ...b1, name: 'Draft' }, isDirty: true });
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse(saved));
+    render(<Harness />);
+    fireEvent.click(screen.getByText('save-block'));
+    await waitFor(() => expect(useBlockStore.getState().blocks[0].name).toBe('Saved'));
+    expect(useBlockStore.getState().blocks[1].name).toBe('Other');
+    cleanup();
+
+    // delete last block → nextBlocks[0] === undefined → selectBlock(null)
+    useBlockStore.setState({ blocks: [b1], selectedBlock: b1, draft: b1 });
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ ok: true }, true));
+    render(<Harness />);
+    fireEvent.click(screen.getByText('delete-block'));
+    await waitFor(() => expect(useBlockStore.getState().blocks).toHaveLength(0));
+    expect(useBlockStore.getState().selectedBlock).toBeNull();
+  });
 });

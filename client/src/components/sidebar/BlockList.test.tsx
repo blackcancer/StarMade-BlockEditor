@@ -94,4 +94,19 @@ describe('Sidebar', () => {
     expect(screen.getByText('Loading blocks…')).toBeTruthy();
     expect(screen.getByText('failed')).toBeTruthy();
   });
+
+  it('hides images on error and toggles custom filter', () => {
+    const { container } = render(<Sidebar />);
+    const img = container.querySelector('img')!;
+    // Trigger onError — handler sets style.display = 'none'
+    fireEvent.error(img);
+    expect(img.style.display).toBe('none');
+
+    // Toggle custom checkbox
+    fireEvent.click(screen.getByLabelText(/Custom/));
+    expect(useBlockStore.getState().filter.showCustom).toBe(false);
+    expect(screen.queryByText('My Custom')).toBeNull();
+    fireEvent.click(screen.getByLabelText(/Custom/));
+    expect(useBlockStore.getState().filter.showCustom).toBe(true);
+  });
 });
