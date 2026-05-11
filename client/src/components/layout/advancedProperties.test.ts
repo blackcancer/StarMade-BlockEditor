@@ -20,10 +20,20 @@ describe('advanced property normalization', () => {
   it('handles missing, scalar and malformed resource lists safely', () => {
     expect(normalizeResourceList(undefined)).toEqual([]);
     expect(normalizeResourceList('bad')).toEqual([]);
+    expect(normalizeResourceList([{ Item: { '#text': 'A' } }, { '#text': 'B', '@_count': 4 }, {}])).toEqual([{ name: 'A', count: 1 }, { name: 'B', count: 4 }]);
+    expect(normalizeResourceList({ '#text': 'DIRECT', '@_count': '5' })).toEqual([{ name: 'DIRECT', count: 5 }]);
+    expect(normalizeResourceList({})).toEqual([]);
     expect(serializeResourceList([{ name: '', count: 99 }])).toBe('');
+    expect(serializeResourceList([{ name: ' A ', count: -1 }, { name: 'B', count: Number.NaN }])).toEqual({
+      Item: [{ '#text': 'A', '@_count': '0' }, { '#text': 'B', '@_count': '0' }],
+    });
   });
 
   it('normalizes and serializes Element lists', () => {
+    expect(normalizeElementList('A')).toEqual(['A']);
+    expect(normalizeElementList(['A', { Element: 'B' }, 3])).toEqual(['A', 'B']);
+    expect(normalizeElementList(3)).toEqual([]);
+    expect(normalizeElementList({})).toEqual([]);
     expect(normalizeElementList({ Element: 'A' })).toEqual(['A']);
     expect(normalizeElementList({ Element: ['A', 'B'] })).toEqual(['A', 'B']);
     expect(serializeElementList(['A'])).toEqual({ Element: 'A' });

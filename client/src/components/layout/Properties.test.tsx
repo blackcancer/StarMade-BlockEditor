@@ -129,11 +129,65 @@ describe('Properties', () => {
     fireEvent.change(screen.getAllByDisplayValue('#ff0000')[0], { target: { value: '#00ff00' } });
     expect(useBlockStore.getState().draft?.lightSourceColor.slice(0, 3)).toEqual([0, 1, 0]);
 
+    fireEvent.change(screen.getAllByDisplayValue('#00ff00')[1], { target: { value: '#bad' } });
+    expect(useBlockStore.getState().draft?.lightSourceColor.slice(0, 3)).toEqual([0, 1, 0]);
+    fireEvent.change(screen.getAllByDisplayValue('#00ff00')[1], { target: { value: '#0000ff' } });
+    expect(useBlockStore.getState().draft?.lightSourceColor.slice(0, 3)).toEqual([0, 0, 1]);
+
     fireEvent.change(screen.getByTitle('Emissive intensity'), { target: { value: '1.5' } });
     expect(useBlockStore.getState().draft?.lightSourceColor[3]).toBe(1.5);
 
+    const colorNumberInputs = document.querySelectorAll('.light-color-row input');
+    fireEvent.change(colorNumberInputs[0], { target: { value: '0.25' } });
+    expect(useBlockStore.getState().draft?.lightSourceColor[0]).toBe(0.25);
+
     fireEvent.click(screen.getByTitle('#60b8ff'));
     expect(useBlockStore.getState().draft?.lightSourceColor[0]).toBeCloseTo(0x60 / 255);
+  });
+
+
+  it('edits the remaining numeric, select, flag and variant controls', () => {
+    seed(block(), [block(), block({ id: 2, name: 'ALT -- Variant', xmlTypeName: 'ALT' }), block({ id: 3, name: 'BETA -- Style', xmlTypeName: 'BETA' })]);
+    render(<Properties />);
+
+    const numberInputs = document.querySelectorAll('input[type="number"]');
+    fireEvent.change(numberInputs[0], { target: { value: '11' } });
+    fireEvent.change(numberInputs[2], { target: { value: '2.5' } });
+    fireEvent.change(numberInputs[3], { target: { value: '3.5' } });
+    fireEvent.change(numberInputs[4], { target: { value: '150' } });
+    fireEvent.change(document.querySelectorAll('.effect-armor-grid input')[0], { target: { value: '0.3' } });
+    fireEvent.change(numberInputs[numberInputs.length - 1], { target: { value: '9' } });
+
+    const selects = screen.getAllByRole('combobox');
+    fireEvent.change(selects[1], { target: { value: '2' } });
+    fireEvent.change(selects[2], { target: { value: '3' } });
+    fireEvent.change(selects[3], { target: { value: '2' } });
+
+    fireEvent.click(screen.getByText('Textures follow orientation').closest('label')!.querySelector('input')!);
+    fireEvent.click(screen.getByText('Build-mode only').closest('label')!.querySelector('input')!);
+    fireEvent.click(screen.getByText('Animated').closest('label')!.querySelector('input')!);
+
+    fireEvent.change(selects[4], { target: { value: '2' } });
+    expect(useBlockStore.getState().draft?.slabIds).toEqual([2]);
+    fireEvent.click(screen.getByText('Variant ×'));
+    expect(useBlockStore.getState().draft?.slabIds).toEqual([]);
+    fireEvent.change(selects[5], { target: { value: '3' } });
+
+    expect(useBlockStore.getState().draft).toMatchObject({
+      icon: 11,
+      mass: 2.5,
+      volume: 3.5,
+      price: 150,
+      slab: 2,
+      individualSides: 3,
+      computerReference: 2,
+      sideTexturesPointToOrientation: true,
+      onlyDrawnInBuildMode: true,
+      animated: true,
+      styleIds: [3],
+    });
+    expect(useBlockStore.getState().draft?.effectArmor?.Heat).toBe(0.3);
+    expect(useBlockStore.getState().draft?.lodShapeFromFar).toBe(9);
   });
 
   it('opens the icon picker, imports icons and reports import failures', async () => {
@@ -143,12 +197,19 @@ describe('Properties', () => {
       .mockResolvedValueOnce({ ok: false, text: async () => 'bad image' } as Response);
     render(<Properties />);
 
+    fireEvent.click(screen.getByTitle('Pick build icon'));
+    expect(screen.getByRole('dialog').textContent).toContain('icon:10');
+    fireEvent.click(screen.getByText('close-icon-picker'));
+    expect(screen.queryByRole('dialog')).toBeNull();
+
     fireEvent.click(screen.getByText('Pick…'));
     expect(screen.getByRole('dialog').textContent).toContain('icon:10');
     fireEvent.click(screen.getByText('pick-icon-77'));
     expect(useBlockStore.getState().draft?.icon).toBe(77);
 
     const input = document.querySelector('input[type="file"]')!;
+    fireEvent.change(input, { target: { files: [] } });
+    expect(fetch).not.toHaveBeenCalled();
     const file = new File(['icon'], 'icon.png', { type: 'image/png' });
     fireEvent.change(input, { target: { files: [file] } });
     await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/textures/icon/77', expect.objectContaining({ method: 'PUT', body: file })));

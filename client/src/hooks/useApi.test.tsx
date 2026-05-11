@@ -48,6 +48,16 @@ const makeBlock = (patch: Partial<BlockDef> = {}): BlockDef => ({
 
 const jsonResponse = (data: unknown, ok = true, statusText = 'OK') => ({ ok, statusText, json: async () => data }) as Response;
 
+function ConfigAutoloadHarness() {
+  useConfig();
+  return null;
+}
+
+function BlocksAutoloadHarness() {
+  useBlocks();
+  return null;
+}
+
 function Harness() {
   const { saveConfig } = useConfig(false);
   const { reload } = useBlocks(false);
@@ -76,6 +86,30 @@ describe('useApi hooks', () => {
   afterEach(() => {
     cleanup();
     vi.unstubAllGlobals();
+  });
+
+  it('autoloads config on mount with API defaults', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({ starmadeDir: '/auto', worldDir: 'world1', atlasSize: 128, texturePack: 'HD', isValid: true }));
+    render(<ConfigAutoloadHarness />);
+
+    await waitFor(() => expect(useConfigStore.getState()).toMatchObject({ starmadeDir: '/auto', worldDir: 'world1', atlasSize: 128, texturePack: 'HD', isValid: true }));
+    expect(fetch).toHaveBeenCalledWith('/api/config');
+  });
+
+  it('autoloads blocks when config is valid', async () => {
+    const block = makeBlock();
+    useConfigStore.setState({ isValid: true });
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse([block]));
+    render(<BlocksAutoloadHarness />);
+
+    await waitFor(() => expect(useBlockStore.getState().blocks).toEqual([block]));
+    expect(fetch).toHaveBeenCalledWith('/api/blocks');
+  });
+
+  it('skips block reloads while config is invalid', () => {
+    render(<Harness />);
+    fireEvent.click(screen.getByText('reload'));
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it('saves config and normalizes missing API fields', async () => {
@@ -132,6 +166,22 @@ describe('useApi hooks', () => {
 
     await waitFor(() => expect(useBlockStore.getState().error).toContain('Save failed: Forbidden'));
     expect(useBlockStore.getState().blocks).toEqual([original]);
+  });
+
+  it('reports delete and create failures', async () => {
+    const original = makeBlock();
+    useBlockStore.setState({ blocks: [original] });
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(jsonResponse({}, false, 'Forbidden'))
+      .mockRejectedValueOnce(new Error('create down'));
+    render(<Harness />);
+
+    fireEvent.click(screen.getByText('delete-block'));
+    await waitFor(() => expect(useBlockStore.getState().error).toContain('Delete failed: Forbidden'));
+    expect(useBlockStore.getState().blocks).toEqual([original]);
+
+    fireEvent.click(screen.getByText('create-block'));
+    await waitFor(() => expect(useBlockStore.getState().error).toContain('create down'));
   });
 
   it('creates and deletes custom blocks while keeping selection consistent', async () => {

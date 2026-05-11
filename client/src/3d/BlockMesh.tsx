@@ -18,7 +18,7 @@ import { makeBlockGeometry, needsDoubleSide } from './geometries/index.js';
 import type { BlockDef } from '../store/blockStore.js';
 
 /** Orientation index → Euler angles (degrees) mapping from starmade_gl.js. */
-const ORIENTATIONS: Array<[number, number, number]> = [
+export const ORIENTATIONS: Array<[number, number, number]> = [
   [0,    0, 0],  // 0  — default (front facing +Z)
   [0,  180, 0],  // 1  — 180° Y
   [90,  90, 0],  // 2  — up
@@ -32,6 +32,51 @@ const ORIENTATIONS: Array<[number, number, number]> = [
   [90,   0, 0],  // 10 — front-top
   [270,  0, 0],  // 11 — front-bottom
 ];
+
+export function getEffectiveTextureIds(block: Pick<BlockDef, 'textureId' | 'hasActivationTexture' | 'animated' | 'individualSides'>, isActive: boolean, animationFrame: number): number[] {
+  return block.textureId.map((tileId, sideIndex) => {
+    // Engine behavior:
+    // - getTextureId(active, side) uses tile + 1 when the block has an active/off texture and active=false.
+    // - animated blocks then add animationTime, cycling 4 frames at ~0.5s per frame.
+    const stateOffset = block.hasActivationTexture && !isActive ? 1 : 0;
+    const animatesSide = block.animated && (block.individualSides !== 3 || (sideIndex !== 2 && sideIndex !== 3));
+    const animationOffset = animatesSide ? animationFrame : 0;
+    return tileId + stateOffset + animationOffset;
+  });
+}
+
+export function getSlabTransform(slab: number): { thickness: number; offsetZ: number } {
+  const thickness = slab === 1 ? 0.75 : slab === 2 ? 0.5 : slab === 3 ? 0.25 : 1;
+  return { thickness, offsetZ: (thickness - 1) / 2 };
+}
+
+export function getLightColor(rgba?: number[]): THREE.Color {
+  const [r = 1, g = 1, b = 1] = rgba ?? [1, 1, 1, 1];
+  return new THREE.Color(
+    THREE.MathUtils.clamp(r, 0, 1),
+    THREE.MathUtils.clamp(g, 0, 1),
+    THREE.MathUtils.clamp(b, 0, 1),
+  );
+}
+
+export function getLightIntensity(rgba?: number[]): number {
+  return Math.max(0, rgba?.[3] ?? 1);
+}
+
+export function getEmissiveStrength(lightIntensity: number): number {
+  return Math.min(0.85, 0.18 + lightIntensity * 0.25);
+}
+
+export function getOrientationQuaternion(orientation: number): THREE.Quaternion {
+  const o = ((orientation % ORIENTATIONS.length) + ORIENTATIONS.length) % ORIENTATIONS.length;
+  const [rx, ry, rz] = ORIENTATIONS[o];
+  const euler = new THREE.Euler(
+    THREE.MathUtils.degToRad(rx),
+    THREE.MathUtils.degToRad(ry),
+    THREE.MathUtils.degToRad(rz),
+  );
+  return new THREE.Quaternion().setFromEuler(euler);
+}
 
 interface BlockMeshProps {
   /** Full block definition from the API. */
@@ -71,16 +116,8 @@ export function BlockMesh({
   });
 
   const effectiveTextureIds = useMemo(
-    () => block.textureId.map((tileId, sideIndex) => {
-      // Engine behavior:
-      // - getTextureId(active, side) uses tile + 1 when the block has an active/off texture and active=false.
-      // - animated blocks then add animationTime, cycling 4 frames at ~0.5s per frame.
-      const stateOffset = block.hasActivationTexture && !isActive ? 1 : 0;
-      const animatesSide = block.animated && (block.individualSides !== 3 || (sideIndex !== 2 && sideIndex !== 3));
-      const animationOffset = animatesSide ? animationFrame : 0;
-      return tileId + stateOffset + animationOffset;
-    }),
-    [block.textureId, block.hasActivationTexture, block.canActivate, block.animated, block.individualSides, isActive, animationFrame],
+    () => getEffectiveTextureIds(block, isActive, animationFrame),
+    [block, isActive, animationFrame],
   );
 
   // ── Build geometry ─────────────────────────────────────────────────────────
@@ -89,31 +126,23 @@ export function BlockMesh({
     [block.blockStyle, effectiveTextureIds, block.individualSides],
   );
 
-  const lightColor = useMemo(() => {
-    const [r = 1, g = 1, b = 1] = block.lightSourceColor ?? [1, 1, 1, 1];
-    return new THREE.Color(
-      THREE.MathUtils.clamp(r, 0, 1),
-      THREE.MathUtils.clamp(g, 0, 1),
-      THREE.MathUtils.clamp(b, 0, 1),
-    );
-  }, [block.lightSourceColor]);
+  const lightColor = useMemo(() => getLightColor(block.lightSourceColor), [block.lightSourceColor]);
 
   const lightIntensity = useMemo(
-    () => Math.max(0, block.lightSourceColor?.[3] ?? 1),
+    () => getLightIntensity(block.lightSourceColor),
     [block.lightSourceColor],
   );
 
   // The engine propagates emitted light to surrounding geometry; the source block
   // itself should not become a washed-out fullbright surface in the preview.
   const emissiveStrength = useMemo(
-    () => Math.min(0.85, 0.18 + lightIntensity * 0.25),
+    () => getEmissiveStrength(lightIntensity),
     [lightIntensity],
   );
 
   const lightEnabled = block.lightSource && isActive;
 
-  const slabThickness = block.slab === 1 ? 0.75 : block.slab === 2 ? 0.5 : block.slab === 3 ? 0.25 : 1;
-  const slabOffsetZ = (slabThickness - 1) / 2;
+  const { thickness: slabThickness, offsetZ: slabOffsetZ } = getSlabTransform(block.slab);
 
   // ── Build material(s) ─────────────────────────────────────────────────────
   const material = useMemo(() => {
@@ -136,16 +165,7 @@ export function BlockMesh({
   useEffect(() => () => material.dispose(), [material]);
 
   // ── Orientation quaternion from starmade_gl.js Cube.setOrientation ────────
-  const quaternion = useMemo(() => {
-    const o = orientation % ORIENTATIONS.length;
-    const [rx, ry, rz] = ORIENTATIONS[o];
-    const euler = new THREE.Euler(
-      THREE.MathUtils.degToRad(rx),
-      THREE.MathUtils.degToRad(ry),
-      THREE.MathUtils.degToRad(rz),
-    );
-    return new THREE.Quaternion().setFromEuler(euler);
-  }, [orientation]);
+  const quaternion = useMemo(() => getOrientationQuaternion(orientation), [orientation]);
 
   return (
     <group quaternion={quaternion}>
