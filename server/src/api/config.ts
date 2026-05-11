@@ -14,10 +14,12 @@ import fs from 'fs';
 import path from 'path';
 import { resolveStarmadeRoot } from '../utils/path.js';
 
-const CONFIG_FILE = path.resolve(process.cwd(), 'SMToolConfig.json');
+export function configFilePath(): string {
+  return path.resolve(process.cwd(), 'SMToolConfig.json');
+}
 
 /** Default atlas tile size options supported by StarMade. */
-const VALID_SIZES = [64, 128, 256] as const;
+export const VALID_SIZES = [64, 128, 256] as const;
 type AtlasSize = typeof VALID_SIZES[number];
 
 /**
@@ -36,13 +38,14 @@ interface EditorConfig {
  *
  * @returns {EditorConfig} Parsed config object.
  */
-function loadConfig(): EditorConfig {
-  if (!fs.existsSync(CONFIG_FILE)) {
+export function loadConfig(): EditorConfig {
+  const configFile = configFilePath();
+  if (!fs.existsSync(configFile)) {
     const defaults: EditorConfig = { starmadeDir: '', worldDir: 'world0', atlasSize: 256, texturePack: 'Default' };
-    fs.writeFileSync(CONFIG_FILE, JSON.stringify(defaults, null, 2), 'utf8');
+    fs.writeFileSync(configFile, JSON.stringify(defaults, null, 2), 'utf8');
     return defaults;
   }
-  const cfg = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')) as Partial<EditorConfig>;
+  const cfg = JSON.parse(fs.readFileSync(configFile, 'utf8')) as Partial<EditorConfig>;
   return {
     starmadeDir: cfg.starmadeDir ?? '',
     worldDir: cfg.worldDir ?? 'world0',
@@ -56,8 +59,8 @@ function loadConfig(): EditorConfig {
  *
  * @param {EditorConfig} cfg Config to persist.
  */
-function saveConfig(cfg: EditorConfig): void {
-  fs.writeFileSync(CONFIG_FILE, JSON.stringify(cfg, null, 2), 'utf8');
+export function saveConfig(cfg: EditorConfig): void {
+  fs.writeFileSync(configFilePath(), JSON.stringify(cfg, null, 2), 'utf8');
 }
 
 /**
@@ -66,7 +69,7 @@ function saveConfig(cfg: EditorConfig): void {
  * @param {string} dir Absolute path to validate.
  * @returns {{ valid: boolean; missing: string[] }} Validation result.
  */
-function validateDir(dir: string): { valid: boolean; missing: string[] } {
+export function validateDir(dir: string): { valid: boolean; missing: string[] } {
   const resolved = resolveStarmadeRoot(dir);
   const required = [
     path.join(resolved, 'data', 'config', 'BlockConfig.xml'),
