@@ -81,7 +81,12 @@ describe('blockStore', () => {
     expect(useBlockStore.getState().isDirty).toBe(true);
   });
 
-  it('merges filters and stores viewer/error flags', () => {
+  it('sets drafts directly, dirty state, filters and viewer/error flags', () => {
+    const draft = makeBlock({ name: 'Direct draft' });
+    useBlockStore.getState().setDraft(draft);
+    useBlockStore.getState().setDirty(true);
+    expect(useBlockStore.getState()).toMatchObject({ draft, isDirty: true });
+
     useBlockStore.getState().setFilter({ search: 'hull', showDeprecated: true });
     useBlockStore.getState().setOrientation(3);
     useBlockStore.getState().setPreviewActive(false);

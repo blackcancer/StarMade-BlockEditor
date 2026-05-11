@@ -75,6 +75,11 @@ describe('FaceSelector', () => {
 
     expect(useBlockStore.getState().draft?.textureId).toEqual([1, 2, 99, 4, 5, 6]);
     expect(screen.queryByRole('dialog')).toBeNull();
+
+    fireEvent.click(screen.getByTitle('FRONT'));
+    expect(useBlockStore.getState().highlightFace).toBe(0);
+    fireEvent.click(screen.getByText('close-picker'));
+    expect(useBlockStore.getState().highlightFace).toBe(-1);
   });
 
   it('updates all faces or three face groups depending on individualSides', () => {

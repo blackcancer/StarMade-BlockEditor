@@ -101,11 +101,23 @@ describe('ExtraPropertiesEditor UI', () => {
     fireEvent.click(screen.getByLabelText('In recipe'));
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ InRecipe: true }));
 
-    rerender(<ExtraPropertiesEditor value={{ InRecipe: true, BlockResourceType: 2, RecipeBuyResource: { Element: 'METAL' }, Consistence: { Item: { '#text': 'METAL', '@_count': '2' } }, CubatomConsistence: '' }} blocks={blocks} onChange={onChange} />);
+    rerender(<ExtraPropertiesEditor value={{ InRecipe: true, BlockResourceType: 2, RecipeBuyResource: { Element: 'METAL' }, Consistence: { Item: { '#text': 'METAL', '@_count': '2' } }, CubatomConsistence: { Item: { '#text': 'CRYSTAL', '@_count': '3' } } }} blocks={blocks} onChange={onChange} />);
+    fireEvent.change(screen.getByDisplayValue('Basic resource'), { target: { value: '6' } });
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ BlockResourceType: 6 }));
     fireEvent.change(screen.getByDisplayValue('2'), { target: { value: '4' } });
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ Consistence: { Item: [{ '#text': 'METAL', '@_count': '4' }] } }));
+    fireEvent.change(screen.getAllByDisplayValue('Block 1')[0], { target: { value: 'CRYSTAL' } });
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ RecipeBuyResource: { Element: 'CRYSTAL' } }));
+    fireEvent.change(screen.getAllByDisplayValue('Block 1')[1], { target: { value: 'CRYSTAL' } });
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ Consistence: { Item: [{ '#text': 'CRYSTAL', '@_count': '2' }] } }));
+    fireEvent.click(screen.getByText('+ Add buy resource'));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ RecipeBuyResource: { Element: ['METAL', 'METAL'] } }));
     fireEvent.click(screen.getByText('+ Add material'));
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ Consistence: { Item: [{ '#text': 'METAL', '@_count': '2' }, { '#text': 'METAL', '@_count': '1' }] } }));
+    fireEvent.click(screen.getByText('+ Add cubatom material'));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ CubatomConsistence: { Item: [{ '#text': 'CRYSTAL', '@_count': '3' }, { '#text': 'METAL', '@_count': '1' }] } }));
+    fireEvent.click(screen.getAllByTitle('Remove')[0]);
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ Consistence: '' }));
     fireEvent.click(screen.getAllByText('×')[0]);
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ RecipeBuyResource: '' }));
   });
@@ -133,17 +145,30 @@ describe('ExtraPropertiesEditor UI', () => {
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ ProducedInFactory: 3 }));
     fireEvent.change(screen.getByDisplayValue('2'), { target: { value: '4.5' } });
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ FactoryBakeTime: 4.5 }));
+    const selects = document.querySelectorAll('select');
+    fireEvent.change(selects[1], { target: { value: '2' } });
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ BasicResourceFactory: 2 }));
+    fireEvent.change(selects[2], { target: { value: 'OUTPUT' } });
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ Factory: 'OUTPUT' }));
     fireEvent.click(screen.getByText(/General chamber/).closest('label')!.querySelector('input')!);
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ GeneralChamber: true }));
     fireEvent.change(screen.getByDisplayValue('GroupA'), { target: { value: 'GroupB' } });
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ ChamberConfigGroups: { Element: 'GroupB' } }));
+    fireEvent.click(screen.getByText('+ Add group'));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ ChamberConfigGroups: { Element: 'GroupA' } }));
+    fireEvent.change(selects[3], { target: { value: '2' } });
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ ChamberRoot: 2 }));
     fireEvent.click(screen.getByText(/Main Combination Controller/).closest('label')!.querySelector('input')!);
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ MainCombinationController: true }));
+    fireEvent.click(screen.getByText(/Support Combination Controller/).closest('label')!.querySelector('input')!);
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ SupportCombinationController: true }));
+    fireEvent.click(screen.getByText('+ Add controls'));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ Controlling: { Element: 'METAL' } }));
   });
 
   it('edits collision, lod and logic gameplay structured properties', () => {
     const onChange = vi.fn();
-    render(<ExtraPropertiesEditor value={{
+    const { rerender } = render(<ExtraPropertiesEditor value={{
       Physical: false,
       CollisionDefault: { '@_type': 'None' },
       DetailedCollisionForAstronautMode: { '@_type': 'ConvexHull', Mesh: 'old.obj' },
@@ -161,11 +186,22 @@ describe('ExtraPropertiesEditor UI', () => {
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ CollisionDefault: { '@_type': 'BlockType', StyleId: 0, '@_slab': '0' } }));
     fireEvent.change(screen.getByDisplayValue('old.obj'), { target: { value: 'new.obj' } });
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ DetailedCollisionForAstronautMode: { '@_type': 'ConvexHull', Mesh: 'new.obj' } }));
+    rerender(<ExtraPropertiesEditor value={{ CollisionDefault: { '@_type': 'BlockType', StyleId: 0, '@_slab': '0' }, LodShape: 'lod-old', LodShapeSwitchStyleActive: 'lod-active', LodActivationAnimationStyle: 0, SensorInput: false, ResourceInjection: 0, ExplosionAbsorbtion: 0.1 }} blocks={blocks} onChange={onChange} />);
+    fireEvent.change(screen.getByDisplayValue('Cube'), { target: { value: '3' } });
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ CollisionDefault: { '@_type': 'BlockType', StyleId: 3, '@_slab': '0' } }));
+    fireEvent.change(screen.getByDisplayValue('Full block'), { target: { value: '2' } });
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ CollisionDefault: { '@_type': 'BlockType', StyleId: 0, '@_slab': '2' } }));
     fireEvent.change(screen.getByDisplayValue('lod-old'), { target: { value: 'lod-new' } });
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ LodShape: 'lod-new' }));
+    fireEvent.change(screen.getByDisplayValue('lod-active'), { target: { value: 'lod-active-new' } });
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ LodShapeSwitchStyleActive: 'lod-active-new' }));
+    fireEvent.change(screen.getByDisplayValue('No active LOD switch'), { target: { value: '1' } });
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ LodActivationAnimationStyle: 1 }));
     fireEvent.click(screen.getByText(/Sensor Input/).closest('label')!.querySelector('input')!);
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ SensorInput: true }));
     fireEvent.change(screen.getByDisplayValue('Off'), { target: { value: '2' } });
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ ResourceInjection: 2 }));
+    fireEvent.change(screen.getByDisplayValue('0.1'), { target: { value: '0.9' } });
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ ExplosionAbsorbtion: 0.9 }));
   });
 });

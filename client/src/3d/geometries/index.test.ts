@@ -1,4 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import { makeCornerGeometry } from './CornerGeom.js';
+import { makeCrossGeometry } from './CrossGeom.js';
+import { makeCubeGeometry } from './CubeGeom.js';
+import { makeTetraGeometry, makePentaGeometry } from './TetraPentaGeom.js';
+import { makeWedgeGeometry } from './WedgeGeom.js';
 import { blockStyleName, makeBlockGeometry, needsDoubleSide } from './index.js';
 
 const textures = [1, 2, 3, 4, 5, 6];
@@ -39,5 +44,28 @@ describe('geometry factory', () => {
     expect(counts(0, 1).uv).toBe(36);
     expect(counts(0, 3).uv).toBe(36);
     expect(counts(0, 6).uv).toBe(36);
+  });
+
+  it('covers sparse texture fallback branches in all geometry builders', () => {
+    const geometries = [
+      makeCubeGeometry([], 1),
+      makeCubeGeometry([undefined as unknown as number, undefined as unknown as number, 8], 3),
+      makeCubeGeometry([1, 2, 3, 4, 5, 6], 6),
+      makeCrossGeometry([]),
+      makeWedgeGeometry([]),
+      makeWedgeGeometry([7]),
+      makeCornerGeometry([]),
+      makeCornerGeometry([7]),
+      makeTetraGeometry([]),
+      makeTetraGeometry([7]),
+      makeTetraGeometry([7, 0, undefined as unknown as number, undefined as unknown as number, 9]),
+      makePentaGeometry([]),
+      makePentaGeometry([7]),
+    ];
+
+    for (const geometry of geometries) {
+      expect(geometry.getAttribute('uv').count).toBeGreaterThan(0);
+      geometry.dispose();
+    }
   });
 });

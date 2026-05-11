@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { normalizeHostPath, resolveStarmadeRoot } from './path.js';
+import { existsHostPath, normalizeHostPath, resolveStarmadeRoot } from './path.js';
 
 describe('path utilities', () => {
   it('normalizes Windows drive paths under Linux/WSL', () => {
@@ -21,5 +21,7 @@ describe('path utilities', () => {
     expect(resolveStarmadeRoot(tmp)).toBe(nested);
     expect(resolveStarmadeRoot(nested)).toBe(nested);
     expect(resolveStarmadeRoot(path.join(tmp, 'missing'))).toBe(path.join(tmp, 'missing'));
+    expect(existsHostPath(nested)).toBe(true);
+    expect(existsHostPath(path.join(tmp, 'missing'))).toBe(false);
   });
 });

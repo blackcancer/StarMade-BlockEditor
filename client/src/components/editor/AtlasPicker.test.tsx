@@ -72,12 +72,16 @@ describe('AtlasPicker', () => {
 
   it('manages custom atlas imports and dispatches refresh events', async () => {
     vi.mocked(fetch).mockResolvedValue(okResponse());
+    const clickSpy = vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(() => {});
     const onImported = vi.fn();
     window.addEventListener('atlas-imported', onImported);
     render(<AtlasPicker selectedTileId={PAGE_TILES * 7 + 3} onClose={vi.fn()} />);
 
     expect(screen.getByText('Custom atlas manager')).toBeTruthy();
+    fireEvent.click(screen.getByText('Import full custom atlas…'));
+    expect(clickSpy).toHaveBeenCalled();
     const fileInputs = document.querySelectorAll('input[type="file"]');
+    fireEvent.change(fileInputs[0], { target: { files: [] } });
     const fullAtlas = new File(['x'], 'atlas.png', { type: 'image/png' });
     fireEvent.change(fileInputs[0], { target: { files: [fullAtlas] } });
 
@@ -90,7 +94,9 @@ describe('AtlasPicker', () => {
   it('clamps custom tile slots, imports one tile as a normal map, and reports failures', async () => {
     vi.mocked(fetch)
       .mockResolvedValueOnce(okResponse())
-      .mockResolvedValueOnce(badResponse('nope'));
+      .mockResolvedValueOnce(badResponse('nope'))
+      .mockResolvedValueOnce(badResponse('full nope'));
+    const clickSpy = vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(() => {});
     render(<AtlasPicker selectedTileId={0} onClose={vi.fn()} />);
 
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'normal' } });
@@ -98,14 +104,21 @@ describe('AtlasPicker', () => {
     fireEvent.change(slot, { target: { value: '9999' } });
     expect(slot.value).toBe('255');
 
+    fireEvent.click(screen.getByText('Replace selected tile…'));
+    expect(clickSpy).toHaveBeenCalled();
     const fileInputs = document.querySelectorAll('input[type="file"]');
     const tile = new File(['tile'], 'tile.png', { type: 'image/png' });
+    fireEvent.change(fileInputs[1], { target: { files: [] } });
     fireEvent.change(fileInputs[1], { target: { files: [tile] } });
 
     await waitFor(() => expect(fetch).toHaveBeenCalledWith(`/api/textures/custom-tile/${PAGE_TILES * 7 + 255}?size=64&map=normal`, expect.objectContaining({ method: 'PUT', body: tile })));
 
     fireEvent.change(fileInputs[1], { target: { files: [tile] } });
     await waitFor(() => expect(alert).toHaveBeenCalledWith(expect.stringContaining('Tile import failed: Error: nope')));
+
+    const fullAtlas = new File(['atlas'], 'atlas.png', { type: 'image/png' });
+    fireEvent.change(fileInputs[0], { target: { files: [fullAtlas] } });
+    await waitFor(() => expect(alert).toHaveBeenCalledWith(expect.stringContaining('Custom atlas import failed: Error: full nope')));
   });
 
   it('selects custom slots in manager mode and closes with Escape/outside click', () => {
