@@ -17,10 +17,23 @@ function installCanvasMocks() {
     lineWidth: 0,
   } as unknown as CanvasRenderingContext2D);
   vi.stubGlobal('Image', class MockImage {
-    onload: null | (() => void) = null;
-    set src(_value: string) {
-      queueMicrotask(() => this.onload?.());
+    private _src = '';
+    private _onload: (() => void) | null = null;
+    get onload() { return this._onload; }
+    set onload(fn: (() => void) | null) {
+      this._onload = fn;
+      if (fn && this._src) {
+        // src was already set — fire onload now that handler is registered
+        Promise.resolve().then(() => fn());
+      }
     }
+    set src(value: string) {
+      this._src = value;
+      if (this._onload) {
+        Promise.resolve().then(() => this._onload?.());
+      }
+    }
+    get src() { return this._src; }
   });
   vi.stubGlobal('alert', vi.fn());
 }
@@ -93,6 +106,19 @@ describe('AtlasPicker', () => {
   it('handles null canvas context gracefully (early return guard)', () => {
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
     expect(() => render(<AtlasPicker selectedTileId={0} onClose={vi.fn()} />)).not.toThrow();
+  });
+
+  it('draws the atlas grid on canvas after image load', async () => {
+    const { act } = await import('@testing-library/react');
+    const ctx = {
+      clearRect: vi.fn(), drawImage: vi.fn(), strokeRect: vi.fn(),
+      imageSmoothingEnabled: false, strokeStyle: '', lineWidth: 0,
+    } as unknown as CanvasRenderingContext2D;
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(ctx);
+    render(<AtlasPicker selectedTileId={0} onClose={vi.fn()} />);
+    // Flush promises so img.onload fires
+    await act(async () => { await new Promise(r => setTimeout(r, 0)); });
+    expect((ctx as any).drawImage).toHaveBeenCalled();
   });
 
   it('manages custom atlas imports and dispatches refresh events', async () => {
