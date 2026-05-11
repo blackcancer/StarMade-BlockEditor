@@ -109,4 +109,12 @@ describe('Sidebar', () => {
     fireEvent.click(screen.getByLabelText(/Custom/));
     expect(useBlockStore.getState().filter.showCustom).toBe(true);
   });
+
+  it('falls back to prettified type when name equals the xml prefix only', () => {
+    // name == prefix after slice → trim returns '' → prettifyTypeName(prefix)
+    const b = block({ id: 5, xmlTypeName: 'HULL', name: 'HULL', isCustom: false });
+    useBlockStore.setState({ blocks: [b], filter: { search: '', showCustom: true, showVanilla: true, showDeprecated: false } });
+    render(<Sidebar />);
+    expect(screen.getByText('Hull')).toBeTruthy();
+  });
 });
