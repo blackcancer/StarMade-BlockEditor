@@ -1,26 +1,31 @@
 /**
  * @fileoverview Express API server — StarMade Block Editor backend.
  *
- * Starts a local HTTP server on port 3847 that the Vite dev server proxies
- * (configured in `vite.config.ts`). In production the client is served as
- * static files from the same Express process.
+ * ## Modes
+ *
+ * ### Development (`npm run dev`)
+ * The Vite dev server runs on port 5174 and proxies `/api/*` requests here
+ * (port 3847). CORS is enabled to allow cross-origin requests from Vite.
+ *
+ * ### Production (`npm start` after `npm run build`)
+ * A single Express process serves both the API and the pre-built client:
+ *  - `/api/*`  — REST API routes
+ *  - `/*`      — static files from `client/dist/`
+ *  - `/*`      — fallback to `client/dist/index.html` (SPA routing)
+ *
+ * The port defaults to 3847 but can be overridden with the `PORT` environment
+ * variable for flexible deployment:
+ *
+ *   PORT=8080 npm start
  *
  * ## API routes
  *
  *  Path               │ Module              │ Purpose
- *  ───────────────────┼─────────────────────┼──────────────────────────────────────────
+ *  ───────────────────┼─────────────────────┼────────────────────────────────────────
  *  `/api/config`      │ `api/config.ts`     │ Read / write `SMToolConfig.json`
  *  `/api/blocks`      │ `api/blocks.ts`     │ CRUD on BlockConfig.xml block definitions
- *  `/api/textures`    │ `api/textures.ts`   │ Serve / import atlas textures and icons
+ *  `/api/textures`    │ `api/textures.ts`   │ Serve atlas textures and icons
  *  `/api/health`      │ (inline)            │ Liveness check endpoint
- *
- * ## CORS
- * CORS is enabled for all origins to allow the Vite dev server (port 5174) to
- * call the API server (port 3847) without a proxy in development mode.
- *
- * ## Body parsing
- * - `express.json()` handles JSON request bodies (block saves, config updates).
- * - `express.raw()` is registered per-route in `textures.ts` for binary image uploads.
  *
  * @author InitSysRev
  * @version 1.0.0
@@ -28,43 +33,97 @@
 
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { configRouter }   from './api/config.js';
 import { blocksRouter }   from './api/blocks.js';
 import { texturesRouter } from './api/textures.js';
 
-/** Port the API server listens on. Proxied by Vite on port 5174. */
-const PORT = 3847;
+// ── Environment ───────────────────────────────────────────────────────────────
+
+/** Running mode — affects CORS and static file serving. */
+const IS_PROD = process.env.NODE_ENV === 'production';
+
+/**
+ * Server port. Override with the PORT environment variable.
+ * Default: 3847 (development) — use PORT=80 or PORT=3000 for production.
+ */
+const PORT = parseInt(process.env.PORT ?? '3847', 10);
+
+// ── Client dist path ─────────────────────────────────────────────────────────
+
+/**
+ * Absolute path to the compiled React client (`client/dist/`).
+ * Resolved relative to this file's location in `server/dist/`.
+ * In production: server/dist/index.js → ../../client/dist
+ */
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const CLIENT_DIST = path.resolve(__dirname, '..', '..', 'client', 'dist');
+
+// ── Express app ───────────────────────────────────────────────────────────────
 
 const app = express();
 
 // ── Middleware ────────────────────────────────────────────────────────────────
 
-/** Allow cross-origin requests from the Vite dev server. */
-app.use(cors());
+/**
+ * CORS — only needed in development (Vite dev server lives on a different port).
+ * In production Express serves the client directly, so no cross-origin requests.
+ */
+if (!IS_PROD) {
+  app.use(cors());
+}
 
-/** Parse JSON request bodies (used by block saves and config updates). */
+/** Parse JSON request bodies (block saves, config updates). */
 app.use(express.json());
 
 // ── API routes ────────────────────────────────────────────────────────────────
 
-app.use('/api/config',   configRouter);    // Editor configuration management
-app.use('/api/blocks',   blocksRouter);    // Block definition CRUD
-app.use('/api/textures', texturesRouter);  // Texture atlas serving and import
-
-// ── Health check ──────────────────────────────────────────────────────────────
+app.use('/api/config',   configRouter);
+app.use('/api/blocks',   blocksRouter);
+app.use('/api/textures', texturesRouter);
 
 /**
  * GET /api/health
- * Liveness endpoint for process monitors and CI checks.
+ * Liveness check endpoint — used by process monitors and CI pipelines.
  *
- * Response: `{ "ok": true, "version": "1.0.0" }`
+ * Response: `{ "ok": true, "version": "1.0.0", "mode": "production" }`
  */
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, version: '1.0.0' });
+  res.json({ ok: true, version: '1.0.0', mode: IS_PROD ? 'production' : 'development' });
 });
+
+// ── Static client (production only) ──────────────────────────────────────────
+
+if (IS_PROD) {
+  /**
+   * Serve pre-built React client as static files.
+   * Assets are served with long-lived cache headers because Vite fingerprints
+   * filenames (e.g. `index-C6chkKuG.js`) — stale content is never an issue.
+   */
+  app.use(express.static(CLIENT_DIST, {
+    maxAge: '1y',       // Immutable fingerprinted assets
+    index: false,       // Let the SPA fallback handle the root
+  }));
+
+  /**
+   * SPA fallback — serve `index.html` for any non-API route so that
+   * client-side navigation (if added in future) works correctly when
+   * the page is refreshed or accessed directly via URL.
+   */
+  app.get('*', (_req, res) => {
+    res.sendFile(path.join(CLIENT_DIST, 'index.html'));
+  });
+}
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 
 app.listen(PORT, () => {
-  console.log(`[BlockEditor Server] Running on http://localhost:${PORT}`);
+  if (IS_PROD) {
+    console.log(`[BlockEditor] Production server running on http://localhost:${PORT}`);
+    console.log(`[BlockEditor] Serving client from: ${CLIENT_DIST}`);
+  } else {
+    console.log(`[BlockEditor Server] Running on http://localhost:${PORT}`);
+    console.log(`[BlockEditor Server] Client dev server: http://localhost:5174`);
+  }
 });
