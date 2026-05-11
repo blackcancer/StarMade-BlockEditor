@@ -47,17 +47,17 @@ function getStarmadeDir(): string {
   return resolveStarmadeRoot((JSON.parse(fs.readFileSync(p, 'utf8')) as { starmadeDir: string }).starmadeDir);
 }
 
-function parseSize(raw: unknown): TileSize {
+export function parseSize(raw: unknown): TileSize {
   const n = parseInt(String(raw), 10);
   return (VALID_SIZES as readonly number[]).includes(n) ? (n as TileSize) : 256;
 }
 
-function parsePack(raw: unknown): string {
+export function parsePack(raw: unknown): string {
   const value = String(raw ?? 'Default').trim() || 'Default';
   return value.replace(/[\\/]/g, '');
 }
 
-function parseMapKind(raw: unknown): TextureMapKind {
+export function parseMapKind(raw: unknown): TextureMapKind {
   return String(raw ?? 'diffuse').trim().toLowerCase() === 'normal' ? 'normal' : 'diffuse';
 }
 

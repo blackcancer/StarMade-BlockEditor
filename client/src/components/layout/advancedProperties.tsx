@@ -67,7 +67,7 @@ export function ExtraPropertiesEditor({ value, blocks, onChange }: { value: Reco
   );
 }
 
-type ResourceEntry = { name: string; count: number };
+export type ResourceEntry = { name: string; count: number };
 
 function ResourceRecipeEditor({ value, blocks, onChange }: { value: Record<string, unknown>; blocks: BlockDef[]; onChange: (value: Record<string, unknown>) => void }) {
   const updateKey = (key: string, next: unknown) => onChange({ ...value, [key]: next });
@@ -184,7 +184,7 @@ function ExtraValueEditor({ value, onChange }: { value: unknown; onChange: (valu
   return <input value="" onChange={e => onChange(e.target.value)} />;
 }
 
-function normalizeResourceList(raw: unknown): ResourceEntry[] {
+export function normalizeResourceList(raw: unknown): ResourceEntry[] {
   if (!raw || raw === '') return [];
   if (Array.isArray(raw)) return raw.flatMap(normalizeResourceList);
   if (typeof raw !== 'object') return [];
@@ -199,13 +199,13 @@ function normalizeResourceItems(items: unknown[]): ResourceEntry[] {
   return items.filter((item): item is Record<string, unknown> => !!item && typeof item === 'object').map(item => ({ name: String(item['#text'] ?? ''), count: Number(item['@_count'] ?? 1) }));
 }
 
-function serializeResourceList(items: ResourceEntry[]): Record<string, unknown> | string {
+export function serializeResourceList(items: ResourceEntry[]): Record<string, unknown> | string {
   const clean = items.filter(item => item.name.trim());
   if (clean.length === 0) return '';
   return { Item: clean.map(item => ({ '#text': item.name.trim(), '@_count': String(Math.max(0, item.count || 0)) })) };
 }
 
-function normalizeElementList(raw: unknown): string[] {
+export function normalizeElementList(raw: unknown): string[] {
   if (!raw || raw === '') return [];
   if (typeof raw === 'string') return [raw].filter(Boolean);
   if (Array.isArray(raw)) return raw.flatMap(normalizeElementList);
@@ -215,18 +215,18 @@ function normalizeElementList(raw: unknown): string[] {
   return Array.isArray(element) ? element.map(String) : [String(element)];
 }
 
-function serializeElementList(items: string[]): Record<string, unknown> | string {
+export function serializeElementList(items: string[]): Record<string, unknown> | string {
   const clean = items.map(item => item.trim()).filter(Boolean);
   if (clean.length === 0) return '';
   return { Element: clean.length === 1 ? clean[0] : clean };
 }
 
-function normalizeCollisionShape(value: unknown): { type: string; styleId: number; slab: number; mesh: string; raw: Record<string, unknown> } {
+export function normalizeCollisionShape(value: unknown): { type: string; styleId: number; slab: number; mesh: string; raw: Record<string, unknown> } {
   const raw = value && typeof value === 'object' ? value as Record<string, unknown> : {};
   return { type: String(raw['@_type'] ?? 'None'), styleId: Number(raw.StyleId ?? 0), slab: Number(raw['@_slab'] ?? 0), mesh: String(raw.Mesh ?? ''), raw };
 }
 
-function defaultCollisionShape(type: string): Record<string, unknown> {
+export function defaultCollisionShape(type: string): Record<string, unknown> {
   if (type === 'BlockType') return { '@_type': 'BlockType', StyleId: 0, '@_slab': '0' };
   if (type === 'ConvexHull') return { '@_type': 'ConvexHull', Mesh: '' };
   return { '@_type': 'None' };

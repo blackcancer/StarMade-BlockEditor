@@ -121,19 +121,19 @@ function parseIntList(v: unknown): number[] {
   return String(v).split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
 }
 
-function parseEffectArmor(v: unknown): Record<string, number> {
+export function parseEffectArmor(v: unknown): Record<string, number> {
   if (!v || typeof v !== 'object') return {};
   const out: Record<string, number> = {};
   for (const [key, value] of Object.entries(v as Record<string, unknown>)) {
     if (key.startsWith('@_')) continue;
     const parsed = parseFloat(String(value));
-    if (!isNaN(parsed)) out[key] = parsed;
+    if (Number.isFinite(parsed)) out[key] = parsed;
   }
   return out;
 }
 
-function serializeEffectArmor(v: Record<string, number>): Record<string, number> | undefined {
-  const entries = Object.entries(v ?? {}).filter(([, value]) => typeof value === 'number' && !isNaN(value));
+export function serializeEffectArmor(v: Record<string, number>): Record<string, number> | undefined {
+  const entries = Object.entries(v ?? {}).filter(([, value]) => typeof value === 'number' && Number.isFinite(value));
   if (entries.length === 0) return undefined;
   return Object.fromEntries(entries);
 }
@@ -148,7 +148,7 @@ const KNOWN_BLOCK_TAGS = new Set([
   'LodShapeFromFar', 'Animated',
 ]);
 
-function collectExtraProperties(node: Record<string, unknown>): Record<string, unknown> {
+export function collectExtraProperties(node: Record<string, unknown>): Record<string, unknown> {
   const extra: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(node)) {
     if (key.startsWith('@_') || KNOWN_BLOCK_TAGS.has(key)) continue;
