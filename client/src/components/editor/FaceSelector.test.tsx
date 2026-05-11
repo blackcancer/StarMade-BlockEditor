@@ -97,6 +97,27 @@ describe('FaceSelector', () => {
     expect(useBlockStore.getState().draft?.textureId).toEqual([1, 2, 99, 99, 5, 6]);
   });
 
+  it('covers the right/left face group in 3-side mode and shows block hints', () => {
+    // individualSides=3, face 4 (RIGHT) => group [4,5]
+    useBlockStore.setState({ draft: block({ individualSides: 3 }), highlightFace: -1 });
+    const { unmount } = render(<FaceSelector />);
+    fireEvent.click(screen.getByTitle('RIGHT'));
+    fireEvent.click(screen.getByText('pick-99'));
+    expect(useBlockStore.getState().draft?.textureId).toEqual([1, 2, 3, 4, 99, 99]);
+    unmount();
+
+    // hasActivationTexture hint
+    useBlockStore.setState({ draft: block({ hasActivationTexture: true }), highlightFace: -1 });
+    const { unmount: u2 } = render(<FaceSelector />);
+    expect(screen.getByText(/Inactive preview/)).toBeTruthy();
+    u2();
+
+    // animated hint
+    useBlockStore.setState({ draft: block({ animated: true }), highlightFace: -1 });
+    render(<FaceSelector />);
+    expect(screen.getByText(/Animated preview/)).toBeTruthy();
+  });
+
   it('opens and closes the atlas manager without selecting a face', () => {
     useBlockStore.setState({ draft: block(), highlightFace: -1 });
     render(<FaceSelector />);

@@ -81,6 +81,16 @@ describe('blockStore', () => {
     expect(useBlockStore.getState().isDirty).toBe(true);
   });
 
+  it('selectBlock(null) resets draft and dirty state', () => {
+    const block = makeBlock();
+    useBlockStore.getState().selectBlock(block);
+    expect(useBlockStore.getState().draft).not.toBeNull();
+    useBlockStore.getState().selectBlock(null);
+    expect(useBlockStore.getState().draft).toBeNull();
+    expect(useBlockStore.getState().selectedBlock).toBeNull();
+    expect(useBlockStore.getState().isDirty).toBe(false);
+  });
+
   it('sets drafts directly, dirty state, filters and viewer/error flags', () => {
     const draft = makeBlock({ name: 'Direct draft' });
     useBlockStore.getState().setDraft(draft);

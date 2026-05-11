@@ -19,6 +19,11 @@ describe('block display helpers', () => {
     expect(displayBlockName(block({ id: 7, xmlTypeName: '', name: '' }))).toBe('7');
   });
 
+  it('falls back to prettified type when name equals prefix only', () => {
+    // name starts with the prefix but trimming leaves nothing → prettify(prefix)
+    expect(displayBlockName(block({ xmlTypeName: 'HULL', name: 'HULL' }))).toBe('Hull');
+  });
+
   it('prettifies technical type names', () => {
     expect(prettifyTypeName('ADVANCED_ARMOR_BLOCK')).toBe('Advanced Armor Block');
   });

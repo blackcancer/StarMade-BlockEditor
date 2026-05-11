@@ -96,6 +96,19 @@ describe('useApi hooks', () => {
     expect(fetch).toHaveBeenCalledWith('/api/config');
   });
 
+  it('uses fallback values when API returns undefined fields on autoload', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({}));
+    render(<ConfigAutoloadHarness />);
+
+    await waitFor(() => expect(useConfigStore.getState()).toMatchObject({
+      starmadeDir: '',
+      worldDir: 'world0',
+      atlasSize: 256,
+      texturePack: 'Default',
+      isValid: false,
+    }));
+  });
+
   it('autoloads blocks when config is valid', async () => {
     const block = makeBlock();
     useConfigStore.setState({ isValid: true });
