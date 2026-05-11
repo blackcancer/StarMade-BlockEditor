@@ -97,10 +97,13 @@ function BlockCard({ block, selected, onSelect }: {
 // ── Sidebar ─────────────────────────────────────────────────────────────────
 
 /**
- * Block list sidebar with search and filter controls.
+ * Searchable block navigation sidebar.
  *
- * @component
+ * The sidebar applies text and source/deprecated filters, renders readable names/icons, and updates the selected block in the global store. Selecting an entry creates the draft that the viewer and properties panel edit.
+ *
+ * @returns Filter controls and block selection list.
  */
+
 export function Sidebar() {
   const t          = useT();
   const blocks       = useBlockStore(s => s.blocks);

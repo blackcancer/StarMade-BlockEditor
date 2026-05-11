@@ -1,193 +1,259 @@
 # StarMade Block Editor
 
-> Éditeur visuel de blocs pour StarMade — prévisualisation 3D avec mappage complet de l'atlas de textures.
+Visual block editor for **StarMade** with a 3D preview, texture atlas editing, icon selection, and safe custom BlockConfig persistence.
 
-[![Tests](https://img.shields.io/badge/tests-121%20passed-brightgreen)]()
-[![Coverage](https://img.shields.io/badge/branches-100%25-brightgreen)]()
-[![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)]()
-[![Langues](https://img.shields.io/badge/i18n-EN%20%7C%20FR%20%7C%20DE%20%7C%20ES%20%7C%20RU%20%7C%20JA-blueviolet)]()
+The application reads the vanilla StarMade block data, lets you edit or create blocks in a graphical interface, and writes changes to StarMade's custom configuration files instead of modifying the original game files directly.
 
 ---
 
-## Fonctionnalités
+## Features
 
-- **Prévisualisation 3D** — 6 formes de blocs (Cube, Wedge, Corner, Cross, Tetra, Penta) avec mappage UV par face depuis l'atlas de textures StarMade
-- **Sélecteur de faces** — cliquer sur une face du bloc 3D ouvre le sélecteur de tuiles de l'atlas (64×32 tuiles)
-- **Atlas personnalisé** — importer un atlas complet ou remplacer une tuile individuelle (diffuse + normal map)
-- **Tous les champs de blocs** — HP, masse, volume, prix, armure, flags, source de lumière, variantes, et 60+ propriétés BlockConfig avancées
-- **Blocs vanilla + custom** — lit 1 500+ blocs vanilla, écrit uniquement dans `customBlockConfig/BlockConfigImport.xml`
-- **Orientations** — cycle sur toutes les orientations avec mise à jour 3D en temps réel
-- **Recherche et filtres** — trouver des blocs par nom, type XML ou ID numérique
-- **Import d'icônes** — remplacer les icônes de construction directement depuis l'éditeur
-- **Localisation complète** — 6 langues : Anglais, Français, Allemand, Espagnol, Russe, Japonais
-
----
-
-## Prérequis
-
-- **Node.js 18+**
-- **Installation de StarMade** (pour l'atlas de textures et la configuration des blocs)
+- **3D block preview** with StarMade-style geometry and atlas UV mapping.
+- **Supported shapes:** Cube, Wedge, Corner, Cross, Tetra, Penta, and Hepta-as-cube fallback.
+- **Face texture editor** using the StarMade composite atlas.
+- **Custom atlas manager** for importing a complete custom atlas or replacing individual custom tiles.
+- **Build icon picker** with icon sheet preview and custom icon import.
+- **Block properties editor** for identity, stats, shape, rendering, flags, lighting, variants, and advanced BlockConfig fields.
+- **Vanilla + custom block workflow:** vanilla blocks are read from the game, edits are saved as custom overrides.
+- **Search and filters** for vanilla, custom, deprecated blocks, names, type names, and IDs.
+- **Multi-language UI:** English, French, German, Spanish, Russian, and Japanese.
+- **Production startup scripts** for Windows and Linux/macOS/WSL.
 
 ---
 
-## Démarrage rapide (développement)
+## Requirements
+
+- **Node.js 18+** recommended, Node.js 20+ preferred.
+- **npm**.
+- A local **StarMade installation**.
+
+The app can run from Windows, Linux, macOS, or WSL. Windows paths such as `D:\Games\StarMade` are normalised automatically when the server runs under WSL.
+
+---
+
+## Quick start
+
+### Windows
+
+```bat
+start.bat
+```
+
+### Linux / macOS / WSL
+
+```bash
+./start.sh
+```
+
+The startup scripts will:
+
+1. verify that Node.js and npm are available;
+2. install dependencies if `node_modules` is missing;
+3. build the production server/client if `dist` output is missing;
+4. start the app in production mode;
+5. open the browser at:
+
+```text
+http://localhost:3847
+```
+
+Force a rebuild before starting:
+
+```bash
+./start.sh --rebuild
+```
+
+```bat
+start.bat --rebuild
+```
+
+Use a custom port:
+
+```bash
+PORT=8080 ./start.sh
+```
+
+```bat
+set PORT=8080
+start.bat
+```
+
+---
+
+## First launch
+
+On first launch, the app asks for your StarMade installation directory.
+
+Examples:
+
+```text
+D:\Jeux\Steam\steamapps\common\StarMade\
+```
+
+```text
+/mnt/d/Jeux/Steam/steamapps/common/StarMade/
+```
+
+The server resolves nested StarMade folders automatically. A directory is valid when the expected StarMade files such as `data/config/BlockConfig.xml` can be found.
+
+The editor stores its local configuration in:
+
+```text
+SMToolConfig.json
+```
+
+---
+
+## Manual development workflow
+
+Install dependencies:
 
 ```bash
 npm install
+```
+
+Start the development servers:
+
+```bash
 npm run dev
 ```
 
-- **Interface :** http://localhost:5174
-- **API :**       http://localhost:3847
+Development URLs:
 
-Au premier lancement, saisir le chemin vers le répertoire d'installation de StarMade dans la boîte de dialogue de configuration.
+```text
+Client: http://localhost:5174
+API:    http://localhost:3847
+```
 
----
-
-## Build de production
+Build production output:
 
 ```bash
-# Build complet (serveur + client)
 npm run build
-
-# Lancer en mode production (port 3847 par défaut)
-npm start
-
-# Ou sur un port personnalisé
-PORT=8080 npm start
 ```
 
-En mode production, le serveur Express sert à la fois l'API (`/api/*`) et le client React pré-compilé depuis `client/dist/`.
-
-### Variables d'environnement
-
-| Variable | Défaut | Description |
-|---|---|---|
-| `PORT` | `3847` | Port du serveur de production |
-| `NODE_ENV` | — | Mettre à `production` pour activer le mode prod |
-
----
-
-## Scripts disponibles
-
-| Commande | Description |
-|---|---|
-| `npm run dev` | Démarre serveur API + client Vite en mode développement |
-| `npm run build` | Compile serveur (tsc) + client (vite build) |
-| `npm start` | Lance le serveur de production (après `build`) |
-| `npm run preview` | Build puis lance en prod — test rapide du build |
-| `npm test` | Lance tous les tests (serveur + client) |
-| `npm run coverage` | Rapport de couverture complet |
-
----
-
-## Architecture
-
-```
-StarMade-BlockEditor/
-├── server/                    # API Express (TypeScript)
-│   └── src/
-│       ├── api/
-│       │   ├── config.ts      # Lecture/écriture SMToolConfig.json
-│       │   ├── blocks.ts      # CRUD BlockConfig.xml + customBlockConfig/
-│       │   └── textures.ts    # Service atlas PNG + extraction de tuiles (sharp)
-│       ├── utils/path.ts      # Normalisation chemins Windows/WSL
-│       └── index.ts           # Point d'entrée Express
-│
-├── client/                    # React + react-three-fiber (TypeScript)
-│   └── src/
-│       ├── 3d/
-│       │   ├── geometries/    # 6 formes portées depuis StarOS BPViewer
-│       │   ├── BlockMesh.tsx  # Mesh avec UV atlas + orientation
-│       │   ├── BlockViewer.tsx # Canvas r3f + OrbitControls
-│       │   └── AtlasTexture.ts # Chargeur atlas + helpers UV
-│       ├── components/
-│       │   ├── sidebar/BlockList.tsx      # Liste de blocs avec recherche et filtres
-│       │   ├── editor/FaceSelector.tsx   # Sélecteur de faces (6 boutons)
-│       │   ├── editor/AtlasPicker.tsx    # Sélecteur de tuiles atlas
-│       │   ├── editor/IconPicker.tsx     # Sélecteur d'icônes de construction
-│       │   └── layout/
-│       │       ├── Properties.tsx        # Éditeur de champs de blocs
-│       │       ├── advancedProperties.tsx # Éditeurs avancés (recettes, chambres…)
-│       │       ├── Viewer.tsx            # Colonne centrale avec contrôles d'orientation
-│       │       ├── propertyControls.tsx  # Composants de contrôle réutilisables
-│       │       └── propertyOptions.ts   # Options des sélects + tooltips
-│       ├── i18n/              # Système de localisation (6 langues)
-│       │   ├── index.ts       # Store Zustand + hooks useT() / useLocale()
-│       │   ├── en.ts          # Anglais (référence)
-│       │   ├── fr.ts          # Français
-│       │   ├── de.ts          # Allemand
-│       │   ├── es.ts          # Espagnol
-│       │   ├── ru.ts          # Russe
-│       │   └── ja.ts          # Japonais
-│       ├── store/             # État global Zustand
-│       │   ├── blockStore.ts  # Liste de blocs, draft, sélection, viewer
-│       │   └── configStore.ts # Configuration éditeur (dir, taille atlas, pack)
-│       └── hooks/useApi.ts    # Hooks de chargement/mutation via l'API
-│
-├── package.json               # Scripts racine (monorepo npm workspaces)
-└── SMToolConfig.json          # Chemin StarMade (créé au premier lancement, gitignored)
-```
-
----
-
-## Formes de blocs
-
-Portées depuis StarOS BPViewer (`starmade_gl.js` par @Blackcancer) :
-
-| BlockStyle | Forme | Description |
-|---|---|---|
-| 0 | **Cube** | Bloc standard — 6 quads, 3 modes UV (1/3/6 faces) |
-| 1 | **Wedge** | Prisme triangulaire incliné |
-| 2 | **Corner** | Coin en L, forme à 5 sommets |
-| 3 | **Cross** | Deux plans croisés (flore, vignes) — DoubleSide |
-| 4 | **Tetra** | Tétraèdre, 4 faces |
-| 5 | **Penta** | Prisme pentagone (famille hepta) |
-| 6 | **Hepta** | Rendu comme Cube |
-
----
-
-## Atlas de textures
-
-L'atlas composite regroupe les pages de textures StarMade en une grille 64×32 tuiles :
-
-| Page | Fichier source | IDs de tuiles |
-|---|---|---|
-| 0 | `t000.png` | 0–255 |
-| 1 | `t001.png` | 256–511 |
-| 2 | `t002.png` | 512–767 |
-| 3 | `t003.png` | 768–1023 |
-| 4–6 | *(réservé)* | 1024–1791 |
-| 7 | `custom.png` | 1792–2047 |
-
-Les normal maps suivent la même structure avec le suffixe `_NRM`.
-
----
-
-## Localisation
-
-Le système i18n est basé sur Zustand avec persistance `localStorage`. La langue est détectée automatiquement depuis les préférences du navigateur au premier lancement.
-
-**Ajouter une nouvelle langue :**
-1. Créer `client/src/i18n/<code>.ts` en suivant la structure de `en.ts`
-2. L'ajouter dans `LOCALES` dans `client/src/i18n/index.ts`
-3. La langue apparaît automatiquement dans le sélecteur — aucune autre modification nécessaire
-
----
-
-## WSL / Windows
-
-Le serveur tourne sous WSL (Linux) mais StarMade peut être installé sur un lecteur Windows. Les chemins Windows (`D:\Games\StarMade`) sont automatiquement convertis en chemins WSL (`/mnt/d/Games/StarMade`) par `server/src/utils/path.ts`.
-
----
-
-## Tests et qualité
+Start production server after build:
 
 ```bash
-npm test        # 121 tests — serveur + client
-npm run coverage # Rapport de couverture
+npm start
 ```
 
-- **Couverture branches client :** 100%
-- **TypeScript :** mode strict, 0 erreur
-- **Toutes les fonctions pures** exportées et testées individuellement
+Run tests:
+
+```bash
+npm test
+```
+
+Check documentation coverage:
+
+```bash
+npm run docs:check
+```
+
+---
+
+## npm scripts
+
+| Command | Description |
+|---|---|
+| `npm run dev` | Starts the API server and Vite client for development. |
+| `npm run build` | Builds the server and client production output. |
+| `npm start` | Starts the production Express server. |
+| `npm run preview` | Builds then starts the production app. |
+| `npm test` | Runs server and client tests. |
+| `npm run coverage` | Runs coverage for server and client tests. |
+| `npm run docs:check` | Verifies production-source JSDoc coverage. |
+
+---
+
+## Project structure
+
+```text
+StarMade-BlockEditor/
+├── start.sh                 # Linux/macOS/WSL startup script
+├── start.bat                # Windows startup script
+├── package.json             # npm workspace scripts
+├── SMToolConfig.json        # local editor configuration
+├── docs/
+│   ├── guide_en.md          # user guide
+│   └── CODEBASE_DOCUMENTATION.md
+├── client/
+│   └── src/
+│       ├── 3d/              # Three.js / React Three Fiber preview
+│       ├── components/      # UI panels, sidebar, editor modals
+│       ├── hooks/           # API loading and mutation hooks
+│       ├── i18n/            # translation dictionaries and locale store
+│       └── store/           # Zustand stores
+└── server/
+    └── src/
+        ├── api/             # config, block, and texture endpoints
+        ├── utils/           # path normalisation helpers
+        └── index.ts         # Express app entry point
+```
+
+---
+
+## How saving works
+
+The editor does **not** rewrite the vanilla StarMade `BlockConfig.xml` directly.
+
+When you save a vanilla block, the app creates or updates a custom override in StarMade's custom block configuration. This keeps the original game data intact and makes custom changes easier to back up or remove.
+
+Unknown or advanced XML fields are preserved through `extraProperties` so that loading and saving a block does not silently drop StarMade metadata that the UI does not expose as a first-class field yet.
+
+---
+
+## Texture atlas mapping
+
+The StarMade atlas is represented as a 4×2 page grid. Each page contains 16×16 tiles.
+
+| Page | Source | Tile IDs |
+|---|---|---|
+| 0 | `t000.png` | `0–255` |
+| 1 | `t001.png` | `256–511` |
+| 2 | `t002.png` | `512–767` |
+| 3 | `t003.png` | `768–1023` |
+| 4–6 | reserved / empty | `1024–1791` |
+| 7 | `custom.png` | `1792–2047` |
+
+Normal maps use the same layout with the `_NRM` suffix.
+
+---
+
+## Documentation
+
+User guides:
+
+- English: [`docs/guide_en.md`](docs/guide_en.md)
+- Français: [`docs/guide_fr.md`](docs/guide_fr.md)
+- Deutsch: [`docs/guide_de.md`](docs/guide_de.md)
+- Español: [`docs/guide_es.md`](docs/guide_es.md)
+- Русский: [`docs/guide_ru.md`](docs/guide_ru.md)
+- 日本語: [`docs/guide_ja.md`](docs/guide_ja.md)
+
+Maintainer documentation:
+
+- Codebase documentation: [`docs/CODEBASE_DOCUMENTATION.md`](docs/CODEBASE_DOCUMENTATION.md)
+- Inline source documentation: JSDoc in `client/src` and `server/src`
+
+---
+
+## Production validation checklist
+
+Before packaging or distributing a build, run:
+
+```bash
+npm run docs:check
+npm test
+npm run build
+```
+
+Recommended browser smoke checks:
+
+1. App opens and loads the block list.
+2. StarMade directory is detected as valid.
+3. Search and select a vanilla block.
+4. Change a draft field and save as custom.
+5. Reload and confirm persistence.
+6. Open the atlas picker and icon picker.
+7. Toggle light/activation preview on a light-emitting block.
+8. Test a non-cube shape and a Cross/cutout block.

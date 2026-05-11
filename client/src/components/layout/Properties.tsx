@@ -35,10 +35,13 @@ import {
 import { useT } from '../../i18n/index.js';
 
 /**
- * Properties panel component.
+ * Main properties panel for the selected block draft.
  *
- * @component
+ * The panel connects draft mutations, save/delete hooks, icon picking, and every visible BlockConfig section. It keeps persistence and modal state centralised while smaller controls handle individual field groups.
+ *
+ * @returns Editable properties form for the active block, or an empty-state message when nothing is selected.
  */
+
 export function Properties() {
   const t             = useT();
   const draft         = useBlockStore(s => s.draft);

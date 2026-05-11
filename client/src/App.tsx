@@ -160,10 +160,13 @@ function Header() {
 }
 
 /**
- * App root.
+ * Root component for the editor single-page application.
  *
- * @component
+ * `App` is the only component that composes the global layout. It starts configuration and block-list loading, renders the header/sidebar/viewer/properties columns, and shows the setup dialog while the configured StarMade directory is invalid. Data fetching and mutations remain in hooks so this shell stays declarative.
+ *
+ * @returns Mounted editor layout and conditional configuration dialog.
  */
+
 export function App() {
   const { saveConfig } = useConfig();
   useBlocks();

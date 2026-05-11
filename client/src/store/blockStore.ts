@@ -145,8 +145,11 @@ export interface BlockDef {
 // =============================================================================
 
 /**
- * Sidebar search and visibility filter state.
+ * Filter state used by the block sidebar.
+ *
+ * The search string narrows blocks by readable name/type/ID while the boolean flags independently include or exclude vanilla, custom, and deprecated definitions. Keeping the filter shape explicit makes sidebar behaviour testable and serialisable.
  */
+
 export interface BlockFilter {
   /** Text search query (matches name, xmlTypeName, and ID). */
   search:         string;
@@ -260,6 +263,13 @@ interface BlockStore {
 // =============================================================================
 // Store implementation
 // =============================================================================
+/**
+ * Global Zustand store for loaded blocks, selection, draft editing, and preview flags.
+ *
+ * Components should use this hook instead of sharing local editor state. The store separates the persisted block list from the mutable draft so users can edit fields freely, detect dirty state, and save or discard changes predictably.
+ *
+ * @returns Zustand hook exposing block editor state and mutation actions.
+ */
 
 export const useBlockStore = create<BlockStore>((set, get) => ({
 

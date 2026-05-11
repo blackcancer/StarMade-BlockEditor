@@ -13,7 +13,8 @@
     "start":    "cross-env NODE_ENV=production node server/dist/index.js",
     "preview":  "npm run build && npm run start",
     "test":     "npm run test --workspace=server && npm run test --workspace=client",
-    "coverage": "npm run coverage --workspace=server && npm run coverage --workspace=client"
+    "coverage": "npm run coverage --workspace=server && npm run coverage --workspace=client",
+    "docs:check": "node scripts/check-docs.js"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.1.5",

@@ -39,25 +39,60 @@ import * as THREE from 'three';
 // ── Atlas grid constants ──────────────────────────────────────────────────────
 // These must match the values in uvUtils.ts and the server-side textures.ts.
 
-/** Number of page columns in the composite atlas grid (4 pages wide). */
+/**
+ * Number of StarMade atlas pages laid out horizontally in the composite atlas image.
+ *
+ * These values encode StarMade atlas addressing. Client tile picking, UV generation, and server atlas composition must change together if this layout ever changes.
+ */
+
 export const PAGE_GRID_COLS = 4;
 
-/** Number of page rows in the composite atlas grid (2 pages tall). */
+/**
+ * Number of StarMade atlas pages laid out vertically in the composite atlas image.
+ *
+ * These values encode StarMade atlas addressing. Client tile picking, UV generation, and server atlas composition must change together if this layout ever changes.
+ */
+
 export const PAGE_GRID_ROWS = 2;
 
-/** Total number of tile columns in the composite atlas (4 pages × 16 tiles). */
+/**
+ * Total tile columns in the stitched composite atlas (`4 pages × 16 columns`).
+ *
+ * These values encode StarMade atlas addressing. Client tile picking, UV generation, and server atlas composition must change together if this layout ever changes.
+ */
+
 export const ATLAS_COLS = 64;
 
-/** Total number of tile rows in the composite atlas (2 pages × 16 tiles). */
+/**
+ * Total tile rows in the stitched composite atlas (`2 pages × 16 rows`).
+ *
+ * These values encode StarMade atlas addressing. Client tile picking, UV generation, and server atlas composition must change together if this layout ever changes.
+ */
+
 export const ATLAS_ROWS = 32;
 
-/** Number of tile columns per page (one StarMade texture file = 16×16 tiles). */
+/**
+ * Number of tile columns inside one StarMade texture page.
+ *
+ * These values encode StarMade atlas addressing. Client tile picking, UV generation, and server atlas composition must change together if this layout ever changes.
+ */
+
 export const PAGE_COLS = 16;
 
-/** Number of tile rows per page. */
+/**
+ * Number of tile rows inside one StarMade texture page.
+ *
+ * These values encode StarMade atlas addressing. Client tile picking, UV generation, and server atlas composition must change together if this layout ever changes.
+ */
+
 export const PAGE_ROWS = 16;
 
-/** Total tiles per page (16 × 16 = 256). */
+/**
+ * Number of addressable tile IDs contained in a single StarMade texture page.
+ *
+ * These values encode StarMade atlas addressing. Client tile picking, UV generation, and server atlas composition must change together if this layout ever changes.
+ */
+
 export const PAGE_TILES = PAGE_COLS * PAGE_ROWS;
 
 // ── Types ─────────────────────────────────────────────────────────────────────

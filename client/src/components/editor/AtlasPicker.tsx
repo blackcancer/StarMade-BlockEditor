@@ -56,10 +56,16 @@ interface AtlasPickerProps {
 }
 
 /**
- * Atlas picker overlay component.
+ * Interactive atlas modal used for both tile selection and custom atlas management.
  *
- * @component
+ * When `onSelect` is present the modal acts as a face-texture picker and converts canvas coordinates into StarMade tile IDs. Without `onSelect` it becomes the custom atlas manager, exposing full-atlas import and individual custom-tile replacement while invalidating atlas caches after successful writes.
+ *
+ * @param props.selectedTileId Currently selected StarMade tile ID.
+ * @param props.onSelect Optional callback enabling picker mode.
+ * @param props.onClose Callback used by Escape, backdrop close, and successful selection.
+ * @returns Atlas picker or manager overlay.
  */
+
 export function AtlasPicker({ selectedTileId, onSelect, onClose }: AtlasPickerProps) {
   const t           = useT();
   const atlasSize   = useConfigStore(s => s.atlasSize);

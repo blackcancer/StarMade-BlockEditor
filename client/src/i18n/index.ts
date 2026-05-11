@@ -38,9 +38,11 @@ import type { Translations } from './en.js';
 // ── Available locales ─────────────────────────────────────────────────────────
 
 /**
- * Map of locale code → translations object.
- * Add new locales here.
+ * Locales exposed by the header language selector.
+ *
+ * Each locale code must have a matching dictionary in this module. The label is intentionally stored next to the code so the selector can render language names without looking inside translation dictionaries.
  */
+
 export const LOCALES: Record<string, { label: string; translations: Translations }> = {
   en: { label: 'English',  translations: en },
   fr: { label: 'Français', translations: fr },
@@ -99,6 +101,13 @@ function resolveInitialLocale(): string {
 }
 
 const initialLocale = resolveInitialLocale();
+/**
+ * Global Zustand store for the active UI locale.
+ *
+ * The store is intentionally small: it keeps only the current language code and setter. Dictionary lookup remains in `useT`/`useLocale`, preventing components from importing locale objects directly.
+ *
+ * @returns Zustand hook containing current locale state and setter.
+ */
 
 export const useI18nStore = create<I18nStore>((set) => ({
   locale: initialLocale,

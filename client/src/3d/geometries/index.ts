@@ -62,11 +62,14 @@ export function needsDoubleSide(blockStyle: number): boolean {
 }
 
 /**
- * Human-readable name for a block style.
+ * Return a readable geometry-family name for a StarMade `BlockStyle` value.
  *
- * @param {number} blockStyle Block style.
- * @returns {string} Display name.
+ * The label is used by tests, diagnostics, and preview controls where raw numeric IDs would be unclear. Unknown values intentionally fall back to `Cube`, matching the renderer fallback used by `makeBlockGeometry`.
+ *
+ * @param style Raw `BlockStyle` value from BlockConfig.
+ * @returns Human-readable shape label.
  */
+
 export function blockStyleName(blockStyle: number): string {
   switch (blockStyle) {
     case 0: return 'Cube';

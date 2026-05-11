@@ -219,10 +219,16 @@ function Scene() {
 }
 
 /**
- * BlockViewer — the main 3D canvas for previewing a block.
+ * Render the selected block inside the editor preview canvas.
  *
- * @component
+ * The viewer owns scene-level concerns such as camera, orbit controls, grid/floor helpers, lights, and the optional footprint for active light-source blocks. Mesh topology, atlas materials, animation frames, and StarMade texture rules are delegated to `BlockMesh`.
+ *
+ * @param props.block Block definition to preview; `null` renders an empty viewer.
+ * @param props.orientation StarMade placement orientation index for asymmetric shapes.
+ * @param props.active Whether activation texture and light preview should be enabled.
+ * @returns React Three Fiber canvas wrapper for the current preview state.
  */
+
 export function BlockViewer() {
   return (
     <div style={{ width: '100%', height: '100%', background: '#0d1117' }}>

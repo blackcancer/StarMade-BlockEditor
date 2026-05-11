@@ -659,6 +659,11 @@ function tilePosition(tileId: number): { col: number; row: number } {
 // =============================================================================
 // Router
 // =============================================================================
+/**
+ * Express router for atlas, tile, icon, and custom texture endpoints.
+ *
+ * The router layer performs HTTP parameter validation and response mapping while delegating filesystem, XML, image, and cache work to local helper functions. Keeping the boundary documented makes production API behaviour easier to audit.
+ */
 
 export const texturesRouter = Router();
 

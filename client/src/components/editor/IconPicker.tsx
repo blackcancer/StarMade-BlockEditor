@@ -51,6 +51,16 @@ interface IconPickerProps {
   onSelect: (iconId: number) => void;
   onClose: () => void;
 }
+/**
+ * Build-icon picker modal backed by StarMade icon atlas endpoints.
+ *
+ * The component displays icon sheets, maps pointer positions to numeric `buildIconNum` values, and supports custom icon import. It mirrors the atlas picker interaction model so icon and texture selection behave consistently.
+ *
+ * @param props.selectedIcon Current icon ID stored on the block draft.
+ * @param props.onSelect Called with the selected icon ID.
+ * @param props.onClose Called when the modal is dismissed.
+ * @returns Icon picker overlay and hidden import input.
+ */
 
 export function IconPicker({ selectedIconId, onSelect, onClose }: IconPickerProps) {
   const t = useT();

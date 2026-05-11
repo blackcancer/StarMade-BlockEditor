@@ -409,6 +409,11 @@ const en = {
   none: 'None',
 
 };
+/**
+ * Canonical translation object shape for every supported locale.
+ *
+ * The English dictionary defines the complete nested key structure consumed by the UI. Other locale files are typed against this shape so missing or misspelled translation keys are caught during TypeScript compilation.
+ */
 
 export type Translations = typeof en;
 export default en;

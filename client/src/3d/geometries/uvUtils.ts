@@ -30,18 +30,47 @@
  */
 
 /**
- * Composite atlas layout:
- *  - vanilla t000/t001/t002/t003 pages
- *  - reserved layers 4/5/6
- *  - custom.png on layer 7, matching the engine/editor texture mapping.
- * arranged in a 4×2 page grid, each page being 16×16 tiles.
+ * Number of StarMade atlas pages laid out horizontally in the composite atlas image.
+ *
+ * These values encode StarMade atlas addressing. Client tile picking, UV generation, and server atlas composition must change together if this layout ever changes.
  */
+
 export const PAGE_GRID_COLS = 4;
+/**
+ * Number of StarMade atlas pages laid out vertically in the composite atlas image.
+ *
+ * These values encode StarMade atlas addressing. Client tile picking, UV generation, and server atlas composition must change together if this layout ever changes.
+ */
 export const PAGE_GRID_ROWS = 2;
+/**
+ * Total tile columns in the stitched composite atlas (`4 pages × 16 columns`).
+ *
+ * These values encode StarMade atlas addressing. Client tile picking, UV generation, and server atlas composition must change together if this layout ever changes.
+ */
 export const ATLAS_COLS = 64;
+/**
+ * Total tile rows in the stitched composite atlas (`2 pages × 16 rows`).
+ *
+ * These values encode StarMade atlas addressing. Client tile picking, UV generation, and server atlas composition must change together if this layout ever changes.
+ */
 export const ATLAS_ROWS = 32;
+/**
+ * Number of tile columns inside one StarMade texture page.
+ *
+ * These values encode StarMade atlas addressing. Client tile picking, UV generation, and server atlas composition must change together if this layout ever changes.
+ */
 export const PAGE_COLS = 16;
+/**
+ * Number of tile rows inside one StarMade texture page.
+ *
+ * These values encode StarMade atlas addressing. Client tile picking, UV generation, and server atlas composition must change together if this layout ever changes.
+ */
 export const PAGE_ROWS = 16;
+/**
+ * Number of addressable tile IDs contained in a single StarMade texture page.
+ *
+ * These values encode StarMade atlas addressing. Client tile picking, UV generation, and server atlas composition must change together if this layout ever changes.
+ */
 export const PAGE_TILES = PAGE_COLS * PAGE_ROWS; // 256
 
 // ── Opt 2: tileUV look-up table ───────────────────────────────────────────────
@@ -106,6 +135,11 @@ export function tileUV(tileId: number): { x: number; y: number; x1: number; y1: 
 }
 
 // ── Opt 5: starMadeFaceTriangles frozen constant ───────────────────────────────
+/**
+ * Canonical face names used by UV orientation helpers.
+ *
+ * The names match the semantic faces produced by the geometry builders, not arbitrary array positions. Keeping this union explicit prevents wedge/corner/tetra helpers from passing unsupported face labels into the StarMade UV correction tables.
+ */
 
 export type StarMadeFace = 'front' | 'back' | 'bottom' | 'top' | 'right' | 'left';
 type Corner = 'tl' | 'tr' | 'br' | 'bl';

@@ -860,6 +860,11 @@ function deleteCustomBlock(id: number): void {
 // =============================================================================
 // Router
 // =============================================================================
+/**
+ * Express router exposing block-definition read/write endpoints.
+ *
+ * The router layer performs HTTP parameter validation and response mapping while delegating filesystem, XML, image, and cache work to local helper functions. Keeping the boundary documented makes production API behaviour easier to audit.
+ */
 
 export const blocksRouter = Router();
 

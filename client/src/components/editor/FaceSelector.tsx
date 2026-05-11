@@ -43,10 +43,13 @@ type FaceKey = typeof FACE_KEYS[number];
 type FaceIndex = 0 | 1 | 2 | 3 | 4 | 5;
 
 /**
- * Face selector UI with atlas picker integration.
+ * Face texture editor shown below the 3D preview.
  *
- * @component
+ * The selector maps `IndividualSides` mode to the correct editable face buttons, opens the atlas picker for the chosen logical face, and writes selected tile IDs back into the active draft. It also provides access to the custom atlas manager from the texture-editing workflow.
+ *
+ * @returns Face controls and atlas modal state for the active draft, or `null` when no block is selected.
  */
+
 export function FaceSelector() {
   const t              = useT();
   const draft          = useBlockStore(s => s.draft);

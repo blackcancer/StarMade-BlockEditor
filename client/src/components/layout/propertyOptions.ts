@@ -440,7 +440,15 @@ export function formatPropertyLabel(key: string): string {
 
 import type { Translations } from '../../i18n/en.js';
 
-/** Localised IndividualSides options. */
+/**
+ * Return localised labels for `IndividualSides` selector values.
+ *
+ * The numeric/string values returned by these helpers remain stable BlockConfig data; only the visible label comes from the active translation dictionary. Keeping localisation here avoids duplicating option construction across form sections.
+ *
+ * @param t Active translation dictionary returned by `useT`.
+ * @returns Localised option list, label, or tooltip depending on the helper.
+ */
+
 export function getIndSidesOptions(t: Translations) {
   return [
     { value: 1, label: t.options.indSides.allSame },
@@ -449,7 +457,15 @@ export function getIndSidesOptions(t: Translations) {
   ];
 }
 
-/** Localised Slab options. */
+/**
+ * Return localised labels for StarMade slab thickness values.
+ *
+ * The numeric/string values returned by these helpers remain stable BlockConfig data; only the visible label comes from the active translation dictionary. Keeping localisation here avoids duplicating option construction across form sections.
+ *
+ * @param t Active translation dictionary returned by `useT`.
+ * @returns Localised option list, label, or tooltip depending on the helper.
+ */
+
 export function getSlabOptions(t: Translations) {
   return [
     { value: 0, label: t.options.slab.full },
@@ -459,7 +475,15 @@ export function getSlabOptions(t: Translations) {
   ];
 }
 
-/** Localised BlockResourceType options. */
+/**
+ * Return localised labels for known resource category values.
+ *
+ * The numeric/string values returned by these helpers remain stable BlockConfig data; only the visible label comes from the active translation dictionary. Keeping localisation here avoids duplicating option construction across form sections.
+ *
+ * @param t Active translation dictionary returned by `useT`.
+ * @returns Localised option list, label, or tooltip depending on the helper.
+ */
+
 export function getResourceTypeOptions(t: Translations) {
   return [
     { value: 0, label: t.options.resourceType.ore },
@@ -472,7 +496,15 @@ export function getResourceTypeOptions(t: Translations) {
   ];
 }
 
-/** Localised ProducedInFactory options. */
+/**
+ * Return localised labels for known production factory IDs.
+ *
+ * The numeric/string values returned by these helpers remain stable BlockConfig data; only the visible label comes from the active translation dictionary. Keeping localisation here avoids duplicating option construction across form sections.
+ *
+ * @param t Active translation dictionary returned by `useT`.
+ * @returns Localised option list, label, or tooltip depending on the helper.
+ */
+
 export function getFactoryOptions(t: Translations) {
   return [
     { value: 0, label: t.options.factory.none },
@@ -484,7 +516,15 @@ export function getFactoryOptions(t: Translations) {
   ];
 }
 
-/** Localised ResourceInjection options. */
+/**
+ * Return localised labels for resource injection modes.
+ *
+ * The numeric/string values returned by these helpers remain stable BlockConfig data; only the visible label comes from the active translation dictionary. Keeping localisation here avoids duplicating option construction across form sections.
+ *
+ * @param t Active translation dictionary returned by `useT`.
+ * @returns Localised option list, label, or tooltip depending on the helper.
+ */
+
 export function getResourceInjectionOptions(t: Translations) {
   return [
     { value: 0, label: t.options.resourceInjection.off },
@@ -493,7 +533,15 @@ export function getResourceInjectionOptions(t: Translations) {
   ];
 }
 
-/** Localised LodActivationAnimationStyle options. */
+/**
+ * Return localised labels for LOD activation animation modes.
+ *
+ * The numeric/string values returned by these helpers remain stable BlockConfig data; only the visible label comes from the active translation dictionary. Keeping localisation here avoids duplicating option construction across form sections.
+ *
+ * @param t Active translation dictionary returned by `useT`.
+ * @returns Localised option list, label, or tooltip depending on the helper.
+ */
+
 export function getLodAnimationOptions(t: Translations) {
   return [
     { value: 0, label: t.options.lodAnimation.noSwitch },
@@ -501,7 +549,15 @@ export function getLodAnimationOptions(t: Translations) {
   ];
 }
 
-/** Localised tooltip for an extra BlockConfig property key. */
+/**
+ * Resolve the translated tooltip for an advanced BlockConfig property key.
+ *
+ * The numeric/string values returned by these helpers remain stable BlockConfig data; only the visible label comes from the active translation dictionary. Keeping localisation here avoids duplicating option construction across form sections.
+ *
+ * @param t Active translation dictionary returned by `useT`.
+ * @returns Localised option list, label, or tooltip depending on the helper.
+ */
+
 export function tooltipForExtraPropertyL10n(key: string, t: Translations): string {
   const tips = t.extraTooltip as Record<string, unknown>;
   const val = tips[key];
@@ -509,7 +565,15 @@ export function tooltipForExtraPropertyL10n(key: string, t: Translations): strin
   return t.extraTooltip._fallback(key);
 }
 
-/** Localised block style name. */
+/**
+ * Resolve the translated display name for a StarMade geometry style.
+ *
+ * The numeric/string values returned by these helpers remain stable BlockConfig data; only the visible label comes from the active translation dictionary. Keeping localisation here avoids duplicating option construction across form sections.
+ *
+ * @param t Active translation dictionary returned by `useT`.
+ * @returns Localised option list, label, or tooltip depending on the helper.
+ */
+
 export function getBlockStyleName(blockStyle: number, t: Translations): string {
   switch (blockStyle) {
     case 0: return t.blockStyle.cube;

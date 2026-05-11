@@ -70,6 +70,13 @@ interface ConfigStore {
 // =============================================================================
 // Store implementation
 // =============================================================================
+/**
+ * Global Zustand store for StarMade path and texture configuration.
+ *
+ * The store holds the resolved game directory, selected world, atlas tile size, texture pack, and validity flag used by API hooks and the 3D renderer. Values are populated from `/api/config` and updated only after successful saves.
+ *
+ * @returns Zustand hook exposing configuration state and `setConfig`.
+ */
 
 export const useConfigStore = create<ConfigStore>((set) => ({
   starmadeDir: '',

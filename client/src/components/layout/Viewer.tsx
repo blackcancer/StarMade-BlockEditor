@@ -20,10 +20,13 @@ const ORIENTATION_COUNT: Record<number, number> = {
 };
 
 /**
- * Center viewer column.
+ * Compose the centre-column block preview workflow.
  *
- * @component
+ * `ViewerColumn` wires the active draft into orientation controls, activation/light preview toggles, the 3D canvas, and face texture editing. It applies store updates only through block-store actions so preview controls stay synchronised with the draft.
+ *
+ * @returns Viewer controls, 3D preview, and face selector.
  */
+
 export function ViewerColumn() {
   const t              = useT();
   const draft          = useBlockStore(s => s.draft);

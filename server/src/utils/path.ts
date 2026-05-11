@@ -95,40 +95,25 @@ export function existsHostPath(input: string): boolean {
 // =============================================================================
 
 /**
- * Resolve the actual StarMade game root directory from a user-supplied path.
+ * Resolve a user-provided path to the actual StarMade game root.
  *
- * Handles two common installation layouts:
- *
- *  1. **Direct install**: the path IS the game root.
- *     ```
- *     D:\Games\StarMade\    ← contains data\config\BlockConfig.xml
- *     ```
- *
- *  2. **Nested install**: the path contains a `StarMade\` subfolder.
- *     ```
- *     D:\Games\StarMade\         ← launcher/outer folder
- *       StarMade\                ← actual game root
- *         data\config\BlockConfig.xml
- *     ```
+ * Users may point the setup dialog at several valid-looking locations: the real
+ * game root, the Steam/launcher folder that contains a nested `StarMade/`
+ * directory, a Windows drive path while the server runs under WSL, or an
+ * already-normalised POSIX path. The resolver first applies
+ * {@link normalizeHostPath}, then prefers the candidate that contains
+ * `data/config/BlockConfig.xml`, because that file is required by the block API.
  *
  * Resolution order:
- *  1. Normalise the path with `normalizeHostPath`.
- *  2. Check `<path>/data/config/BlockConfig.xml` — if found, return `<path>`.
- *  3. Check `<path>/StarMade/data/config/BlockConfig.xml` — if found, return `<path>/StarMade`.
- *  4. Check existence of `<path>` or `<path>/StarMade` (fallback for unconfigured dirs).
- *  5. Return the normalised base path as a last resort.
+ * 1. `<path>/data/config/BlockConfig.xml` — direct install root.
+ * 2. `<path>/StarMade/data/config/BlockConfig.xml` — nested install root.
+ * 3. First candidate directory that exists, allowing setup to proceed before all
+ *    custom texture folders have been created.
+ * 4. The normalised base path as a final diagnostic fallback.
  *
- * @param {string} input User-supplied StarMade directory path.
- * @returns {string} Absolute path to the actual StarMade game root.
- *
- * @example
- * // Layout 1 — path is the root:
- * resolveStarmadeRoot('D:\\Games\\StarMade')
- * //→ '/mnt/d/Games/StarMade' (Linux/WSL)
- *
- * // Layout 2 — launcher folder:
- * resolveStarmadeRoot('D:\\Games\\StarMade')
- * //→ '/mnt/d/Games/StarMade/StarMade'  (if BlockConfig.xml is in the subfolder)
+ * @param input Candidate StarMade directory from config or setup UI.
+ * @returns Existing directory that should be treated as the StarMade root, or a
+ * normalised fallback path when no candidate exists yet.
  */
 export function resolveStarmadeRoot(input: string): string {
   const base = normalizeHostPath(input);

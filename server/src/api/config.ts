@@ -159,6 +159,11 @@ export function validateDir(dir: string): { valid: boolean; missing: string[] } 
 // =============================================================================
 // Router
 // =============================================================================
+/**
+ * Express router for editor configuration and StarMade directory validation.
+ *
+ * The router layer performs HTTP parameter validation and response mapping while delegating filesystem, XML, image, and cache work to local helper functions. Keeping the boundary documented makes production API behaviour easier to audit.
+ */
 
 export const configRouter = Router();
 
