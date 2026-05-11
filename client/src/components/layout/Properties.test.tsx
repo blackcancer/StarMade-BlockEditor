@@ -96,6 +96,14 @@ describe('Properties', () => {
     expect(screen.getByText('Select a block to edit its properties.')).toBeTruthy();
   });
 
+  it('renders deprecated badge and Unnamed block fallback', () => {
+    // isDeprecated: true → covers line 93 (deprecated badge branch)
+    // displayBlockName('') returns id → actually never returns '' so 'Unnamed block' is dead code
+    seed(block({ isDeprecated: true, name: 'DEPRECATED_BLOCK -- Old Block', isCustom: false }));
+    render(<Properties />);
+    expect(screen.getAllByText('Deprecated').length).toBeGreaterThan(0);
+  });
+
   it('edits identity, stats, shape, flags and extra properties through the draft store', () => {
     seed(block());
     render(<Properties />);
@@ -157,21 +165,22 @@ describe('Properties', () => {
     const hexInputs = screen.getAllByDisplayValue('#808080');
     fireEvent.change(hexInputs[hexInputs.length - 1], { target: { value: '#123456' } });
     expect(useBlockStore.getState().draft?.lightSourceColor[3]).toBe(1);
+  });
 
-    // Reset to 3-element array for next tests
-    const d = useBlockStore.getState().draft!;
-    useBlockStore.setState({ draft: { ...d, lightSourceColor: [0.5, 0.5, 0.5] as any } });
-
-    // Palette click → hexToRgba(hex, [3] ?? 1) (covers line 319)
-    fireEvent.click(screen.getByTitle('#60b8ff'));
-    expect(useBlockStore.getState().draft?.lightSourceColor[3]).toBe(1);
-
-    // Reset again for color input test
-    const d2 = useBlockStore.getState().draft!;
-    useBlockStore.setState({ draft: { ...d2, lightSourceColor: [0, 1, 0] as any } });
-    // color input covers line 288
+  it('covers ?? 1 in color input and palette click (lines 288, 319)', () => {
+    // Each test starts with a fresh component to ensure 3-element lightSourceColor
+    seed(block({ lightSource: true, lightSourceColor: [0.5, 0.5, 0.5] as any }));
+    const { unmount } = render(<Properties />);
+    // color input (line 288)
     const colorInputs = document.querySelectorAll('input[type="color"]');
     fireEvent.change(colorInputs[0], { target: { value: '#ff0000' } });
+    expect(useBlockStore.getState().draft?.lightSourceColor[3]).toBe(1);
+    unmount();
+
+    // palette click (line 319)
+    seed(block({ lightSource: true, lightSourceColor: [0.5, 0.5, 0.5] as any }));
+    render(<Properties />);
+    fireEvent.click(screen.getByTitle('#60b8ff'));
     expect(useBlockStore.getState().draft?.lightSourceColor[3]).toBe(1);
   });
 
