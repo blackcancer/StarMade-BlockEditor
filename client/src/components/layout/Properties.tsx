@@ -4,37 +4,7 @@
  * Renders all editable fields for the currently selected block.
  * All changes go through the **draft system**: edits update `draft` in the
  * block store and set `isDirty = true`. Nothing is written to disk until the
- * user clicks “Save to Custom”.
- *
- * ## Draft workflow
- *  - Select block → `selectBlock(block)` clones the block into `draft`.
- *  - Edit any field → `updateDraft(patch)` updates the in-memory copy.
- *  - Save → `useSaveBlock()` writes to the API, re-selects the saved block.
- *  - Revert → `selectBlock(selectedBlock)` re-clones from the saved state.
- *
- * ## Write policy
- * Vanilla blocks are promoted to custom on first save
- * (`customBlockConfig/BlockConfigImport.xml`). The panel shows a warning banner
- * when a vanilla block is being edited. Vanilla blocks cannot be deleted via
- * the UI — they must be marked Deprecated instead.
- *
- * ## Sections
- *  - **Identity**   — Name, build icon (picker + import), description
- *  - **Stats**      — HP, mass, volume, price, armor, effect armor
- *  - **Shape**      — Block style, slab geometry, texture face mode, computer reference
- *  - **Rendering**  — orientation flags, extended texture, LOD shape
- *  - **Extra**      — `<ExtraPropertiesEditor>` for all remaining BlockConfig fields
- *  - **Flags**      — placable, inShop, orientation, canActivate, deprecated,
- *                     lightSource, transparency, door, logicBlock, animated
- *  - **Light Color** — shown only when `lightSource = true`:
- *                     colour picker, hex input, intensity slider, palette presets
- *  - **Variants**   — slab variant and style variant ID lists
- *
- * ## Icon import
- * The “Import…” button on the icon field uploads a custom icon image via
- * `PUT /api/textures/icon/:id`. The file input ref is cleared after upload
- * to allow re-importing the same file. The `importingIcon` state disables the
- * button and changes its label to “Importing…” while the upload is in flight.
+ * user clicks "Save to Custom".
  *
  * @author InitSysRev
  * @version 1.0.0
@@ -54,7 +24,11 @@ import {
   IND_SIDES_OPTIONS,
   LIGHT_PRESETS,
   SLAB_OPTIONS,
+  getIndSidesOptions,
+  getSlabOptions,
+  getBlockStyleName,
 } from './propertyOptions.js';
+import { useT } from '../../i18n/index.js';
 
 /**
  * Properties panel component.
@@ -62,6 +36,7 @@ import {
  * @component
  */
 export function Properties() {
+  const t           = useT();
   const draft         = useBlockStore(s => s.draft);
   const updateDraft   = useBlockStore(s => s.updateDraft);
   const isDirty       = useBlockStore(s => s.isDirty);
@@ -79,7 +54,7 @@ export function Properties() {
     return (
       <aside className="properties empty">
         <div className="properties-placeholder">
-          Select a block to edit its properties.
+          {t.properties.empty}
         </div>
       </aside>
     );
@@ -109,13 +84,35 @@ export function Properties() {
       // Force img refresh while keeping the same icon id.
       updateDraft({ icon: draft.icon });
     } catch (e) {
-      alert(`Icon import failed: ${e}`);
+      alert(t.properties.errorImportIcon(e));
     } finally {
       setImportingIcon(false);
       /* c8 ignore next 2 */
       if (iconFileRef.current) iconFileRef.current.value = '';
     }
   };
+
+  // Rendering flag rows: [fieldKey, labelKey, tooltipKey]
+  const renderingFlags: [keyof BlockDef, keyof typeof t.flag, keyof typeof t.flag][] = [
+    ['sideTexturesPointToOrientation', 'sideTexturesPointToOrientation', 'sideTexturesPointToOrientation'],
+    ['hasActivationTexture',           'hasActivationTexture',           'hasActivationTexture'],
+    ['extendedTexture4x4',             'extendedTexture4x4',             'extendedTexture4x4'],
+    ['onlyDrawnInBuildMode',           'onlyDrawnInBuildMode',           'onlyDrawnInBuildMode'],
+  ];
+
+  // General flag rows
+  const generalFlags: [keyof BlockDef, keyof typeof t.flag, keyof typeof t.flag][] = [
+    ['isPlacable',     'isPlacable',     'isPlacable'],
+    ['inShop',         'inShop',         'inShop'],
+    ['hasOrientation', 'hasOrientation', 'hasOrientation'],
+    ['canActivate',    'canActivate',    'canActivate'],
+    ['isDeprecated',   'isDeprecated',   'isDeprecated'],
+    ['lightSource',    'lightSource',    'lightSource'],
+    ['transparency',   'transparency',   'transparency'],
+    ['door',           'door',           'door'],
+    ['logicBlock',     'logicBlock',     'logicBlock'],
+    ['animated',       'animated',       'animated'],
+  ];
 
   return (
     <aside className="properties">
@@ -124,16 +121,18 @@ export function Properties() {
         <div className="properties-title">
           {displayName}
           {/* c8 ignore next */}
-          {draft.isCustom   && <span className="badge badge-custom">Custom</span>}
+          {draft.isCustom    && <span className="badge badge-custom">{t.properties.badgeCustom}</span>}
           {/* c8 ignore next */}
-          {draft.isDeprecated && <span className="badge badge-deprecated">Deprecated</span>}
+          {draft.isDeprecated && <span className="badge badge-deprecated">{t.properties.badgeDeprecated}</span>}
         </div>
-        <div className="properties-id">{draft.isCustom ? 'Custom block' : 'Vanilla block'}</div>
+        <div className="properties-id">
+          {draft.isCustom ? t.properties.subtitleCustom : t.properties.subtitleVanilla}
+        </div>
       </div>
 
       {isVanilla && (
         <div className="properties-notice">
-          ⚠ Vanilla block — changes will be saved to customBlockConfig/BlockConfigImport.xml.
+          {t.properties.vanillaNotice}
         </div>
       )}
 
@@ -142,19 +141,21 @@ export function Properties() {
 
         {/* Identity */}
         <section>
-          <h4>Identity</h4>
-          <Field label="Name" tooltip="Display name shown by StarMade in inventories, shop/build UI and block lists.">
+          <h4>{t.section.identity}</h4>
+          <Field label={t.field.name.label} tooltip={t.field.name.tooltip}>
             <input value={draft.name} onChange={e => onChange('name', e.target.value)} />
           </Field>
-          <Field label="Build icon" tooltip="Inventory/build-menu icon. StarMade stores these in build-icons sheets; this picker writes the correct sheet slot for custom icons.">
+          <Field label={t.field.icon.label} tooltip={t.field.icon.tooltip}>
             <div className="icon-field">
-              <button type="button" className="icon-preview" onClick={() => setIconPickerOpen(true)} title="Pick build icon">
+              <button type="button" className="icon-preview" onClick={() => setIconPickerOpen(true)} title={t.properties.pickIconTooltip}>
                 <img src={`/api/textures/icon/${draft.icon}`} alt="" />
               </button>
               <input type="number" min={0} value={draft.icon} onChange={e => onChange('icon', +e.target.value)} />
-              <button type="button" className="btn-secondary" onClick={() => setIconPickerOpen(true)}>Pick…</button>
+              <button type="button" className="btn-secondary" onClick={() => setIconPickerOpen(true)}>
+                {t.properties.pickIcon}
+              </button>
               <button type="button" className="btn-secondary" disabled={importingIcon} onClick={() => iconFileRef.current?.click()}>
-                {importingIcon ? 'Importing…' : 'Import…'}
+                {importingIcon ? t.properties.importingIcon : t.properties.importIcon}
               </button>
               <input
                 ref={iconFileRef}
@@ -165,7 +166,7 @@ export function Properties() {
               />
             </div>
           </Field>
-          <Field label="Description" tooltip="Description text shown to players in StarMade UI/tooltips.">
+          <Field label={t.field.description.label} tooltip={t.field.description.tooltip}>
             <textarea
               value={draft.description}
               rows={3}
@@ -176,23 +177,23 @@ export function Properties() {
 
         {/* Stats */}
         <section>
-          <h4>Stats</h4>
-          <Field label="HP" tooltip="Hitpoints used by damage/destruction code. Higher values make each placed block harder to destroy.">
+          <h4>{t.section.stats}</h4>
+          <Field label={t.field.hp.label} tooltip={t.field.hp.tooltip}>
             <input type="number" value={draft.hp} min={0} onChange={e => onChange('hp', +e.target.value)} />
           </Field>
-          <Field label="Mass" tooltip="Mass contribution of one block. Used by ship/station mass and therefore affects movement and handling.">
+          <Field label={t.field.mass.label} tooltip={t.field.mass.tooltip}>
             <input type="number" value={draft.mass} step={0.01} min={0} onChange={e => onChange('mass', +e.target.value)} />
           </Field>
-          <Field label="Volume" tooltip="Volume value used by balancing/stat systems for this block type.">
+          <Field label={t.field.volume.label} tooltip={t.field.volume.tooltip}>
             <input type="number" value={draft.volume} step={0.01} min={0} onChange={e => onChange('volume', +e.target.value)} />
           </Field>
-          <Field label="Price" tooltip="Base shop/economy price used when the block is available for trade.">
+          <Field label={t.field.price.label} tooltip={t.field.price.tooltip}>
             <input type="number" value={draft.price} min={0} onChange={e => onChange('price', +e.target.value)} />
           </Field>
-          <Field label="Armor value" tooltip="General armor/resistance factor used by StarMade damage calculations.">
+          <Field label={t.field.armor.label} tooltip={t.field.armor.tooltip}>
             <input type="number" value={draft.armor} step={0.01} min={0} max={1} onChange={e => onChange('armor', +e.target.value)} />
           </Field>
-          <Field label="Effect Armor" tooltip="Per-damage-type armor modifiers. Source exposes Heat, Kinetic and EM resistances through EffectArmor.">
+          <Field label={t.field.effectArmor.label} tooltip={t.field.effectArmor.tooltip}>
             <div className="effect-armor-grid">
               {EFFECT_ARMOR_TYPES.map(type => (
                 <label key={type}>
@@ -217,54 +218,54 @@ export function Properties() {
 
         {/* Shape */}
         <section>
-          <h4>Shape</h4>
-          <Field label="Block Style" tooltip="Mesh shape selected by BlockStyle: cube, wedge, corner, cross, tetra, penta, etc.">
+          <h4>{t.section.shape}</h4>
+          <Field label={t.field.blockStyle.label} tooltip={t.field.blockStyle.tooltip}>
             <select value={draft.blockStyle} onChange={e => onChange('blockStyle', +e.target.value)}>
               {BLOCK_STYLES.map(s => (
-                <option key={s} value={s}>{blockStyleName(s)}</option>
+                <option key={s} value={s}>{getBlockStyleName(s, t)}</option>
               ))}
             </select>
           </Field>
-          <Field label="Slab geometry" tooltip="Vertical slab thickness used by the engine: full, 3/4, 1/2 or 1/4 block.">
+          <Field label={t.field.slab.label} tooltip={t.field.slab.tooltip}>
             <select value={draft.slab ?? 0} onChange={e => onChange('slab', +e.target.value)}>
-              {SLAB_OPTIONS.map(o => (
+              {getSlabOptions(t).map(o => (
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </select>
           </Field>
-          <Field label="Texture face mode" tooltip="How texture IDs are interpreted: one texture for all faces, grouped faces, or six independent face textures.">
+          <Field label={t.field.individualSides.label} tooltip={t.field.individualSides.tooltip}>
             <select value={draft.individualSides} onChange={e => onChange('individualSides', +e.target.value)}>
-              {IND_SIDES_OPTIONS.map(o => (
+              {getIndSidesOptions(t).map(o => (
                 <option key={o.value} value={o.value}>{o.label}</option>
               ))}
             </select>
           </Field>
-          <Field label="Computer reference" tooltip="Optional linked controller/computer block used by system blocks that reference a control block.">
+          <Field label={t.field.computerRef.label} tooltip={t.field.computerRef.tooltip}>
             <BlockIdSelect blocks={blocks} value={draft.computerReference} onChange={id => onChange('computerReference', id)} allowNone />
           </Field>
         </section>
 
-        {/* Rendering / texture source flags not previously exposed */}
+        {/* Rendering / texture */}
         <section>
-          <h4>Rendering / Texture</h4>
+          <h4>{t.section.rendering}</h4>
           <div className="flags-grid">
-            {([
-              ['sideTexturesPointToOrientation', 'Textures follow orientation', 'Rotates side texture lookup with block orientation. Used by oriented/rail-like blocks so faces keep the expected texture after placement rotation.'],
-              ['hasActivationTexture', 'Activation texture', 'Enables active/inactive texture state. In source, inactive state uses the tile immediately to the right of the base texture.'],
-              ['extendedTexture4x4', 'Extended 4×4 texture', 'Uses an extended 4×4 texture footprint instead of a single tile for blocks requiring larger texture areas.'],
-              ['onlyDrawnInBuildMode', 'Build-mode only', 'Only rendered in build/edit contexts; used for helper/preview-only blocks that should not render normally.'],
-            ] as [keyof typeof draft, string, string][]).map(([field, label, tooltip]) => (
-              <label key={field} className="flag-toggle" title={tooltip}>
-                <input
-                  type="checkbox"
-                  checked={draft[field] as boolean}
-                  onChange={e => onChange(field, e.target.checked)}
-                />
-                {label} <span className="field-help" aria-label={tooltip}>ⓘ</span>
-              </label>
-            ))}
+            {renderingFlags.map(([field, labelKey, tooltipKey]) => {
+              const entry = t.flag[labelKey];
+              const label   = entry.label;
+              const tooltip = entry.tooltip;
+              return (
+                <label key={field as string} className="flag-toggle" title={tooltip}>
+                  <input
+                    type="checkbox"
+                    checked={draft[field] as boolean}
+                    onChange={e => onChange(field as string, e.target.checked)}
+                  />
+                  {label} <span className="field-help" aria-label={tooltip}>ⓘ</span>
+                </label>
+              );
+            })}
           </div>
-          <Field label="Far-distance model" tooltip="LOD shape used at distance. StarMade switches to this low-detail representation when rendering far-away blocks.">
+          <Field label={t.field.lodShapeFromFar.label} tooltip={t.field.lodShapeFromFar.tooltip}>
             <input
               type="number"
               min={0}
@@ -276,7 +277,7 @@ export function Properties() {
 
         {/* Additional structured properties */}
         <section>
-          <h4>Additional BlockConfig properties</h4>
+          <h4>{t.section.extra}</h4>
           <ExtraPropertiesEditor
             value={draft.extraProperties ?? {}}
             blocks={blocks}
@@ -286,37 +287,31 @@ export function Properties() {
 
         {/* Flags */}
         <section>
-          <h4>Flags</h4>
+          <h4>{t.section.flags}</h4>
           <div className="flags-grid">
-            {([
-              ['isPlacable',     'Placable',     'Allows players/build systems to place this block in the world.'],
-              ['inShop',         'In Shop',      'Makes the block available to shop/economy systems when applicable.'],
-              ['hasOrientation', 'Orientation',  'Stores orientation when placed; enables rotated geometry/texture behavior.'],
-              ['canActivate',    'Can Activate', 'Gameplay interaction flag: the block can be toggled/used. This alone does not imply a texture change.'],
-              ['isDeprecated',   'Deprecated',   'Marks the block as obsolete for game/UI systems while preserving compatibility.'],
-              ['lightSource',    'Light Source', 'When active, contributes light using LightSourceColor: RGB color plus W intensity.'],
-              ['transparency',   'Transparency', 'Enables transparent/blended rendering for glass-like blocks.'],
-              ['door',           'Door',         'Door-specific behavior flag used by door/opening systems.'],
-              ['logicBlock',     'Logic Block',  'Participates in the logic network as a logic-capable block.'],
-              ['animated',       'Animated',     'Cycles through a 4-tile texture range; source advances animation frames every ~0.5s.'],
-            ] as [keyof typeof draft, string, string][]).map(([field, label, tooltip]) => (
-              <label key={field} className="flag-toggle" title={tooltip}>
-                <input
-                  type="checkbox"
-                  checked={draft[field] as boolean}
-                  onChange={e => onChange(field, e.target.checked)}
-                />
-                {label} <span className="field-help" aria-label={tooltip}>ⓘ</span>
-              </label>
-            ))}
+            {generalFlags.map(([field, labelKey, tooltipKey]) => {
+              const entry = t.flag[labelKey];
+              const label   = entry.label;
+              const tooltip = entry.tooltip;
+              return (
+                <label key={field as string} className="flag-toggle" title={tooltip}>
+                  <input
+                    type="checkbox"
+                    checked={draft[field] as boolean}
+                    onChange={e => onChange(field as string, e.target.checked)}
+                  />
+                  {label} <span className="field-help" aria-label={tooltip}>ⓘ</span>
+                </label>
+              );
+            })}
           </div>
         </section>
 
         {/* Light color (when lightSource) */}
         {draft.lightSource && (
           <section>
-            <h4>Light Color</h4>
-            <Field label="Color" tooltip="RGB color emitted by an active light source. StarMade reads this as direct RGB, not HSL.">
+            <h4>{t.section.lightColor}</h4>
+            <Field label={t.field.lightColor.label} tooltip={t.field.lightColor.tooltip}>
               <div className="color-editor">
                 <input
                   type="color"
@@ -340,7 +335,7 @@ export function Properties() {
                   max={2}
                   step={0.05}
                   value={draft.lightSourceColor[3] ?? 1}
-                  title="Emissive intensity"
+                  title={t.field.emissiveIntensity}
                   onChange={e => updateDraft({ lightSourceColor: [...draft.lightSourceColor.slice(0, 3), +e.target.value] })}
                 />
               </div>
@@ -357,7 +352,7 @@ export function Properties() {
                 ))}
               </div>
             </Field>
-            <Field label="R G B Intensity" tooltip="LightSourceColor values. RGB are color channels; the fourth value is the W intensity multiplier used by engine lighting.">
+            <Field label={t.field.lightRGBI.label} tooltip={t.field.lightRGBI.tooltip}>
               <div className="light-color-row">
                 {draft.lightSourceColor.map((v, i) => (
                   <input key={i} type="number" step={0.01} min={0} max={i === 3 ? 2 : 1} value={v}
@@ -375,15 +370,15 @@ export function Properties() {
 
         {/* Variants */}
         <section>
-          <h4>Variants</h4>
-          <Field label="Slab variants" tooltip="Links to this block's slab variants. StarMade uses these associations to navigate related slab forms.">
+          <h4>{t.section.variants}</h4>
+          <Field label={t.field.slabIds.label} tooltip={t.field.slabIds.tooltip}>
             <VariantSelector
               ids={draft.slabIds}
               options={blockOptions}
               onChange={ids => updateDraft({ slabIds: ids })}
             />
           </Field>
-          <Field label="Style variants" tooltip="Links to alternate style/shape variants associated with this block.">
+          <Field label={t.field.styleIds.label} tooltip={t.field.styleIds.tooltip}>
             <VariantSelector
               ids={draft.styleIds}
               options={blockOptions}
@@ -402,12 +397,12 @@ export function Properties() {
         {draft.isCustom && (
           <button
             className="btn-delete"
-            title="Remove this block from customBlockConfig/BlockConfigImport.xml"
+            title={t.properties.deleteTooltip(draft.name)}
             onClick={() => {
-              if (window.confirm(`Delete custom block ${draft.name}?`)) deleteBlock(draft);
+              if (window.confirm(t.properties.deleteConfirm(draft.name))) deleteBlock(draft);
             }}
           >
-            🗑 Delete
+            {t.properties.delete}
           </button>
         )}
         <button
@@ -415,14 +410,14 @@ export function Properties() {
           disabled={!isDirty}
           onClick={() => selectBlock(selectedBlock)}
         >
-          ↩ Revert
+          {t.properties.revert}
         </button>
         <button
           className="btn-save"
           disabled={!isDirty}
           onClick={save}
         >
-          💾 Save to Custom
+          {t.properties.save}
         </button>
       </div>
 

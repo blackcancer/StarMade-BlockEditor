@@ -29,6 +29,7 @@ import { useConfig, useBlocks, useCreateBlock } from './hooks/useApi.js';
 import { invalidateAtlasCache } from './3d/AtlasTexture.js';
 import { useConfigStore } from './store/configStore.js';
 import { useBlockStore }  from './store/blockStore.js';
+import { useT, useLocale, LOCALES } from './i18n/index.js';
 
 /**
  * Config dialog shown when starmadeDir is not set.
@@ -36,19 +37,20 @@ import { useBlockStore }  from './store/blockStore.js';
  * @component
  */
 function ConfigDialog({ onSave }: { onSave: (dir: string) => void }) {
+  const t = useT();
   const [dir, setDir] = React.useState('');
   return (
     <div className="config-overlay">
       <div className="config-dialog">
-        <h2>⚙ StarMade Block Editor</h2>
-        <p>Set the path to your StarMade installation directory to get started.</p>
+        <h2>{t.config.title}</h2>
+        <p>{t.config.description}</p>
         <input
           type="text"
-          placeholder="e.g. D:/Games/StarMade/StarMade"
+          placeholder={t.config.placeholder}
           value={dir}
           onChange={e => setDir(e.target.value)}
         />
-        <button onClick={() => dir && onSave(dir)}>Save & Load Blocks</button>
+        <button onClick={() => dir && onSave(dir)}>{t.config.save}</button>
       </div>
     </div>
   );
@@ -60,6 +62,9 @@ function ConfigDialog({ onSave }: { onSave: (dir: string) => void }) {
  * @component
  */
 function Header() {
+  const t = useT();
+  const { locale, setLocale } = useLocale();
+
   const starmadeDir = useConfigStore(s => s.starmadeDir);
   const isValid     = useConfigStore(s => s.isValid);
   const atlasSize   = useConfigStore(s => s.atlasSize);
@@ -97,13 +102,13 @@ function Header() {
   return (
     <header className="app-header">
       <div className="app-brand">
-        <span className="app-title">⚙ StarMade Block Editor</span>
-        <span className="app-subtitle">v1.0.0</span>
+        <span className="app-title">{t.app.title}</span>
+        <span className="app-subtitle">{t.app.subtitle}</span>
       </div>
       <div className="app-path" title={starmadeDir}>
         {isValid
-          ? <span className="valid">✓ {starmadeDir.split(/[/\\]/).at(-1)}</span>
-          : <span className="invalid">⚠ No StarMade directory configured</span>
+          ? <span className="valid">{t.app.dirValid(starmadeDir.split(/[/\\]/).at(-1) ?? '')}</span>
+          : <span className="invalid">{t.app.dirInvalid}</span>
         }
       </div>
       <div className="spacer" />
@@ -113,7 +118,7 @@ function Header() {
             className="header-select"
             value={atlasSize}
             onChange={e => saveTextureConfig({ atlasSize: +e.target.value, texturePack: 'Default' })}
-            title="Texture resolution"
+            title={t.app.textureResolution}
           >
             <option value={64}>64</option>
             <option value={128}>128</option>
@@ -123,20 +128,32 @@ function Header() {
             className="header-select"
             value={texturePack}
             onChange={e => saveTextureConfig({ texturePack: e.target.value })}
-            title="Texture pack"
+            title={t.app.texturePack}
           >
             {packs.map(pack => <option key={pack.name} value={pack.name}>{pack.name}</option>)}
           </select>
         </>
       )}
       <div className="app-stats">
-        {blocks.length > 0 && `${blocks.length} blocks`}
+        {blocks.length > 0 && t.app.blockCount(blocks.length)}
       </div>
-      <button className="btn-secondary" onClick={reload} title="Reload blocks from disk">
-        ↺ Reload
+      {/* Language selector */}
+      <select
+        className="header-select"
+        value={locale}
+        onChange={e => setLocale(e.target.value)}
+        title={t.app.language}
+        aria-label={t.app.language}
+      >
+        {Object.entries(LOCALES).map(([code, entry]) => (
+          <option key={code} value={code}>{entry.label}</option>
+        ))}
+      </select>
+      <button className="btn-secondary" onClick={reload} title={t.app.reloadTooltip}>
+        {t.app.reload}
       </button>
-      <button className="btn-primary" onClick={createBlock} title="Create a new custom block">
-        + New Block
+      <button className="btn-primary" onClick={createBlock} title={t.app.newBlockTooltip}>
+        {t.app.newBlock}
       </button>
     </header>
   );
@@ -151,7 +168,7 @@ export function App() {
   const { saveConfig } = useConfig();
   useBlocks();
 
-  const isValid  = useConfigStore(s => s.isValid);
+  const isValid = useConfigStore(s => s.isValid);
 
   return (
     <div className="app-root">

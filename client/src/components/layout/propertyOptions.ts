@@ -432,3 +432,143 @@ export function formatPropertyLabel(key: string): string {
     .replace(/^text$/i, 'Value')              // #text → Value
     .replace(/^count$/i, 'Count');            // @_count → Count
 }
+
+
+// ── Localised option list factories ──────────────────────────────────────────
+// These functions return option arrays whose labels come from the active locale.
+// Import `Translations` type from i18n to keep them decoupled from the store.
+
+import type { Translations } from '../../i18n/en.js';
+
+/** Localised IndividualSides options. */
+export function getIndSidesOptions(t: Translations) {
+  return [
+    { value: 1, label: t.options.indSides.allSame },
+    { value: 3, label: t.options.indSides.grouped },
+    { value: 6, label: t.options.indSides.independent },
+  ];
+}
+
+/** Localised Slab options. */
+export function getSlabOptions(t: Translations) {
+  return [
+    { value: 0, label: t.options.slab.full },
+    { value: 1, label: t.options.slab.s34 },
+    { value: 2, label: t.options.slab.s12 },
+    { value: 3, label: t.options.slab.s14 },
+  ];
+}
+
+/** Localised BlockResourceType options. */
+export function getResourceTypeOptions(t: Translations) {
+  return [
+    { value: 0, label: t.options.resourceType.ore },
+    { value: 1, label: t.options.resourceType.plant },
+    { value: 2, label: t.options.resourceType.basicResource },
+    { value: 3, label: t.options.resourceType.cubatom },
+    { value: 4, label: t.options.resourceType.manufactory },
+    { value: 5, label: t.options.resourceType.advanced },
+    { value: 6, label: t.options.resourceType.capsule },
+  ];
+}
+
+/** Localised ProducedInFactory options. */
+export function getFactoryOptions(t: Translations) {
+  return [
+    { value: 0, label: t.options.factory.none },
+    { value: 1, label: t.options.factory.capsuleRefinery },
+    { value: 2, label: t.options.factory.microAssembler },
+    { value: 3, label: t.options.factory.componentFactory },
+    { value: 4, label: t.options.factory.blockAssembler },
+    { value: 5, label: t.options.factory.chemicalFactory },
+  ];
+}
+
+/** Localised ResourceInjection options. */
+export function getResourceInjectionOptions(t: Translations) {
+  return [
+    { value: 0, label: t.options.resourceInjection.off },
+    { value: 1, label: t.options.resourceInjection.ore },
+    { value: 2, label: t.options.resourceInjection.flora },
+  ];
+}
+
+/** Localised LodActivationAnimationStyle options. */
+export function getLodAnimationOptions(t: Translations) {
+  return [
+    { value: 0, label: t.options.lodAnimation.noSwitch },
+    { value: 1, label: t.options.lodAnimation.useActive },
+  ];
+}
+
+/** Localised tooltip for an extra BlockConfig property key. */
+export function tooltipForExtraPropertyL10n(key: string, t: Translations): string {
+  const tips = t.extraTooltip as Record<string, unknown>;
+  const val = tips[key];
+  if (typeof val === 'string') return val;
+  return t.extraTooltip._fallback(key);
+}
+
+/** Localised block style name. */
+export function getBlockStyleName(blockStyle: number, t: Translations): string {
+  switch (blockStyle) {
+    case 0: return t.blockStyle.cube;
+    case 1: return t.blockStyle.wedge;
+    case 2: return t.blockStyle.corner;
+    case 3: return t.blockStyle.cross;
+    case 4: return t.blockStyle.tetra;
+    case 5: return t.blockStyle.penta;
+    case 6: return t.blockStyle.hepta;
+    default: return t.blockStyle.style(blockStyle);
+  }
+}
+
+/**
+ * Localise an EXTRA_PROPERTY_GROUPS group title.
+ * Group titles are English keys; the translation maps them by index order.
+ */
+const GROUP_TITLE_KEYS = [
+  'Resources / Recipes',
+  'Factory / Production',
+  'Chambers',
+  'Controllers',
+  'Collision / Physical',
+  'LOD / Mesh',
+  'Logic / Gameplay',
+  'Reactor / Structure',
+  'Inventory / Metadata',
+] as const;
+
+type GroupTitleKey = typeof GROUP_TITLE_KEYS[number];
+
+// Map each English group title to a key path in the translations object
+const GROUP_TITLE_MAP: Record<GroupTitleKey, (t: Translations) => string> = {
+  'Resources / Recipes':  (t) => t.section.extra,  // use extra as fallback; real map below
+  'Factory / Production': (t) => t.section.extra,
+  'Chambers':             (t) => t.section.extra,
+  'Controllers':          (t) => t.section.extra,
+  'Collision / Physical': (t) => t.section.extra,
+  'LOD / Mesh':           (t) => t.section.extra,
+  'Logic / Gameplay':     (t) => t.section.extra,
+  'Reactor / Structure':  (t) => t.section.extra,
+  'Inventory / Metadata': (t) => t.section.extra,
+};
+
+/** Translate a property group title (passthrough for English). */
+export function localiseGroupTitle(title: string, t: Translations): string {
+  // The group titles don't change structurally; only a subset need translation.
+  // Using a simple inline map avoids adding many new keys to the locale files.
+  const map: Record<string, (t: Translations) => string> = {
+    'Resources / Recipes':  (t) => t.advanced.materialReqs.replace(' requirements', '') + ' / Recettes',
+    'Factory / Production': (t) => t.advanced.producedIn.split(' ')[0] + ' / Production',
+    'Chambers':             () => 'Chambers',
+    'Controllers':          () => 'Controllers',
+    'Collision / Physical': () => 'Collision / Physical',
+    'LOD / Mesh':           () => 'LOD / Mesh',
+    'Logic / Gameplay':     () => 'Logic / Gameplay',
+    'Reactor / Structure':  () => 'Reactor / Structure',
+    'Inventory / Metadata': () => 'Inventory / Metadata',
+    'Other':                () => 'Other',
+  };
+  return map[title]?.(t) ?? title;
+}

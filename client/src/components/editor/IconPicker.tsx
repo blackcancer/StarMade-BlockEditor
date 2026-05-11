@@ -36,6 +36,7 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useT } from '../../i18n/index.js';
 
 const ICON_SHEETS = 6;
 const SHEET_COLS = 16;
@@ -52,6 +53,7 @@ interface IconPickerProps {
 }
 
 export function IconPicker({ selectedIconId, onSelect, onClose }: IconPickerProps) {
+  const t = useT();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [hoveredIcon, setHoveredIcon] = useState(-1);
 
@@ -144,8 +146,8 @@ export function IconPicker({ selectedIconId, onSelect, onClose }: IconPickerProp
     <div className="atlas-picker-overlay" onClick={onClose}>
       <div className="atlas-picker-modal icon-picker-modal" onClick={e => e.stopPropagation()}>
         <div className="atlas-picker-header">
-          <span>Build Icons</span>
-          <button onClick={onClose}>✕</button>
+          <span>{t.iconPicker.title}</span>
+          <button onClick={onClose}>{t.iconPicker.close}</button>
         </div>
         <div className="atlas-picker-canvas-wrap">
           <canvas
@@ -175,7 +177,7 @@ export function IconPicker({ selectedIconId, onSelect, onClose }: IconPickerProp
           )}
         </div>
         <div className="atlas-picker-footer">
-          Click an icon to select · Escape to close
+          {t.iconPicker.hint}
         </div>
       </div>
     </div>

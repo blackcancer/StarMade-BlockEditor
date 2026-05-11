@@ -42,6 +42,7 @@ import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { invalidateAtlasCache } from '../../3d/AtlasTexture.js';
 import { useConfigStore } from '../../store/configStore.js';
 import { ATLAS_COLS, ATLAS_ROWS, PAGE_COLS, PAGE_ROWS, PAGE_TILES, PAGE_GRID_COLS } from '../../3d/geometries/index.js';
+import { useT } from '../../i18n/index.js';
 
 const DISPLAY_TILE = 48; // px per tile in the picker grid
 
@@ -60,6 +61,7 @@ interface AtlasPickerProps {
  * @component
  */
 export function AtlasPicker({ selectedTileId, onSelect, onClose }: AtlasPickerProps) {
+  const t           = useT();
   const atlasSize   = useConfigStore(s => s.atlasSize);
   const texturePack = useConfigStore(s => s.texturePack);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -152,7 +154,7 @@ export function AtlasPicker({ selectedTileId, onSelect, onClose }: AtlasPickerPr
       if (!res.ok) throw new Error(await res.text());
       refreshAtlas();
     } catch (e) {
-      alert(`Custom atlas import failed: ${e}`);
+      alert(t.atlasPicker.errorImportAtlas(e));
     } finally {
       setImporting(false);
       /* c8 ignore next 2 */
@@ -173,7 +175,7 @@ export function AtlasPicker({ selectedTileId, onSelect, onClose }: AtlasPickerPr
       if (!res.ok) throw new Error(await res.text());
       refreshAtlas();
     } catch (e) {
-      alert(`Tile import failed: ${e}`);
+      alert(t.atlasPicker.errorImportTile(e));
     } finally {
       setImporting(false);
       /* c8 ignore next 2 */
@@ -193,8 +195,8 @@ export function AtlasPicker({ selectedTileId, onSelect, onClose }: AtlasPickerPr
     <div className="atlas-picker-overlay" onClick={onClose}>
       <div className="atlas-picker-modal" onClick={e => e.stopPropagation()}>
         <div className="atlas-picker-header">
-          <span>{onSelect ? 'Pick texture' : 'Custom atlas manager'}</span>
-          <button onClick={onClose}>✕</button>
+          <span>{onSelect ? t.atlasPicker.titlePick : t.atlasPicker.titleManager}</span>
+          <button onClick={onClose}>{t.atlasPicker.close}</button>
         </div>
         <div className="atlas-picker-canvas-wrap">
           <canvas
@@ -231,16 +233,16 @@ export function AtlasPicker({ selectedTileId, onSelect, onClose }: AtlasPickerPr
         </div>
         <div className="atlas-picker-footer atlas-manager-footer">
           {onSelect ? (
-            <span>Click a tile to select · Escape to close</span>
+            <span>{t.atlasPicker.hintPick}</span>
           ) : (
             <>
-              <span>Import a full StarMade custom atlas: {PAGE_COLS * atlasSize}×{PAGE_ROWS * atlasSize}px ({PAGE_COLS}×{PAGE_ROWS} tiles)</span>
+              <span>{t.atlasPicker.importAtlasDesc(PAGE_COLS * atlasSize, PAGE_COLS, PAGE_ROWS)}</span>
               <select value={mapKind} onChange={e => setMapKind(e.target.value as 'diffuse' | 'normal')}>
-                <option value="diffuse">Diffuse atlas</option>
-                <option value="normal">Normal atlas</option>
+                <option value="diffuse">{t.atlasPicker.mapDiffuse}</option>
+                <option value="normal">{t.atlasPicker.mapNormal}</option>
               </select>
               <button type="button" className="btn-secondary" disabled={importing} onClick={() => fileInputRef.current?.click()}>
-                {importing ? 'Importing…' : 'Import full custom atlas…'}
+                {importing ? t.atlasPicker.importing : t.atlasPicker.importFull}
               </button>
               <input
                 ref={fileInputRef}
@@ -250,9 +252,9 @@ export function AtlasPicker({ selectedTileId, onSelect, onClose }: AtlasPickerPr
                 onChange={e => importCustomAtlas(e.target.files?.[0] ?? null)}
               />
               <details className="atlas-tile-import-details">
-                <summary>Advanced: replace one tile</summary>
+                <summary>{t.atlasPicker.advancedSummary}</summary>
                 <label>
-                  Slot
+                  {t.atlasPicker.slotLabel}
                   <input
                     type="number"
                     min={0}
@@ -263,7 +265,7 @@ export function AtlasPicker({ selectedTileId, onSelect, onClose }: AtlasPickerPr
                   />
                 </label>
                 <button type="button" className="btn-secondary" disabled={importing} onClick={() => tileFileInputRef.current?.click()}>
-                  Replace selected tile…
+                  {t.atlasPicker.replaceTile}
                 </button>
                 <input
                   ref={tileFileInputRef}

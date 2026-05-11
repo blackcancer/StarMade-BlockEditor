@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { BlockDef } from '../../store/blockStore.js';
 import { ExtraPropertiesEditor } from './advancedProperties.js';
+import en from '../../i18n/en.js';
 
 const block = (id: number, xmlTypeName = `TYPE_${id}`, name = `${xmlTypeName} -- Block ${id}`): BlockDef => ({
   id,
@@ -61,9 +62,9 @@ describe('ExtraPropertiesEditor UI', () => {
     expect(screen.queryByText('Custom String')).toBeNull();
 
     fireEvent.change(screen.getByPlaceholderText('Search 4 properties…'), { target: { value: 'zzzz' } });
-    expect(screen.getByText('No property matches “zzzz”.')).toBeTruthy();
+    expect(screen.getByText(en.advanced.noMatch('zzzz'))).toBeTruthy();
 
-    fireEvent.click(screen.getByText('Clear'));
+    fireEvent.click(screen.getByText(en.advanced.clear));
     fireEvent.change(screen.getByDisplayValue('hello'), { target: { value: 'world' } });
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ CustomString: 'world' }));
     fireEvent.click(screen.getByRole('checkbox'));
@@ -114,9 +115,9 @@ describe('ExtraPropertiesEditor UI', () => {
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ RecipeBuyResource: { Element: ['METAL', 'METAL'] } }));
     fireEvent.click(screen.getByText('+ Add material'));
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ Consistence: { Item: [{ '#text': 'METAL', '@_count': '2' }, { '#text': 'METAL', '@_count': '1' }] } }));
-    fireEvent.click(screen.getByText('+ Add cubatom material'));
+    fireEvent.click(screen.getByText(en.advanced.addCubatom));
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ CubatomConsistence: { Item: [{ '#text': 'CRYSTAL', '@_count': '3' }, { '#text': 'METAL', '@_count': '1' }] } }));
-    fireEvent.click(screen.getAllByTitle('Remove')[0]);
+    fireEvent.click(screen.getAllByTitle(en.advanced.noResources)[0]);
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ Consistence: '' }));
     fireEvent.click(screen.getAllByText('×')[0]);
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ RecipeBuyResource: '' }));

@@ -31,6 +31,7 @@
 import React, { useState } from 'react';
 import { useBlockStore } from '../../store/blockStore.js';
 import { AtlasPicker } from './AtlasPicker.js';
+import { useT } from '../../i18n/index.js';
 
 /** Face labels in textureId array order. */
 const FACE_LABELS = ['FRONT', 'BACK', 'TOP', 'BOTTOM', 'RIGHT', 'LEFT'] as const;
@@ -42,6 +43,7 @@ type FaceIndex = 0 | 1 | 2 | 3 | 4 | 5;
  * @component
  */
 export function FaceSelector() {
+  const t              = useT();
   const draft          = useBlockStore(s => s.draft);
   const updateDraft    = useBlockStore(s => s.updateDraft);
   const highlightFace  = useBlockStore(s => s.highlightFace);
@@ -87,7 +89,7 @@ export function FaceSelector() {
   return (
     <>
       <div className="face-selector">
-        <div className="face-selector-label">Texture faces</div>
+        <div className="face-selector-label">{t.faceSelector.label}</div>
         <div className="face-selector-grid">
           {FACE_LABELS.map((label, i) => (
             <button
@@ -102,16 +104,16 @@ export function FaceSelector() {
         </div>
         <div className="face-import-row">
           <button type="button" className="btn-secondary" onClick={() => setAtlasManagerOpen(true)}>
-            Manage custom atlas…
+            {t.faceSelector.manageatlas}
           </button>
         </div>
         <div className="face-selector-hint">
-          Click a face to change its texture tile.
-          {draft.individualSides === 1 && ' (All faces share one tile)'}
-          {draft.individualSides === 3 && ' (3-group: front/back · top/bottom · sides)'}
-          {draft.individualSides === 6 && ' (6 independent faces)'}
-          {draft.hasActivationTexture && ' Inactive preview uses the tile immediately to the right (+1), like the engine active-state texture path.'}
-          {draft.animated && ' Animated preview cycles a 4-tile texture range every 0.5s.'}
+          {t.faceSelector.hint}
+          {draft.individualSides === 1 && t.faceSelector.hintAllSame}
+          {draft.individualSides === 3 && t.faceSelector.hintGrouped}
+          {draft.individualSides === 6 && t.faceSelector.hintIndependent}
+          {draft.hasActivationTexture && t.faceSelector.hintActivation}
+          {draft.animated && t.faceSelector.hintAnimated}
         </div>
       </div>
 

@@ -25,6 +25,8 @@
 import React, { useMemo } from 'react';
 import { useBlockStore, type BlockDef } from '../../store/blockStore.js';
 import { blockStyleName } from '../../3d/geometries/index.js';
+import { useT } from '../../i18n/index.js';
+import { getBlockStyleName } from '../layout/propertyOptions.js';
 
 function displayBlockName(block: BlockDef): string {
   const name = block.name?.trim() || '';
@@ -48,8 +50,9 @@ function prettifyTypeName(typeName: string): string {
  * @component
  */
 function BlockBadge({ block }: { block: BlockDef }) {
-  if (block.isDeprecated) return <span className="badge badge-deprecated">⚠ Deprecated</span>;
-  if (block.isCustom)     return <span className="badge badge-custom">★ Custom</span>;
+  const t = useT();
+  if (block.isDeprecated) return <span className="badge badge-deprecated">⚠ {t.properties.badgeDeprecated}</span>;
+  if (block.isCustom)     return <span className="badge badge-custom">★ {t.properties.badgeCustom}</span>;
   return null;
 }
 
@@ -65,11 +68,12 @@ function BlockCard({ block, selected, onSelect }: {
   selected: boolean;
   onSelect: (b: BlockDef) => void;
 }) {
+  const t = useT();
   return (
     <div
       className={`block-card ${selected ? 'selected' : ''} ${block.isCustom ? 'custom' : ''}`}
       onClick={() => onSelect(block)}
-      title={blockStyleName(block.blockStyle)}
+      title={getBlockStyleName(block.blockStyle, t)}
     >
       <div className="block-card-icon">
         <img
@@ -82,7 +86,7 @@ function BlockCard({ block, selected, onSelect }: {
       <div className="block-card-body">
         <div className="block-card-name">{displayBlockName(block)}</div>
         <div className="block-card-meta">
-          {blockStyleName(block.blockStyle)}
+          {getBlockStyleName(block.blockStyle, t)}
           <BlockBadge block={block} />
         </div>
       </div>
@@ -98,6 +102,7 @@ function BlockCard({ block, selected, onSelect }: {
  * @component
  */
 export function Sidebar() {
+  const t          = useT();
   const blocks       = useBlockStore(s => s.blocks);
   const selectedBlock = useBlockStore(s => s.selectedBlock);
   const selectBlock   = useBlockStore(s => s.selectBlock);
@@ -135,7 +140,7 @@ export function Sidebar() {
       <div className="sidebar-search">
         <input
           type="text"
-          placeholder="🔍 Search block…"
+          placeholder={t.sidebar.searchPlaceholder}
           value={filter.search}
           onChange={e => setFilter({ search: e.target.value })}
         />
@@ -145,20 +150,20 @@ export function Sidebar() {
       <div className="sidebar-filters">
         <label>
           <input type="checkbox" checked={filter.showVanilla}    onChange={e => setFilter({ showVanilla: e.target.checked })} />
-          Vanilla ({vanillaCount})
+          {t.sidebar.filterVanilla(vanillaCount)}
         </label>
         <label>
           <input type="checkbox" checked={filter.showCustom}     onChange={e => setFilter({ showCustom: e.target.checked })} />
-          Custom ({customCount})
+          {t.sidebar.filterCustom(customCount)}
         </label>
         <label>
           <input type="checkbox" checked={filter.showDeprecated} onChange={e => setFilter({ showDeprecated: e.target.checked })} />
-          Deprecated
+          {t.sidebar.filterDeprecated}
         </label>
       </div>
 
       {/* Status */}
-      {loading && <div className="sidebar-status">Loading blocks…</div>}
+      {loading && <div className="sidebar-status">{t.sidebar.loading}</div>}
       {error   && <div className="sidebar-status error">{error}</div>}
 
       {/* List */}
@@ -172,13 +177,13 @@ export function Sidebar() {
           />
         ))}
         {!loading && visible.length === 0 && (
-          <div className="sidebar-empty">No blocks match your search.</div>
+          <div className="sidebar-empty">{t.sidebar.empty}</div>
         )}
       </div>
 
       {/* Footer */}
       <div className="sidebar-footer">
-        Vanilla: {vanillaCount} · Custom: {customCount}
+        {t.sidebar.footer(vanillaCount, customCount)}
       </div>
     </aside>
   );

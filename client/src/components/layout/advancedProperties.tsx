@@ -42,14 +42,16 @@ import { BlockIdSelect, BlockTypeSelect, Field } from './propertyControls.js';
 import {
   BLOCK_STYLES,
   EXTRA_PROPERTY_GROUPS,
-  FACTORY_OPTIONS,
-  LOD_ACTIVATION_ANIMATION_OPTIONS,
-  RESOURCE_INJECTION_OPTIONS,
-  RESOURCE_TYPE_OPTIONS,
-  SLAB_OPTIONS,
   formatPropertyLabel,
-  tooltipForExtraProperty,
+  getBlockStyleName,
+  getFactoryOptions,
+  getLodAnimationOptions,
+  getResourceInjectionOptions,
+  getResourceTypeOptions,
+  getSlabOptions,
+  tooltipForExtraPropertyL10n,
 } from './propertyOptions.js';
+import { useT } from '../../i18n/index.js';
 
 // =============================================================================
 // ExtraPropertiesEditor — top-level dispatcher
@@ -78,6 +80,7 @@ export function ExtraPropertiesEditor({ value, blocks, onChange }: {
   blocks: BlockDef[];
   onChange: (value: Record<string, unknown>) => void;
 }) {
+  const t = useT();
   const [filter, setFilter] = useState('');
 
   // Keys that are handled by a named group editor.
@@ -121,7 +124,7 @@ export function ExtraPropertiesEditor({ value, blocks, onChange }: {
   const propertyCount = Object.keys(value).length;
 
   if (propertyCount === 0) {
-    return <div className="variant-empty">No additional BlockConfig properties.</div>;
+    return <div className="variant-empty">{t.advanced.noProperties}</div>;
   }
 
   /** Update a single key in the extra properties object. */
@@ -134,18 +137,18 @@ export function ExtraPropertiesEditor({ value, blocks, onChange }: {
         <input
           value={filter}
           onChange={e => setFilter(e.target.value)}
-          placeholder={`Search ${propertyCount} properties…`}
+          placeholder={t.advanced.searchPlaceholder(propertyCount)}
         />
         {filter && (
           <button type="button" className="btn-secondary" onClick={() => setFilter('')}>
-            Clear
+            {t.advanced.clear}
           </button>
         )}
       </div>
 
       {/* No-match message */}
       {groups.length === 0 && (
-        <div className="variant-empty">No property matches &ldquo;{filter}&rdquo;.</div>
+        <div className="variant-empty">{t.advanced.noMatch(filter)}</div>
       )}
 
       {/* Property group accordion */}
@@ -179,7 +182,7 @@ export function ExtraPropertiesEditor({ value, blocks, onChange }: {
             ) : (
               // Generic editor for all "Other" keys
               group.keys.map(key => (
-                <Field key={key} label={formatPropertyLabel(key)} tooltip={tooltipForExtraProperty(key)}>
+                <Field key={key} label={formatPropertyLabel(key)} tooltip={tooltipForExtraPropertyL10n(key, t)}>
                   <ExtraValueEditor value={value[key]} onChange={next => updateKey(key, next)} />
                 </Field>
               ))
@@ -228,6 +231,7 @@ function ResourceRecipeEditor({ value, blocks, onChange }: {
   blocks: BlockDef[];
   onChange: (value: Record<string, unknown>) => void;
 }) {
+  const t = useT();
   const updateKey = (key: string, next: unknown) => onChange({ ...value, [key]: next });
   const inRecipe = Boolean(value.InRecipe);
 
@@ -235,12 +239,8 @@ function ResourceRecipeEditor({ value, blocks, onChange }: {
     <div className="resource-recipe-editor">
       <div className="resource-summary-card">
         <div>
-          <strong>Recipe participation</strong>
-          <p>
-            Controls whether StarMade includes this block in recipe and
-            production systems. Disabled blocks keep their data but are
-            ignored by recipes.
-          </p>
+          <strong>{t.advanced.recipeTitle}</strong>
+          <p>{t.advanced.recipeDesc}</p>
         </div>
         <label className="inline-check">
           <input
@@ -248,57 +248,57 @@ function ResourceRecipeEditor({ value, blocks, onChange }: {
             checked={inRecipe}
             onChange={e => updateKey('InRecipe', e.target.checked)}
           />
-          In recipe
+          {t.advanced.inRecipe}
         </label>
       </div>
 
       {!inRecipe ? (
-        <div className="variant-empty">Recipe fields are inactive because InRecipe is false.</div>
+        <div className="variant-empty">{t.advanced.recipeInactive}</div>
       ) : (
         <>
           <div className="resource-two-col">
             {/* BlockResourceType — economy category */}
-            <Field label="Resource category" tooltip={tooltipForExtraProperty('BlockResourceType')}>
+            <Field label={t.advanced.resourceCategory} tooltip={tooltipForExtraPropertyL10n('BlockResourceType', t)}>
               <select
                 value={Number(value.BlockResourceType ?? 2)}
                 onChange={e => updateKey('BlockResourceType', +e.target.value)}
               >
-                {RESOURCE_TYPE_OPTIONS.map(option => (
+                {getResourceTypeOptions(t).map(option => (
                   <option key={option.value} value={option.value}>{option.label}</option>
                 ))}
               </select>
             </Field>
 
             {/* RecipeBuyResource — list of block types required to buy this block */}
-            <Field label="Buy recipe resources" tooltip={tooltipForExtraProperty('RecipeBuyResource')}>
+            <Field label={t.advanced.buyResources} tooltip={tooltipForExtraPropertyL10n('RecipeBuyResource', t)}>
               <ElementListEditor
                 value={normalizeElementList(value.RecipeBuyResource)}
                 blocks={blocks}
                 onChange={items => updateKey('RecipeBuyResource', serializeElementList(items))}
-                addLabel="+ Add buy resource"
+                addLabel={t.advanced.addBuyResource}
               />
             </Field>
           </div>
 
           {/* Consistence — primary material requirements */}
           <ResourceListEditor
-            title="Material requirements"
-            help={tooltipForExtraProperty('Consistence')}
+            title={t.advanced.materialReqs}
+            help={tooltipForExtraPropertyL10n('Consistence', t)}
             value={normalizeResourceList(value.Consistence)}
             blocks={blocks}
-            addLabel="+ Add material"
+            addLabel={t.advanced.addMaterial}
             onChange={items => updateKey('Consistence', serializeResourceList(items))}
           />
 
           {/* CubatomConsistence — cubatom-specific materials (advanced / specialized) */}
           <details className="resource-subsection">
-            <summary>Cubatom consistence <span>specialized</span></summary>
+            <summary>{t.advanced.cubatomTitle} <span>{t.advanced.cubatomSpec}</span></summary>
             <ResourceListEditor
-              title="Cubatom materials"
-              help={tooltipForExtraProperty('CubatomConsistence')}
+              title={t.advanced.cubatomTitle}
+              help={tooltipForExtraPropertyL10n('CubatomConsistence', t)}
               value={normalizeResourceList(value.CubatomConsistence)}
               blocks={blocks}
-              addLabel="+ Add cubatom material"
+              addLabel={t.advanced.addCubatom}
               onChange={items => updateKey('CubatomConsistence', serializeResourceList(items))}
             />
           </details>
@@ -329,6 +329,7 @@ function ResourceListEditor({ title, help, value, blocks, addLabel, onChange }: 
   addLabel: string;
   onChange: (value: ResourceEntry[]) => void;
 }) {
+  const t = useT();
   /**
    * Apply a partial patch to one item at `index`, leaving others unchanged.
    *
@@ -356,7 +357,7 @@ function ResourceListEditor({ title, help, value, blocks, addLabel, onChange }: 
       </div>
 
       {value.length === 0 ? (
-        <div className="variant-empty">No resources.</div>
+        <div className="variant-empty">{t.advanced.noResources}</div>
       ) : (
         value.map((item, index) => (
           <div key={index} className="resource-row">
@@ -378,7 +379,7 @@ function ResourceListEditor({ title, help, value, blocks, addLabel, onChange }: 
             <button
               type="button"
               className="btn-secondary"
-              title="Remove"
+              title={t.advanced.noResources}
               onClick={() => onChange(value.filter((_, i) => i !== index))}
             >
               ×
@@ -462,24 +463,25 @@ function FactoryProductionEditor({ value, blocks, onChange }: {
   blocks: BlockDef[];
   onChange: (value: Record<string, unknown>) => void;
 }) {
+  const t = useT();
   const updateKey = (key: string, next: unknown) => onChange({ ...value, [key]: next });
 
   return (
     <div className="production-editor">
       {/* ProducedInFactory — factory tier */}
-      <Field label="Produced in" tooltip={tooltipForExtraProperty('ProducedInFactory')}>
+      <Field label={t.advanced.producedIn} tooltip={tooltipForExtraPropertyL10n('ProducedInFactory', t)}>
         <select
           value={Number(value.ProducedInFactory ?? 0)}
           onChange={e => updateKey('ProducedInFactory', +e.target.value)}
         >
-          {FACTORY_OPTIONS.map(option => (
+          {getFactoryOptions(t).map(option => (
             <option key={option.value} value={option.value}>{option.label}</option>
           ))}
         </select>
       </Field>
 
       {/* BasicResourceFactory — linked factory block */}
-      <Field label="Basic resource factory" tooltip={tooltipForExtraProperty('BasicResourceFactory')}>
+      <Field label={t.advanced.basicFactory} tooltip={tooltipForExtraPropertyL10n('BasicResourceFactory', t)}>
         <BlockIdSelect
           blocks={blocks}
           value={Number(value.BasicResourceFactory ?? 0)}
@@ -489,7 +491,7 @@ function FactoryProductionEditor({ value, blocks, onChange }: {
       </Field>
 
       {/* FactoryBakeTime — production duration */}
-      <Field label="Bake time" tooltip={tooltipForExtraProperty('FactoryBakeTime')}>
+      <Field label={t.advanced.bakeTime} tooltip={tooltipForExtraPropertyL10n('FactoryBakeTime', t)}>
         <input
           type="number"
           min={0}
@@ -501,14 +503,14 @@ function FactoryProductionEditor({ value, blocks, onChange }: {
 
       {/* Factory slot role — only rendered when the key is explicitly present */}
       {'Factory' in value && (
-        <Field label="Factory slot" tooltip={tooltipForExtraProperty('Factory')}>
+        <Field label={t.advanced.factorySlot} tooltip={tooltipForExtraPropertyL10n('Factory', t)}>
           <select
             value={String(value.Factory ?? '')}
             onChange={e => updateKey('Factory', e.target.value)}
           >
-            <option value="">None</option>
-            <option value="INPUT">Input</option>
-            <option value="OUTPUT">Output</option>
+            <option value="">{t.advanced.factoryNone}</option>
+            <option value="INPUT">{t.advanced.factoryInput}</option>
+            <option value="OUTPUT">{t.advanced.factoryOutput}</option>
           </select>
         </Field>
       )}
@@ -544,23 +546,24 @@ function ChambersEditor({ value, blocks, onChange }: {
   blocks: BlockDef[];
   onChange: (value: Record<string, unknown>) => void;
 }) {
+  const t = useT();
   const updateKey = (key: string, next: unknown) => onChange({ ...value, [key]: next });
 
   return (
     <div className="chambers-editor">
       {/* GeneralChamber toggle */}
-      <label className="inline-check" title={tooltipForExtraProperty('GeneralChamber')}>
+      <label className="inline-check" title={tooltipForExtraPropertyL10n('GeneralChamber', t)}>
         <input
           type="checkbox"
           checked={Boolean(value.GeneralChamber)}
           onChange={e => updateKey('GeneralChamber', e.target.checked)}
         />
-        General chamber{' '}
-        <span className="field-help" aria-label={tooltipForExtraProperty('GeneralChamber')}>ⓘ</span>
+        {t.advanced.generalChamber}{' '}
+        <span className="field-help" aria-label={tooltipForExtraPropertyL10n('GeneralChamber', t)}>ⓘ</span>
       </label>
 
       {/* ChamberCapacity */}
-      <Field label="Capacity" tooltip={tooltipForExtraProperty('ChamberCapacity')}>
+      <Field label={t.advanced.capacity} tooltip={tooltipForExtraPropertyL10n('ChamberCapacity', t)}>
         <input
           type="number"
           step={0.01}
@@ -570,7 +573,7 @@ function ChambersEditor({ value, blocks, onChange }: {
       </Field>
 
       {/* ChamberRoot */}
-      <Field label="Root chamber" tooltip={tooltipForExtraProperty('ChamberRoot')}>
+      <Field label={t.advanced.rootChamber} tooltip={tooltipForExtraPropertyL10n('ChamberRoot', t)}>
         <BlockIdSelect
           blocks={blocks}
           value={Number(value.ChamberRoot ?? 0)}
@@ -580,7 +583,7 @@ function ChambersEditor({ value, blocks, onChange }: {
       </Field>
 
       {/* ChamberParent */}
-      <Field label="Parent chamber" tooltip={tooltipForExtraProperty('ChamberParent')}>
+      <Field label={t.advanced.parentChamber} tooltip={tooltipForExtraPropertyL10n('ChamberParent', t)}>
         <BlockIdSelect
           blocks={blocks}
           value={Number(value.ChamberParent ?? 0)}
@@ -590,7 +593,7 @@ function ChambersEditor({ value, blocks, onChange }: {
       </Field>
 
       {/* ChamberUpgradesTo */}
-      <Field label="Upgrades to" tooltip={tooltipForExtraProperty('ChamberUpgradesTo')}>
+      <Field label={t.advanced.upgradesTo} tooltip={tooltipForExtraPropertyL10n('ChamberUpgradesTo', t)}>
         <BlockIdSelect
           blocks={blocks}
           value={Number(value.ChamberUpgradesTo ?? 0)}
@@ -600,7 +603,7 @@ function ChambersEditor({ value, blocks, onChange }: {
       </Field>
 
       {/* ChamberPermission */}
-      <Field label="Permission" tooltip={tooltipForExtraProperty('ChamberPermission')}>
+      <Field label={t.advanced.permission} tooltip={tooltipForExtraPropertyL10n('ChamberPermission', t)}>
         <input
           type="number"
           value={Number(value.ChamberPermission ?? 0)}
@@ -609,11 +612,11 @@ function ChambersEditor({ value, blocks, onChange }: {
       </Field>
 
       {/* ChamberConfigGroups — plain string list */}
-      <Field label="Config groups" tooltip={tooltipForExtraProperty('ChamberConfigGroups')}>
+      <Field label={t.advanced.configGroups} tooltip={tooltipForExtraPropertyL10n('ChamberConfigGroups', t)}>
         <StringElementListEditor
           value={normalizeElementList(value.ChamberConfigGroups)}
           onChange={items => updateKey('ChamberConfigGroups', serializeElementList(items))}
-          addLabel="+ Add group"
+          addLabel={t.advanced.addGroup}
         />
       </Field>
     </div>
@@ -645,37 +648,40 @@ function ControllersEditor({ value, blocks, onChange }: {
   blocks: BlockDef[];
   onChange: (value: Record<string, unknown>) => void;
 }) {
+  const t = useT();
   const updateKey = (key: string, next: unknown) => onChange({ ...value, [key]: next });
 
   return (
     <div className="controllers-editor">
       {/* ControlledBy — which controllers can drive this block */}
       <ControllerListEditor
-        title="Controlled by"
+        title={t.advanced.controlledBy}
         value={normalizeElementList(value.ControlledBy)}
         blocks={blocks}
         onChange={items => updateKey('ControlledBy', serializeElementList(items))}
+        addLabelOverride={t.advanced.addControlledBy}
       />
 
       {/* Controlling — which blocks this controller drives */}
       <ControllerListEditor
-        title="Controls"
+        title={t.advanced.controls}
         value={normalizeElementList(value.Controlling)}
         blocks={blocks}
         onChange={items => updateKey('Controlling', serializeElementList(items))}
+        addLabelOverride={t.advanced.addControls}
       />
 
       {/* Combination controller role flags */}
       <div className="flags-grid">
         {(['MainCombinationController', 'SupportCombinationController', 'EffectCombinationController'] as const).map(key => (
-          <label key={key} className="flag-toggle" title={tooltipForExtraProperty(key)}>
+          <label key={key} className="flag-toggle" title={tooltipForExtraPropertyL10n(key, t)}>
             <input
               type="checkbox"
               checked={Boolean(value[key])}
               onChange={e => updateKey(key, e.target.checked)}
             />
             {formatPropertyLabel(key)}{' '}
-            <span className="field-help" aria-label={tooltipForExtraProperty(key)}>ⓘ</span>
+            <span className="field-help" aria-label={tooltipForExtraPropertyL10n(key, t)}>ⓘ</span>
           </label>
         ))}
       </div>
@@ -689,15 +695,18 @@ function ControllersEditor({ value, blocks, onChange }: {
  * @component
  * @private
  */
-function ControllerListEditor({ title, value, blocks, onChange }: {
+function ControllerListEditor({ title, value, blocks, onChange, addLabelOverride }: {
   title: string;
   value: string[];
   blocks: BlockDef[];
   onChange: (value: string[]) => void;
+  addLabelOverride?: string;
 }) {
-  const tooltip = title === 'Controlled by'
-    ? tooltipForExtraProperty('ControlledBy')
-    : tooltipForExtraProperty('Controlling');
+  const t = useT();
+  const tooltip = title === t.advanced.controlledBy
+    ? tooltipForExtraPropertyL10n('ControlledBy', t)
+    : tooltipForExtraPropertyL10n('Controlling', t);
+  const addLabel = addLabelOverride ?? `+ Add ${title.toLowerCase()}`;
 
   return (
     <Field label={title} tooltip={tooltip}>
@@ -705,14 +714,11 @@ function ControllerListEditor({ title, value, blocks, onChange }: {
         value={value}
         blocks={blocks}
         onChange={onChange}
-        addLabel={`+ Add ${title.toLowerCase()}`}
+        addLabel={addLabel}
       />
     </Field>
   );
 }
-
-// =============================================================================
-// CollisionPhysicalEditor
 // =============================================================================
 
 /**
@@ -729,6 +735,7 @@ function CollisionPhysicalEditor({ value, onChange }: {
   value: Record<string, unknown>;
   onChange: (value: Record<string, unknown>) => void;
 }) {
+  const t = useT();
   const updateKey = (key: string, next: unknown) => onChange({ ...value, [key]: next });
 
   /** Boolean flag keys rendered as toggles. */
@@ -744,27 +751,27 @@ function CollisionPhysicalEditor({ value, onChange }: {
     <div className="collision-editor">
       {/* Boolean collision flags */}
       {bools.map(key => (
-        <label key={key} className="inline-check" title={tooltipForExtraProperty(key)}>
+        <label key={key} className="inline-check" title={tooltipForExtraPropertyL10n(key, t)}>
           <input
             type="checkbox"
             checked={Boolean(value[key])}
             onChange={e => updateKey(key, e.target.checked)}
           />
           {formatPropertyLabel(key)}{' '}
-          <span className="field-help" aria-label={tooltipForExtraProperty(key)}>ⓘ</span>
+          <span className="field-help" aria-label={tooltipForExtraPropertyL10n(key, t)}>ⓘ</span>
         </label>
       ))}
 
       {/* Default collision shape (used in normal gameplay) */}
       <CollisionShapeEditor
-        label="Default collision"
+        label={t.advanced.defaultCollision}
         value={value.CollisionDefault}
         onChange={next => updateKey('CollisionDefault', next)}
       />
 
       {/* Detailed astronaut-mode collision shape */}
       <CollisionShapeEditor
-        label="Astronaut collision"
+        label={t.advanced.astronautCollision}
         value={value.DetailedCollisionForAstronautMode}
         onChange={next => updateKey('DetailedCollisionForAstronautMode', next)}
       />
@@ -795,12 +802,13 @@ function CollisionShapeEditor({ label, value, onChange }: {
   value: unknown;
   onChange: (value: unknown) => void;
 }) {
+  const t = useT();
   const shape = normalizeCollisionShape(value);
 
   return (
     <Field
       label={label}
-      tooltip="Collision shape. Block type uses a named block style and slab thickness; convex hull uses a named mesh resource."
+      tooltip={t.advanced.collisionTooltip}
     >
       <div className="collision-shape-editor">
         {/* Shape type selector */}
@@ -808,9 +816,9 @@ function CollisionShapeEditor({ label, value, onChange }: {
           value={shape.type}
           onChange={e => onChange(defaultCollisionShape(e.target.value))}
         >
-          <option value="None">None</option>
-          <option value="BlockType">Block style</option>
-          <option value="ConvexHull">Convex hull mesh</option>
+          <option value="None">{t.advanced.collisionNone}</option>
+          <option value="BlockType">{t.advanced.collisionBlockType}</option>
+          <option value="ConvexHull">{t.advanced.collisionConvex}</option>
         </select>
 
         {/* BlockType fields: style ID + slab thickness */}
@@ -821,14 +829,14 @@ function CollisionShapeEditor({ label, value, onChange }: {
               onChange={e => onChange({ ...shape.raw, '@_type': 'BlockType', StyleId: +e.target.value })}
             >
               {BLOCK_STYLES.map(style => (
-                <option key={style} value={style}>{blockStyleName(style)}</option>
+                <option key={style} value={style}>{getBlockStyleName(style, t)}</option>
               ))}
             </select>
             <select
               value={shape.slab}
               onChange={e => onChange({ ...shape.raw, '@_type': 'BlockType', '@_slab': String(+e.target.value) })}
             >
-              {SLAB_OPTIONS.map(option => (
+              {getSlabOptions(t).map(option => (
                 <option key={option.value} value={option.value}>{option.label}</option>
               ))}
             </select>
@@ -839,7 +847,7 @@ function CollisionShapeEditor({ label, value, onChange }: {
         {shape.type === 'ConvexHull' && (
           <input
             value={shape.mesh}
-            placeholder="Collision mesh name"
+            placeholder={t.advanced.collisionMeshPlaceholder}
             onChange={e => onChange({ ...shape.raw, '@_type': 'ConvexHull', Mesh: e.target.value })}
           />
         )}
@@ -871,12 +879,13 @@ function LodMeshEditor({ value, onChange }: {
   value: Record<string, unknown>;
   onChange: (value: Record<string, unknown>) => void;
 }) {
+  const t = useT();
   const updateKey = (key: string, next: unknown) => onChange({ ...value, [key]: next });
 
   return (
     <div className="lod-editor">
       {/* Default LOD mesh name */}
-      <Field label="Default LOD model" tooltip={tooltipForExtraProperty('LodShape')}>
+      <Field label={t.advanced.defaultLod} tooltip={tooltipForExtraPropertyL10n('LodShape', t)}>
         <input
           value={String(value.LodShape ?? '')}
           onChange={e => updateKey('LodShape', e.target.value)}
@@ -884,7 +893,7 @@ function LodMeshEditor({ value, onChange }: {
       </Field>
 
       {/* Active-state LOD mesh name (only relevant when LodActivationAnimationStyle=1) */}
-      <Field label="Active LOD model" tooltip={tooltipForExtraProperty('LodShapeSwitchStyleActive')}>
+      <Field label={t.advanced.activeLod} tooltip={tooltipForExtraPropertyL10n('LodShapeSwitchStyleActive', t)}>
         <input
           value={String(value.LodShapeSwitchStyleActive ?? '')}
           onChange={e => updateKey('LodShapeSwitchStyleActive', e.target.value)}
@@ -892,12 +901,12 @@ function LodMeshEditor({ value, onChange }: {
       </Field>
 
       {/* LOD activation behaviour */}
-      <Field label="Activation LOD behavior" tooltip={tooltipForExtraProperty('LodActivationAnimationStyle')}>
+      <Field label={t.advanced.activationLodBehavior} tooltip={tooltipForExtraPropertyL10n('LodActivationAnimationStyle', t)}>
         <select
           value={Number(value.LodActivationAnimationStyle ?? 0)}
           onChange={e => updateKey('LodActivationAnimationStyle', +e.target.value)}
         >
-          {LOD_ACTIVATION_ANIMATION_OPTIONS.map(option => (
+          {getLodAnimationOptions(t).map(option => (
             <option key={option.value} value={option.value}>{option.label}</option>
           ))}
         </select>
@@ -925,6 +934,7 @@ function LogicGameplayEditor({ value, onChange }: {
   value: Record<string, unknown>;
   onChange: (value: Record<string, unknown>) => void;
 }) {
+  const t = useT();
   const updateKey = (key: string, next: unknown) => onChange({ ...value, [key]: next });
 
   /** Boolean flag keys rendered as toggles. */
@@ -941,32 +951,32 @@ function LogicGameplayEditor({ value, onChange }: {
       {/* Boolean logic flags */}
       <div className="flags-grid">
         {flags.map(key => (
-          <label key={key} className="flag-toggle" title={tooltipForExtraProperty(key)}>
+          <label key={key} className="flag-toggle" title={tooltipForExtraPropertyL10n(key, t)}>
             <input
               type="checkbox"
               checked={Boolean(value[key])}
               onChange={e => updateKey(key, e.target.checked)}
             />
             {formatPropertyLabel(key)}{' '}
-            <span className="field-help" aria-label={tooltipForExtraProperty(key)}>ⓘ</span>
+            <span className="field-help" aria-label={tooltipForExtraPropertyL10n(key, t)}>ⓘ</span>
           </label>
         ))}
       </div>
 
       {/* ResourceInjection — terrain/flora injection mode */}
-      <Field label="Resource injection" tooltip={tooltipForExtraProperty('ResourceInjection')}>
+      <Field label={t.advanced.resourceInjection} tooltip={tooltipForExtraPropertyL10n('ResourceInjection', t)}>
         <select
           value={Number(value.ResourceInjection ?? 0)}
           onChange={e => updateKey('ResourceInjection', +e.target.value)}
         >
-          {RESOURCE_INJECTION_OPTIONS.map(option => (
+          {getResourceInjectionOptions(t).map(option => (
             <option key={option.value} value={option.value}>{option.label}</option>
           ))}
         </select>
       </Field>
 
       {/* ExplosionAbsorbtion — damage absorption factor */}
-      <Field label="Explosion absorption" tooltip={tooltipForExtraProperty('ExplosionAbsorbtion')}>
+      <Field label={t.advanced.explosionAbsorption} tooltip={tooltipForExtraPropertyL10n('ExplosionAbsorbtion', t)}>
         <input
           type="number"
           step={0.01}

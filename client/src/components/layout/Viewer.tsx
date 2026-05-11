@@ -8,7 +8,7 @@
  *     An empty-state message is shown when no block is selected.
  *
  *  2. **Block style badge** — displays the current `blockStyle` name and index
- *     (e.g. “Wedge (style 1)”) for quick visual reference.
+ *     (e.g. "Wedge (style 1)") for quick visual reference.
  *
  *  3. **FaceSelector** — 6 face buttons for per-face texture tile assignment
  *     (only shown when a block is selected).
@@ -24,7 +24,7 @@
  *  5. **Active state preview toggle** — only shown for blocks with
  *     `lightSource = true` or `hasActivationTexture = true`.
  *     (Blocks with only `canActivate = true` do NOT have a texture state change.)
- *     Displays “Activation texture preview” or “Light preview” depending on
+ *     Displays "Activation texture preview" or "Light preview" depending on
  *     which property enables the active state.
  *
  * @author InitSysRev
@@ -36,6 +36,8 @@ import { BlockViewer } from '../../3d/BlockViewer.js';
 import { FaceSelector } from '../editor/FaceSelector.js';
 import { useBlockStore } from '../../store/blockStore.js';
 import { blockStyleName } from '../../3d/geometries/index.js';
+import { useT } from '../../i18n/index.js';
+import { getBlockStyleName } from './propertyOptions.js';
 
 /** Maximum orientation count per block style (from starmade_gl.js). */
 const ORIENTATION_COUNT: Record<number, number> = {
@@ -48,14 +50,16 @@ const ORIENTATION_COUNT: Record<number, number> = {
  * @component
  */
 export function ViewerColumn() {
-  const draft             = useBlockStore(s => s.draft);
-  const orientation       = useBlockStore(s => s.orientation);
-  const setOrientation    = useBlockStore(s => s.setOrientation);
-  const previewActive     = useBlockStore(s => s.previewActive);
-  const setPreviewActive  = useBlockStore(s => s.setPreviewActive);
+  const t              = useT();
+  const draft          = useBlockStore(s => s.draft);
+  const orientation    = useBlockStore(s => s.orientation);
+  const setOrientation = useBlockStore(s => s.setOrientation);
+  const previewActive  = useBlockStore(s => s.previewActive);
+  const setPreviewActive = useBlockStore(s => s.setPreviewActive);
 
   const maxOrient = draft ? (ORIENTATION_COUNT[draft.blockStyle] ?? 6) : 6;
-  const showActiveStatePreview = draft?.lightSource === true || draft?.hasActivationTexture === true;
+  const showActiveStatePreview =
+    draft?.lightSource === true || draft?.hasActivationTexture === true;
 
   useEffect(() => {
     if (orientation >= maxOrient) setOrientation(0);
@@ -68,7 +72,7 @@ export function ViewerColumn() {
         <BlockViewer />
         {!draft && (
           <div className="viewer-empty">
-            Select a block from the list to preview it.
+            {t.viewer.emptyHint}
           </div>
         )}
       </div>
@@ -77,7 +81,7 @@ export function ViewerColumn() {
         <>
           {/* Block style badge */}
           <div className="viewer-style-badge">
-            {blockStyleName(draft.blockStyle)} (style {draft.blockStyle})
+            {t.viewer.styleBadge(getBlockStyleName(draft.blockStyle, t), draft.blockStyle)}
           </div>
 
           {/* Face selector */}
@@ -85,42 +89,46 @@ export function ViewerColumn() {
 
           {/* Orientation controls */}
           <div className="orientation-row">
-            <label>Orientation</label>
+            <label>{t.viewer.orientation}</label>
             <select
               value={orientation}
               onChange={e => setOrientation(+e.target.value)}
             >
               {Array.from({ length: maxOrient }, (_, i) => (
-                <option key={i} value={i}>Orient {i}</option>
+                <option key={i} value={i}>{t.viewer.orientOption(i)}</option>
               ))}
             </select>
             <button
               onClick={() => setOrientation((orientation - 1 + maxOrient) % maxOrient)}
-              title="Previous orientation"
+              title={t.viewer.prevOrientation}
             >◀</button>
             <button
               onClick={() => setOrientation((orientation + 1) % maxOrient)}
-              title="Next orientation"
+              title={t.viewer.nextOrientation}
             >▶</button>
           </div>
 
           {showActiveStatePreview && (
             <div className="orientation-row active-preview-row">
-              <label title="Affiché uniquement pour LightSource ou HasActivationTexture. CanActivate seul n'a pas de state texture.">
+              <label title={t.viewer.activePreviewTooltip}>
                 <input
                   type="checkbox"
                   checked={previewActive}
                   onChange={e => setPreviewActive(e.target.checked)}
                   style={{ marginRight: 8 }}
                 />
-                {draft.hasActivationTexture ? 'Activation texture preview' : 'Light preview'}: <strong>{previewActive ? 'ON' : 'OFF'}</strong>
+                {draft.hasActivationTexture
+                  ? t.viewer.activationTexturePreview
+                  : t.viewer.lightPreview
+                }:{' '}
+                <strong>{previewActive ? t.viewer.previewOn : t.viewer.previewOff}</strong>
               </label>
               <button
                 type="button"
                 className="btn-secondary"
                 onClick={() => setPreviewActive(!previewActive)}
               >
-                Toggle
+                {t.viewer.toggle}
               </button>
             </div>
           )}

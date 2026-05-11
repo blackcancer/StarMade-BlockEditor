@@ -20,6 +20,7 @@
 import type React from 'react';
 import type { BlockDef } from '../../store/blockStore.js';
 import { displayBlockName } from './blockDisplay.js';
+import { useT } from '../../i18n/index.js';
 
 // ── Field wrapper ─────────────────────────────────────────────────────────────
 
@@ -83,6 +84,7 @@ export function VariantSelector({ ids, options, onChange }: {
   options: BlockDef[];
   onChange: (ids: number[]) => void;
 }) {
+  const t = useT();
   const selected = new Set(ids);
 
   /**
@@ -100,7 +102,7 @@ export function VariantSelector({ ids, options, onChange }: {
     <div className="variant-selector">
       {/* Add dropdown — only shows blocks not already selected */}
       <select value="" onChange={e => addId(+e.target.value)}>
-        <option value="">+ Add variant…</option>
+        <option value="">{t.variant.add}</option>
         {options.filter(b => !selected.has(b.id)).map(block => (
           <option key={block.id} value={block.id}>{displayBlockName(block)}</option>
         ))}
@@ -108,7 +110,7 @@ export function VariantSelector({ ids, options, onChange }: {
 
       {/* Chip list — each chip can be clicked to remove the block */}
       <div className="variant-chips">
-        {ids.length === 0 && <span className="variant-empty">No variants</span>}
+        {ids.length === 0 && <span className="variant-empty">{t.variant.none}</span>}
         {ids.map(id => {
           const block = options.find(b => b.id === id);
           return (
@@ -116,11 +118,11 @@ export function VariantSelector({ ids, options, onChange }: {
               key={id}
               type="button"
               className="variant-chip"
-              title="Remove variant"
+              title={t.variant.remove}
               onClick={() => onChange(ids.filter(v => v !== id))}
             >
-              {/* Fall back to "Unknown block" when the ID no longer exists in the pool */}
-              {block ? displayBlockName(block) : 'Unknown block'} ×
+              {/* Fall back to translated "unknown" label when the ID no longer exists */}
+              {block ? displayBlockName(block) : t.variant.unknown} ×
             </button>
           );
         })}
