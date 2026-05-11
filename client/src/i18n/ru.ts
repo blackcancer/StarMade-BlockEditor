@@ -65,6 +65,7 @@ const ru: Translations = {
     previewOn:  'ВКЛ',
     previewOff: 'ВЫКЛ',
     toggle: 'Переключить',
+    toggleTooltip: (label, state) => `${label}: ${state}`,
     activePreviewTooltip:
       'Отображается только для LightSource или HasActivationTexture. Только CanActivate не изменяет текстуру.',
   },
@@ -96,6 +97,7 @@ const ru: Translations = {
     advancedSummary: 'Дополнительно: заменить один тайл',
     slotLabel:  'Слот',
     replaceTile: 'Заменить выбранный тайл…',
+    reload:      'Перезагрузить текстуры',
     errorImportAtlas: (e: unknown) => `Ошибка импорта пользовательского атласа: ${e}`,
     errorImportTile:  (e: unknown) => `Ошибка импорта тайла: ${e}`,
   },
@@ -119,7 +121,9 @@ const ru: Translations = {
     save:   '💾 Сохранить как пользовательский',
     revert: '↩ Отменить',
     delete: '🗑 Удалить',
-    deleteTooltip: (name: string) =>
+    overrideVanilla:        '✏️ Перезаписать vanilla',
+    overrideVanillaTooltip: 'Записать этот vanilla-блок напрямую в customBlockConfig/BlockConfigImport.xml для глубокого моддинга.',
+        deleteTooltip: (name: string) =>
       `Удалить этот блок из customBlockConfig/BlockConfigImport.xml`,
     deleteConfirm: (name: string) => `Удалить пользовательский блок ${name}?`,
     importIcon:    'Импорт…',

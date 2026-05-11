@@ -59,6 +59,7 @@ const es: Translations = {
     previewOn:  'ON',
     previewOff: 'OFF',
     toggle: 'Alternar',
+    toggleTooltip: (label, state) => `${label}: ${state}`,
     activePreviewTooltip:
       'Solo se muestra para LightSource o HasActivationTexture. CanActivate solo no tiene estado de textura.',
   },
@@ -90,6 +91,7 @@ const es: Translations = {
     advancedSummary: 'Avanzado: reemplazar un mosaico',
     slotLabel:  'Ranura',
     replaceTile: 'Reemplazar mosaico seleccionado…',
+    reload:      'Recargar texturas',
     errorImportAtlas: (e: unknown) => `Error al importar el atlas personalizado: ${e}`,
     errorImportTile:  (e: unknown) => `Error al importar el mosaico: ${e}`,
   },
@@ -113,7 +115,9 @@ const es: Translations = {
     save:   '💾 Guardar como personalizado',
     revert: '↩ Revertir',
     delete: '🗑 Eliminar',
-    deleteTooltip: (name: string) =>
+    overrideVanilla:        '✏️ Sobrescribir vanilla',
+    overrideVanillaTooltip: 'Escribir este bloque vanilla directamente en customBlockConfig/BlockConfigImport.xml para permitir modding profundo.',
+        deleteTooltip: (name: string) =>
       `Eliminar este bloque de customBlockConfig/BlockConfigImport.xml`,
     deleteConfirm: (name: string) => `¿Eliminar el bloque personalizado ${name}?`,
     importIcon:    'Importar…',

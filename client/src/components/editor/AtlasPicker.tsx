@@ -139,6 +139,7 @@ export function AtlasPicker({ selectedTileId, onSelect, onClose }: AtlasPickerPr
   const refreshAtlas = () => {
     invalidateAtlasCache();
     window.dispatchEvent(new CustomEvent('atlas-imported'));
+    // Increment local version so the canvas redraws immediately in this modal
     setAtlasVersion(v => v + 1);
   };
 
@@ -236,6 +237,15 @@ export function AtlasPicker({ selectedTileId, onSelect, onClose }: AtlasPickerPr
             <span>{t.atlasPicker.hintPick}</span>
           ) : (
             <>
+              {/* Reload button — invalidates cache so 3D view picks up new textures */}
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={refreshAtlas}
+                disabled={importing}
+              >
+                ↺ {t.atlasPicker.reload}
+              </button>
               <span>{t.atlasPicker.importAtlasDesc(PAGE_COLS * atlasSize, PAGE_COLS, PAGE_ROWS)}</span>
               <select value={mapKind} onChange={e => setMapKind(e.target.value as 'diffuse' | 'normal')}>
                 <option value="diffuse">{t.atlasPicker.mapDiffuse}</option>

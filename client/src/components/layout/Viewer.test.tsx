@@ -97,16 +97,20 @@ describe('ViewerColumn', () => {
 
     useBlockStore.setState({ draft: block({ hasActivationTexture: true }), previewActive: true });
     rerender(<ViewerColumn />);
-    expect(screen.getByText(/Activation texture preview/)).toBeTruthy();
-    fireEvent.click(screen.getByText('Toggle'));
+    // Toggle button shows label + state — find by role button containing preview text
+    const toggleBtn = screen.getByRole('button', { name: /Activation texture preview/i });
+    expect(toggleBtn).toBeTruthy();
+    expect(toggleBtn.textContent).toContain('ON');
+    fireEvent.click(toggleBtn);
     expect(useBlockStore.getState().previewActive).toBe(false);
 
     // lightSource branch — shows 'Light preview' instead of 'Activation texture preview'
     useBlockStore.setState({ draft: block({ lightSource: true, hasActivationTexture: false }), previewActive: false });
     rerender(<ViewerColumn />);
-    expect(screen.getByText(/Light preview/)).toBeTruthy();
-    expect(screen.getByText(/OFF/)).toBeTruthy();
-    fireEvent.click(screen.getByRole('checkbox'));
+    const lightBtn = screen.getByRole('button', { name: /Light preview/i });
+    expect(lightBtn).toBeTruthy();
+    expect(lightBtn.textContent).toContain('OFF');
+    fireEvent.click(lightBtn);
     expect(useBlockStore.getState().previewActive).toBe(true);
   });
 });

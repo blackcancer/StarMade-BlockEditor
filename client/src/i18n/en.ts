@@ -66,6 +66,8 @@ const en = {
     previewOn:  'ON',
     previewOff: 'OFF',
     toggle: 'Toggle',
+    /** Tooltip shown on the single toggle button */
+    toggleTooltip: (label: string, state: string) => `${label}: ${state}`,
     /** Tooltip on the active-state label */
     activePreviewTooltip:
       'Shown only for LightSource or HasActivationTexture. CanActivate alone has no texture state.',
@@ -99,6 +101,7 @@ const en = {
     advancedSummary: 'Advanced: replace one tile',
     slotLabel:  'Slot',
     replaceTile: 'Replace selected tile…',
+    reload:      'Reload textures',
     errorImportAtlas: (e: unknown) => `Custom atlas import failed: ${e}`,
     errorImportTile:  (e: unknown) => `Tile import failed: ${e}`,
   },
@@ -125,6 +128,9 @@ const en = {
     save:   '💾 Save to Custom',
     revert: '↩ Revert',
     delete: '🗑 Delete',
+    /** Override vanilla: force-write a vanilla block to custom file */
+    overrideVanilla:        '✏️ Override vanilla',
+    overrideVanillaTooltip: 'Write this vanilla block directly into customBlockConfig/BlockConfigImport.xml to allow deep modding.',
     deleteTooltip: (name: string) =>
       `Remove this block from customBlockConfig/BlockConfigImport.xml`,
     deleteConfirm: (name: string) => `Delete custom block ${name}?`,

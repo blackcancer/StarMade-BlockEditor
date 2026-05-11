@@ -62,6 +62,7 @@ const ja: Translations = {
     previewOn:  'ON',
     previewOff: 'OFF',
     toggle: '切り替え',
+    toggleTooltip: (label, state) => `${label}: ${state}`,
     activePreviewTooltip:
       'LightSource または HasActivationTexture のみ表示されます。CanActivate 単独ではテクスチャ状態はありません。',
   },
@@ -93,6 +94,7 @@ const ja: Translations = {
     advancedSummary: '詳細: タイルを 1 枚置き換え',
     slotLabel:  'スロット',
     replaceTile: '選択したタイルを置き換え…',
+    reload:      'テクスチャを再読み込み',
     errorImportAtlas: (e: unknown) => `カスタムアトラスのインポートに失敗しました: ${e}`,
     errorImportTile:  (e: unknown) => `タイルのインポートに失敗しました: ${e}`,
   },
@@ -116,7 +118,9 @@ const ja: Translations = {
     save:   '💾 カスタムとして保存',
     revert: '↩ 元に戻す',
     delete: '🗑 削除',
-    deleteTooltip: (name: string) =>
+    overrideVanilla:        '✏️ バニラを上書き',
+    overrideVanillaTooltip: 'このバニラブロックを customBlockConfig/BlockConfigImport.xml に直接書き込み、深いモッディングを可能にします。',
+        deleteTooltip: (name: string) =>
       `customBlockConfig/BlockConfigImport.xml からこのブロックを削除`,
     deleteConfirm: (name: string) => `カスタムブロック「${name}」を削除しますか？`,
     importIcon:    'インポート…',

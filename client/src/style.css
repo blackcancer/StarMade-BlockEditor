@@ -633,11 +633,11 @@ button:disabled { opacity: 0.4; cursor: default; }
   margin-top: 6px;
 }
 .active-preview-row {
-  justify-content: space-between;
+  justify-content: stretch;
   gap: 8px;
 }
-.active-preview-row label {
-  flex: 1;
+.active-preview-row .btn-toggle {
+  width: 100%;
 }
 .effect-armor-grid {
   display: grid;
@@ -897,6 +897,36 @@ button:disabled { opacity: 0.4; cursor: default; }
   border: 1px solid #7c1a1a;
 }
 .btn-delete:hover { background: #3a1010; }
+
+/* Override vanilla — amber colour to signal intentional modding action */
+.btn-override {
+  background: #2a1a00;
+  color: #f5c842;
+  border: 1px solid #6b4800;
+  font-weight: 600;
+}
+.btn-override:hover { background: #3a2500; border-color: #8a6000; }
+
+/* Single toggle button for active/light preview state */
+.btn-toggle {
+  flex: 1;
+  background:   var(--bg-raised);
+  color:        var(--text-primary);
+  border:       1px solid var(--border-muted);
+  text-align:   left;
+  font-size:    0.82rem;
+  padding:      6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.btn-toggle:hover { background: var(--bg-hover); }
+.btn-toggle.active {
+  background:   rgba(96, 184, 255, 0.12);
+  border-color: #60b8ff;
+  color:        #60b8ff;
+}
+.btn-toggle.active strong { color: #7dd3fc; }
 
 /* ── Config overlay ──────────────────────────────────────────────────────── */
 

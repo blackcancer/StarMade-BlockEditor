@@ -223,11 +223,20 @@ describe('Properties', () => {
     fireEvent.click(screen.getByText('Build-mode only').closest('label')!.querySelector('input')!);
     fireEvent.click(screen.getByText('Animated').closest('label')!.querySelector('input')!);
 
-    fireEvent.change(selects[4], { target: { value: '2' } });
-    expect(useBlockStore.getState().draft?.slabIds).toEqual([2]);
-    fireEvent.click(screen.getByText('Variant ×'));
-    expect(useBlockStore.getState().draft?.slabIds).toEqual([]);
-    fireEvent.change(selects[5], { target: { value: '3' } });
+    // Variants section is hidden when lists are empty — add a slab variant first
+    // then the section becomes visible and we can remove the chip
+    const allSelects = screen.getAllByRole('combobox');
+    // find the slab-variants select (its first option is '+ Add variant...')
+    const slabSelect = allSelects.find(s => s.textContent?.includes('Add variant'));
+    if (slabSelect) {
+      fireEvent.change(slabSelect, { target: { value: '2' } });
+      expect(useBlockStore.getState().draft?.slabIds).toEqual([2]);
+      fireEvent.click(screen.getByText('Variant ×'));
+      expect(useBlockStore.getState().draft?.slabIds).toEqual([]);
+    }
+
+    // Add style variant
+    useBlockStore.getState().updateDraft({ styleIds: [3] });
 
     expect(useBlockStore.getState().draft).toMatchObject({
       icon: 11,

@@ -59,6 +59,7 @@ const de: Translations = {
     previewOn:  'AN',
     previewOff: 'AUS',
     toggle: 'Umschalten',
+    toggleTooltip: (label, state) => `${label}: ${state}`,
     activePreviewTooltip:
       'Nur für LightSource oder HasActivationTexture angezeigt. CanActivate allein hat keinen Texturzustand.',
   },
@@ -90,6 +91,7 @@ const de: Translations = {
     advancedSummary: 'Erweitert: eine Kachel ersetzen',
     slotLabel:  'Slot',
     replaceTile: 'Ausgewählte Kachel ersetzen…',
+    reload:      'Texturen neu laden',
     errorImportAtlas: (e: unknown) => `Import des benutzerdefinierten Atlas fehlgeschlagen: ${e}`,
     errorImportTile:  (e: unknown) => `Kachelimport fehlgeschlagen: ${e}`,
   },
@@ -113,7 +115,9 @@ const de: Translations = {
     save:   '💾 Als benutzerdefiniert speichern',
     revert: '↩ Zurücksetzen',
     delete: '🗑 Löschen',
-    deleteTooltip: (name: string) =>
+    overrideVanilla:        '✏️ Vanilla überschreiben',
+    overrideVanillaTooltip: 'Diesen Vanilla-Block direkt in customBlockConfig/BlockConfigImport.xml schreiben, um tiefes Modding zu ermöglichen.',
+        deleteTooltip: (name: string) =>
       `Diesen Block aus customBlockConfig/BlockConfigImport.xml entfernen`,
     deleteConfirm: (name: string) => `Benutzerdefinierten Block ${name} löschen?`,
     importIcon:    'Importieren…',

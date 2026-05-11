@@ -1,27 +1,9 @@
 /**
  * @fileoverview BlockViewer — 3D canvas for block preview.
  *
- * Wraps the react-three-fiber `<Canvas>` to provide the full 3D preview
- * environment for the selected block:
- *
- *  - **OrbitControls** — drag-to-rotate, scroll-to-zoom, with damping.
- *  - **Preview floor** — 48×48 units plane that catches shadows and makes
- *    light-source emission visible without an infinite-grid distraction.
- *  - **Grid** — subtle infinite grid at y=-0.5 for spatial reference.
- *  - **LightingRig** — two-mode lighting:
- *      - *Standard*: ambient + hemisphere + directional + two fill points.
- *        Matches typical StarMade outdoor lighting at comfortable brightness.
- *      - *Active light preview*: dramatically dimmed base scene so the block's
- *        emitted light (pointLight + emissive material) is clearly visible.
- *  - **Scene** — loads atlas textures and renders the block mesh.
- *    Falls back to a wireframe cube while loading and an error cube on failure.
- *  - **LightFootprint** — radial gradient circle under a light-source block,
- *    illustrating the light's reach (radius = 22, matching `Occlusion.RAY_LENGTH`).
- *
- * ## Atlas texture loading
- * Textures are loaded via `loadAtlasTexture()` whenever `atlasSize`,
- * `texturePack`, or `isValid` changes, or when the `atlas-imported`
- * CustomEvent is dispatched (after a custom atlas import).
+ * Atlas textures are loaded once at mount (or when config changes) and cached
+ * via `loadAtlasTexture()`. A `atlas-imported` CustomEvent triggers a reload
+ * after a custom atlas or tile import so the 3D preview refreshes immediately.
  *
  * @author InitSysRev
  * @version 1.0.0
@@ -133,6 +115,11 @@ function LightFootprint({ color, intensity }: { color: THREE.Color; intensity: n
 /**
  * Inner 3D scene — loaded inside a Suspense boundary.
  *
+ * Atlas textures are loaded once when the component mounts (or when config
+ * changes: atlasSize, texturePack, isValid).
+ * After a custom atlas import the `atlas-imported` event re-triggers the load
+ * so the 3D viewer refreshes without reloading the page.
+ *
  * @component
  */
 function Scene() {
@@ -146,16 +133,14 @@ function Scene() {
 
   const [atlasTexture, setAtlasTexture]   = useState<THREE.Texture | null>(null);
   const [normalTexture, setNormalTexture] = useState<THREE.Texture | null>(null);
-  const [atlasVersion, setAtlasVersion]   = useState(0);
   const [error, setError]                 = useState<string | null>(null);
 
-  useEffect(() => {
-    const handler = () => setAtlasVersion(v => v + 1);
-    window.addEventListener('atlas-imported', handler);
-    return () => window.removeEventListener('atlas-imported', handler);
-  }, []);
-
-  useEffect(() => {
+  /**
+   * Load (or reload) the atlas textures.
+   * Called on mount and whenever the `atlas-imported` event fires.
+   * The cache in `AtlasTexture.ts` ensures only one HTTP request per key.
+   */
+  const loadTextures = () => {
     if (!isValid) {
       setAtlasTexture(null);
       setNormalTexture(null);
@@ -173,7 +158,27 @@ function Scene() {
         setError(null);
       })
       .catch(e => setError(String(e)));
-  }, [atlasSize, texturePack, isValid, atlasVersion]);
+  };
+
+  // ── Load on config change ─────────────────────────────────────────────────
+  // Runs once at mount, then again only if atlasSize / texturePack / isValid
+  // actually changes. The loadAtlasTexture cache means re-running with the
+  // same config is instant (no HTTP request).
+  useEffect(() => {
+    loadTextures();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [atlasSize, texturePack, isValid]);
+
+  // ── Reload after custom atlas import ─────────────────────────────────────
+  // AtlasPicker dispatches this event after a successful import.
+  // We invalidate the cache there; here we just re-call loadTextures to pick
+  // up the fresh textures.
+  useEffect(() => {
+    const handler = () => loadTextures();
+    window.addEventListener('atlas-imported', handler);
+    return () => window.removeEventListener('atlas-imported', handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [atlasSize, texturePack, isValid]);
 
   const lightEnabled = !!draft?.lightSource && previewActive;
   const lightColor = useMemo(() => {

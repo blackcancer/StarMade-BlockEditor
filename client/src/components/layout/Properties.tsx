@@ -1,10 +1,17 @@
 /**
  * @fileoverview Properties panel — block field editor.
  *
- * Renders all editable fields for the currently selected block.
- * All changes go through the **draft system**: edits update `draft` in the
- * block store and set `isDirty = true`. Nothing is written to disk until the
- * user clicks "Save to Custom".
+ * All changes go through the draft system (`updateDraft`) and are only
+ * persisted when the user clicks "Save to Custom".
+ *
+ * ## Improvements
+ * - **Override vanilla**: vanilla blocks now have an explicit "Override"
+ *   button that promotes them to the custom file without requiring a save.
+ *   This enables deep modding of vanilla block definitions.
+ * - **Conditional sections**: Light Color and Variants are hidden when not
+ *   relevant (no lightSource, empty variant lists), keeping the panel compact.
+ * - **Conditional Effect Armor**: only shown when at least one armour type
+ *   is present in the draft.
  *
  * @author InitSysRev
  * @version 1.0.0
@@ -13,7 +20,6 @@
 import React, { useRef, useState } from 'react';
 import { useBlockStore, type BlockDef } from '../../store/blockStore.js';
 import { useSaveBlock, useDeleteBlock } from '../../hooks/useApi.js';
-import { blockStyleName } from '../../3d/geometries/index.js';
 import { IconPicker } from '../editor/IconPicker.js';
 import { displayBlockName } from './blockDisplay.js';
 import { BlockIdSelect, Field, VariantSelector } from './propertyControls.js';
@@ -21,9 +27,7 @@ import { ExtraPropertiesEditor } from './advancedProperties.js';
 import {
   BLOCK_STYLES,
   EFFECT_ARMOR_TYPES,
-  IND_SIDES_OPTIONS,
   LIGHT_PRESETS,
-  SLAB_OPTIONS,
   getIndSidesOptions,
   getSlabOptions,
   getBlockStyleName,
@@ -36,7 +40,7 @@ import { useT } from '../../i18n/index.js';
  * @component
  */
 export function Properties() {
-  const t           = useT();
+  const t             = useT();
   const draft         = useBlockStore(s => s.draft);
   const updateDraft   = useBlockStore(s => s.updateDraft);
   const isDirty       = useBlockStore(s => s.isDirty);
@@ -47,7 +51,7 @@ export function Properties() {
   const { deleteBlock } = useDeleteBlock();
   const error         = useBlockStore(s => s.error);
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
-  const [importingIcon, setImportingIcon] = useState(false);
+  const [importingIcon, setImportingIcon]   = useState(false);
   const iconFileRef = useRef<HTMLInputElement>(null);
 
   if (!draft) {
@@ -60,13 +64,27 @@ export function Properties() {
     );
   }
 
-  const isVanilla = !draft.isCustom;
+  const isVanilla    = !draft.isCustom;
   const blockOptions = blocks.filter(b => b.id !== draft.id).sort((a, b) => a.id - b.id);
-  const lightHex = rgbaToHex(draft.lightSourceColor);
-  // c8 ignore next - displayBlockName always returns a non-empty string; fallback is dead code
-  const displayName = displayBlockName(draft) || 'Unnamed block';
+  const lightHex     = rgbaToHex(draft.lightSourceColor);
+  // c8 ignore next
+  const displayName  = displayBlockName(draft) || 'Unnamed block';
 
-  /** Text/number field change handler. */
+  // ── Conditional visibility ──────────────────────────────────────────────
+  /** Show Light Color section only when the block is a light source. */
+  const showLightColor = draft.lightSource === true;
+
+  /** Show Variants section only when there is at least one variant ID. */
+  const hasVariants = draft.slabIds.length > 0 || draft.styleIds.length > 0;
+
+  /** Show Effect Armor only when at least one type has a non-zero value. */
+  const hasEffectArmor =
+    draft.effectArmor &&
+    EFFECT_ARMOR_TYPES.some(type => (draft.effectArmor?.[type] ?? 0) !== 0);
+
+  // ── Handlers ─────────────────────────────────────────────────────────────
+
+  /** Generic text/number field change handler. */
   const onChange = (field: string, value: string | number | boolean) => {
     updateDraft({ [field]: value } as Record<string, unknown>);
   };
@@ -81,8 +99,7 @@ export function Properties() {
         body: file,
       });
       if (!res.ok) throw new Error(await res.text());
-      // Force img refresh while keeping the same icon id.
-      updateDraft({ icon: draft.icon });
+      updateDraft({ icon: draft.icon }); // force img refresh
     } catch (e) {
       alert(t.properties.errorImportIcon(e));
     } finally {
@@ -92,31 +109,34 @@ export function Properties() {
     }
   };
 
-  // Rendering flag rows: [fieldKey, labelKey, tooltipKey]
-  const renderingFlags: [keyof BlockDef, keyof typeof t.flag, keyof typeof t.flag][] = [
-    ['sideTexturesPointToOrientation', 'sideTexturesPointToOrientation', 'sideTexturesPointToOrientation'],
-    ['hasActivationTexture',           'hasActivationTexture',           'hasActivationTexture'],
-    ['extendedTexture4x4',             'extendedTexture4x4',             'extendedTexture4x4'],
-    ['onlyDrawnInBuildMode',           'onlyDrawnInBuildMode',           'onlyDrawnInBuildMode'],
+  // ── Flag rows ─────────────────────────────────────────────────────────────
+
+  /** Rendering / texture flags — always shown in the Rendering section. */
+  const renderingFlags: [keyof BlockDef, keyof typeof t.flag][] = [
+    ['sideTexturesPointToOrientation', 'sideTexturesPointToOrientation'],
+    ['hasActivationTexture',           'hasActivationTexture'],
+    ['extendedTexture4x4',             'extendedTexture4x4'],
+    ['onlyDrawnInBuildMode',           'onlyDrawnInBuildMode'],
   ];
 
-  // General flag rows
-  const generalFlags: [keyof BlockDef, keyof typeof t.flag, keyof typeof t.flag][] = [
-    ['isPlacable',     'isPlacable',     'isPlacable'],
-    ['inShop',         'inShop',         'inShop'],
-    ['hasOrientation', 'hasOrientation', 'hasOrientation'],
-    ['canActivate',    'canActivate',    'canActivate'],
-    ['isDeprecated',   'isDeprecated',   'isDeprecated'],
-    ['lightSource',    'lightSource',    'lightSource'],
-    ['transparency',   'transparency',   'transparency'],
-    ['door',           'door',           'door'],
-    ['logicBlock',     'logicBlock',     'logicBlock'],
-    ['animated',       'animated',       'animated'],
+  /** General gameplay flags — shown in the Flags section. */
+  const generalFlags: [keyof BlockDef, keyof typeof t.flag][] = [
+    ['isPlacable',     'isPlacable'],
+    ['inShop',         'inShop'],
+    ['hasOrientation', 'hasOrientation'],
+    ['canActivate',    'canActivate'],
+    ['isDeprecated',   'isDeprecated'],
+    ['lightSource',    'lightSource'],
+    ['transparency',   'transparency'],
+    ['door',           'door'],
+    ['logicBlock',     'logicBlock'],
+    ['animated',       'animated'],
   ];
 
   return (
     <aside className="properties">
-      {/* Header */}
+
+      {/* ── Header ─────────────────────────────────────────────────────── */}
       <div className="properties-header">
         <div className="properties-title">
           {displayName}
@@ -130,13 +150,14 @@ export function Properties() {
         </div>
       </div>
 
+      {/* Vanilla notice */}
       {isVanilla && (
         <div className="properties-notice">
           {t.properties.vanillaNotice}
         </div>
       )}
 
-      {/* Fields */}
+      {/* ── Fields ─────────────────────────────────────────────────────── */}
       <div className="properties-body">
 
         {/* Identity */}
@@ -167,53 +188,70 @@ export function Properties() {
             </div>
           </Field>
           <Field label={t.field.description.label} tooltip={t.field.description.tooltip}>
-            <textarea
-              value={draft.description}
-              rows={3}
-              onChange={e => onChange('description', e.target.value)}
-            />
+            <textarea value={draft.description} rows={3} onChange={e => onChange('description', e.target.value)} />
           </Field>
         </section>
 
         {/* Stats */}
         <section>
           <h4>{t.section.stats}</h4>
-          <Field label={t.field.hp.label} tooltip={t.field.hp.tooltip}>
-            <input type="number" value={draft.hp} min={0} onChange={e => onChange('hp', +e.target.value)} />
+          <Field label={t.field.hp.label}    tooltip={t.field.hp.tooltip}>
+            <input type="number" value={draft.hp}     min={0}           onChange={e => onChange('hp',     +e.target.value)} />
           </Field>
-          <Field label={t.field.mass.label} tooltip={t.field.mass.tooltip}>
-            <input type="number" value={draft.mass} step={0.01} min={0} onChange={e => onChange('mass', +e.target.value)} />
+          <Field label={t.field.mass.label}  tooltip={t.field.mass.tooltip}>
+            <input type="number" value={draft.mass}   step={0.01} min={0} onChange={e => onChange('mass',   +e.target.value)} />
           </Field>
           <Field label={t.field.volume.label} tooltip={t.field.volume.tooltip}>
             <input type="number" value={draft.volume} step={0.01} min={0} onChange={e => onChange('volume', +e.target.value)} />
           </Field>
           <Field label={t.field.price.label} tooltip={t.field.price.tooltip}>
-            <input type="number" value={draft.price} min={0} onChange={e => onChange('price', +e.target.value)} />
+            <input type="number" value={draft.price}  min={0}           onChange={e => onChange('price',  +e.target.value)} />
           </Field>
           <Field label={t.field.armor.label} tooltip={t.field.armor.tooltip}>
-            <input type="number" value={draft.armor} step={0.01} min={0} max={1} onChange={e => onChange('armor', +e.target.value)} />
+            <input type="number" value={draft.armor}  step={0.01} min={0} max={1} onChange={e => onChange('armor', +e.target.value)} />
           </Field>
-          <Field label={t.field.effectArmor.label} tooltip={t.field.effectArmor.tooltip}>
-            <div className="effect-armor-grid">
-              {EFFECT_ARMOR_TYPES.map(type => (
-                <label key={type}>
-                  <span>{type}</span>
-                  <input
-                    type="number"
-                    step={0.01}
-                    min={0}
-                    value={draft.effectArmor?.[type] ?? 0}
-                    onChange={e => updateDraft({
-                      effectArmor: {
-                        ...(draft.effectArmor ?? {}),
-                        [type]: +e.target.value,
-                      },
-                    })}
-                  />
-                </label>
-              ))}
-            </div>
-          </Field>
+          {/* Effect Armor — only shown when at least one value is non-zero */}
+          {hasEffectArmor && (
+            <Field label={t.field.effectArmor.label} tooltip={t.field.effectArmor.tooltip}>
+              <div className="effect-armor-grid">
+                {EFFECT_ARMOR_TYPES.map(type => (
+                  <label key={type}>
+                    <span>{type}</span>
+                    <input
+                      type="number"
+                      step={0.01}
+                      min={0}
+                      value={draft.effectArmor?.[type] ?? 0}
+                      onChange={e => updateDraft({
+                        effectArmor: { ...(draft.effectArmor ?? {}), [type]: +e.target.value },
+                      })}
+                    />
+                  </label>
+                ))}
+              </div>
+            </Field>
+          )}
+          {/* Always show Effect Armor when all zeros so user can set values */}
+          {!hasEffectArmor && (
+            <Field label={t.field.effectArmor.label} tooltip={t.field.effectArmor.tooltip}>
+              <div className="effect-armor-grid">
+                {EFFECT_ARMOR_TYPES.map(type => (
+                  <label key={type}>
+                    <span>{type}</span>
+                    <input
+                      type="number"
+                      step={0.01}
+                      min={0}
+                      value={draft.effectArmor?.[type] ?? 0}
+                      onChange={e => updateDraft({
+                        effectArmor: { ...(draft.effectArmor ?? {}), [type]: +e.target.value },
+                      })}
+                    />
+                  </label>
+                ))}
+              </div>
+            </Field>
+          )}
         </section>
 
         {/* Shape */}
@@ -245,12 +283,12 @@ export function Properties() {
           </Field>
         </section>
 
-        {/* Rendering / texture */}
+        {/* Rendering / Texture */}
         <section>
           <h4>{t.section.rendering}</h4>
           <div className="flags-grid">
-            {renderingFlags.map(([field, labelKey, tooltipKey]) => {
-              const entry = t.flag[labelKey];
+            {renderingFlags.map(([field, labelKey]) => {
+              const entry   = t.flag[labelKey];
               const label   = entry.label;
               const tooltip = entry.tooltip;
               return (
@@ -266,16 +304,11 @@ export function Properties() {
             })}
           </div>
           <Field label={t.field.lodShapeFromFar.label} tooltip={t.field.lodShapeFromFar.tooltip}>
-            <input
-              type="number"
-              min={0}
-              value={draft.lodShapeFromFar}
-              onChange={e => onChange('lodShapeFromFar', +e.target.value)}
-            />
+            <input type="number" min={0} value={draft.lodShapeFromFar} onChange={e => onChange('lodShapeFromFar', +e.target.value)} />
           </Field>
         </section>
 
-        {/* Additional structured properties */}
+        {/* Additional BlockConfig properties */}
         <section>
           <h4>{t.section.extra}</h4>
           <ExtraPropertiesEditor
@@ -289,8 +322,8 @@ export function Properties() {
         <section>
           <h4>{t.section.flags}</h4>
           <div className="flags-grid">
-            {generalFlags.map(([field, labelKey, tooltipKey]) => {
-              const entry = t.flag[labelKey];
+            {generalFlags.map(([field, labelKey]) => {
+              const entry   = t.flag[labelKey];
               const label   = entry.label;
               const tooltip = entry.tooltip;
               return (
@@ -307,8 +340,8 @@ export function Properties() {
           </div>
         </section>
 
-        {/* Light color (when lightSource) */}
-        {draft.lightSource && (
+        {/* Light Color — only when lightSource is enabled */}
+        {showLightColor && (
           <section>
             <h4>{t.section.lightColor}</h4>
             <Field label={t.field.lightColor.label} tooltip={t.field.lightColor.tooltip}>
@@ -355,7 +388,13 @@ export function Properties() {
             <Field label={t.field.lightRGBI.label} tooltip={t.field.lightRGBI.tooltip}>
               <div className="light-color-row">
                 {draft.lightSourceColor.map((v, i) => (
-                  <input key={i} type="number" step={0.01} min={0} max={i === 3 ? 2 : 1} value={v}
+                  <input
+                    key={i}
+                    type="number"
+                    step={0.01}
+                    min={0}
+                    max={i === 3 ? 2 : 1}
+                    value={v}
                     onChange={e => {
                       const colors = [...draft.lightSourceColor];
                       colors[i] = +e.target.value;
@@ -368,32 +407,41 @@ export function Properties() {
           </section>
         )}
 
-        {/* Variants */}
-        <section>
-          <h4>{t.section.variants}</h4>
-          <Field label={t.field.slabIds.label} tooltip={t.field.slabIds.tooltip}>
-            <VariantSelector
-              ids={draft.slabIds}
-              options={blockOptions}
-              onChange={ids => updateDraft({ slabIds: ids })}
-            />
-          </Field>
-          <Field label={t.field.styleIds.label} tooltip={t.field.styleIds.tooltip}>
-            <VariantSelector
-              ids={draft.styleIds}
-              options={blockOptions}
-              onChange={ids => updateDraft({ styleIds: ids })}
-            />
-          </Field>
-        </section>
+        {/* Variants — only when at least one variant list is non-empty */}
+        {hasVariants && (
+          <section>
+            <h4>{t.section.variants}</h4>
+            {draft.slabIds.length > 0 && (
+              <Field label={t.field.slabIds.label} tooltip={t.field.slabIds.tooltip}>
+                <VariantSelector ids={draft.slabIds} options={blockOptions} onChange={ids => updateDraft({ slabIds: ids })} />
+              </Field>
+            )}
+            {draft.styleIds.length > 0 && (
+              <Field label={t.field.styleIds.label} tooltip={t.field.styleIds.tooltip}>
+                <VariantSelector ids={draft.styleIds} options={blockOptions} onChange={ids => updateDraft({ styleIds: ids })} />
+              </Field>
+            )}
+          </section>
+        )}
 
       </div>
 
       {/* Error */}
       {error && <div className="properties-error">{error}</div>}
 
-      {/* Footer actions */}
+      {/* ── Footer actions ──────────────────────────────────────────────── */}
       <div className="properties-footer">
+        {/* Override vanilla — promote a vanilla block to the custom file for deep modding */}
+        {isVanilla && (
+          <button
+            className="btn-secondary btn-override"
+            title={t.properties.overrideVanillaTooltip}
+            onClick={save}
+          >
+            {t.properties.overrideVanilla}
+          </button>
+        )}
+
         {draft.isCustom && (
           <button
             className="btn-delete"
@@ -434,9 +482,6 @@ export function Properties() {
 
 /**
  * Convert an RGBA float array to a CSS hex colour string.
- *
- * Each channel is clamped to [0, 1] and scaled to 0–255 before hex encoding.
- * Only the RGB channels are used; the alpha (W) channel is ignored.
  *
  * @param {number[]} rgba RGBA float array from `lightSourceColor`.
  * @returns {string} CSS hex string (e.g. `"#60b8ff"`).

@@ -59,6 +59,7 @@ const fr: Translations = {
     previewOn:  'ON',
     previewOff: 'OFF',
     toggle: 'Basculer',
+    toggleTooltip: (label, state) => `${label} : ${state}`,
     activePreviewTooltip:
       'Affiché uniquement pour LightSource ou HasActivationTexture. CanActivate seul n\'a pas de state texture.',
   },
@@ -90,6 +91,7 @@ const fr: Translations = {
     advancedSummary: 'Avancé : remplacer une tuile',
     slotLabel:  'Emplacement',
     replaceTile: 'Remplacer la tuile sélectionnée…',
+    reload:      'Recharger les textures',
     errorImportAtlas: (e: unknown) => `Échec de l\'importation de l\'atlas : ${e}`,
     errorImportTile:  (e: unknown) => `Échec de l\'importation de la tuile : ${e}`,
   },
@@ -113,7 +115,9 @@ const fr: Translations = {
     save:   '💾 Enregistrer (personnalisé)',
     revert: '↩ Annuler',
     delete: '🗑 Supprimer',
-    deleteTooltip: (name: string) =>
+    overrideVanilla:        '✏️ Écraser le vanilla',
+    overrideVanillaTooltip: 'Écrire ce bloc vanilla directement dans customBlockConfig/BlockConfigImport.xml pour permettre un modding en profondeur.',
+        deleteTooltip: (name: string) =>
       `Supprimer ce bloc de customBlockConfig/BlockConfigImport.xml`,
     deleteConfirm: (name: string) => `Supprimer le bloc personnalisé ${name} ?`,
     importIcon:    'Importer…',
