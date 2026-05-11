@@ -99,6 +99,18 @@ describe('App', () => {
     consoleSpy.mockRestore();
   });
 
+  it('uses ?? [] fallback when packs field is missing from API response', async () => {
+    useConfigStore.setState({ starmadeDir: '/StarMade', atlasSize: 64, texturePack: 'Default', isValid: true });
+    // Response without packs key → data.packs ?? [] → [] branch
+    vi.mocked(fetch).mockResolvedValueOnce(jsonResponse({}));
+    render(<App />);
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/textures/packs?size=64'));
+    // No pack options (only size options remain, packs select has no children)
+    const selects = screen.getAllByRole('combobox');
+    // texture pack select should have 0 options since packs==[]
+    expect(selects[1].querySelectorAll('option').length).toBe(0);
+  });
+
   it('uses fallback values from saveTextureConfig when API response is missing fields', async () => {
     useConfigStore.setState({ starmadeDir: '/StarMade', atlasSize: 64, texturePack: 'Default', isValid: true });
     vi.mocked(fetch)

@@ -126,6 +126,8 @@ describe('AtlasPicker', () => {
 
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'normal' } });
     const slot = screen.getByLabelText('Slot') as HTMLInputElement;
+    // Open the details section first
+    fireEvent.click(screen.getByText('Advanced: replace one tile'));
     fireEvent.change(slot, { target: { value: '9999' } });
     expect(slot.value).toBe('255');
 
