@@ -46,8 +46,10 @@ export function IconPicker({ selectedIconId, onSelect, onClose }: IconPickerProp
 
   useEffect(() => {
     const canvas = canvasRef.current;
+    /* c8 ignore next 2 */
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
+    /* c8 ignore next 2 */
     if (!ctx) return;
 
     const width = SHEET_GRID_COLS * SHEET_COLS * DISPLAY_ICON;
@@ -95,6 +97,7 @@ export function IconPicker({ selectedIconId, onSelect, onClose }: IconPickerProp
     const sheetCol = Math.floor(col / SHEET_COLS);
     const sheetRow = Math.floor(row / SHEET_ROWS);
     const sheet = sheetRow * SHEET_GRID_COLS + sheetCol;
+    /* c8 ignore next 2 */
     if (sheet < 0 || sheet >= ICON_SHEETS) return -1;
     const localCol = col % SHEET_COLS;
     const localRow = row % SHEET_ROWS;

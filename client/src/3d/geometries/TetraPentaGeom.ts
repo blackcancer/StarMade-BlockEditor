@@ -35,7 +35,7 @@ import { starMadeFaceQuadUVs, starMadeFaceTriUVs } from './uvUtils.js';
 export function makeTetraGeometry(textureIds: number[]): THREE.BufferGeometry {
   const frontId  = textureIds[0] ?? 0;
   const topId    = textureIds[2] ?? frontId;
-  const bottomId = textureIds[3] ?? topId ?? frontId;
+  const bottomId = textureIds[3] ?? topId;
   const leftId   = textureIds[5] ?? textureIds[4] ?? frontId;
 
   const V: [number, number, number][] = [

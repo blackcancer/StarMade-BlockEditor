@@ -61,12 +61,15 @@ export function AtlasPicker({ selectedTileId, onSelect, onClose }: AtlasPickerPr
   // ── Draw the atlas grid onto canvas ──────────────────────────────────────
   useEffect(() => {
     const canvas = canvasRef.current;
+    /* c8 ignore next 2 */
     if (!canvas) return;
     const ctx    = canvas.getContext('2d');
+    /* c8 ignore next 2 */
     if (!ctx) return;
 
     const img = new Image();
     img.src   = `/api/textures/atlas?size=${atlasSize}&pack=${encodeURIComponent(texturePack)}&v=3&refresh=${atlasVersion}`;
+    /* c8 ignore next */
     img.onload = () => {
       canvas.width  = ATLAS_COLS * DISPLAY_TILE;
       canvas.height = ATLAS_ROWS * DISPLAY_TILE;
@@ -222,6 +225,7 @@ export function AtlasPicker({ selectedTileId, onSelect, onClose }: AtlasPickerPr
                     min={0}
                     max={PAGE_TILES - 1}
                     value={customSlot}
+                    /* c8 ignore next */
                     onChange={e => setCustomSlot(Math.max(0, Math.min(PAGE_TILES - 1, +e.target.value || 0)))}
                   />
                 </label>

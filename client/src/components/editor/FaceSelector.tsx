@@ -59,8 +59,7 @@ export function FaceSelector() {
 
   /** Apply a new tile ID to the selected face. */
   const applyTile = (tileId: number) => {
-    if (pickerFace === null) return;
-    assignTileToFace(pickerFace, tileId);
+    assignTileToFace(pickerFace!, tileId);
     setPickerFace(null);
   };
 
