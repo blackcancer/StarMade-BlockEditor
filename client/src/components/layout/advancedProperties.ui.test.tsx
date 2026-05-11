@@ -316,4 +316,25 @@ describe('ExtraPropertiesEditor UI', () => {
     fireEvent.change(searchInput, { target: { value: 'custom' } });
     expect(screen.getByText('Custom Null')).toBeTruthy();
   });
+
+  it('covers value.Factory ?? \'\'  and JSON.stringify(undefined ?? \'\') edge branches', () => {
+    const onChange = vi.fn();
+    render(<ExtraPropertiesEditor value={{
+      ProducedInFactory: 0,
+      Factory: null,
+      CustomUndefined: undefined as unknown as string,
+    }} blocks={blocks} onChange={onChange} />);
+
+    // Factory: null → String(null ?? '') = '' → Factory slot field is rendered
+    expect(screen.getByText('Factory slot')).toBeTruthy();
+    // Find the select within Factory / Production group
+    const selects = document.querySelectorAll('.production-editor select');
+    const factorySlotSelect = selects[selects.length - 1] as HTMLSelectElement;
+    expect(factorySlotSelect.value).toBe('');
+
+    // matchesFilter on 'CustomUndefined' (undefined value) → JSON.stringify(undefined ?? '')
+    const searchInput = document.querySelector('.extra-properties-toolbar input')! as HTMLInputElement;
+    fireEvent.change(searchInput, { target: { value: 'custom' } });
+    expect(screen.getByText('Custom Undefined')).toBeTruthy();
+  });
 });
