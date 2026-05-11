@@ -257,4 +257,29 @@ describe('ExtraPropertiesEditor UI', () => {
     // 'Factory' not in value → Factory slot select is not rendered
     expect(screen.queryByText('Factory slot')).toBeNull();
   });
+
+  it('covers ?? fallbacks in ResourceListEditor, ElementListEditor and normalizeResourceItems with empty blocks', () => {
+    const onChange = vi.fn();
+    render(<ExtraPropertiesEditor value={{
+      Consistence: { Item: [{ '@_count': '2' }] },
+      RecipeBuyResource: '',
+      InRecipe: true,
+      ProducedInFactory: null,
+      BasicResourceFactory: null,
+      FactoryBakeTime: null,
+    }} blocks={[]} onChange={onChange} />);
+
+    // ResourceListEditor + Add material with empty blocks → blocks[0]?.xmlTypeName === undefined → ?? ''
+    // The existing item has no '#text' so name='' and it gets filtered out in serialization
+    fireEvent.click(screen.getByText('+ Add material'));
+    // Both items have name='' so serializeResourceList returns ''
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({
+      Consistence: '',
+    }));
+
+    // ElementListEditor + Add buy resource with empty blocks → ?? ''
+    // RecipeBuyResource is '' → normalizeElementList('') = [] → add button adds '' → serializeElementList(['']) = ''
+    fireEvent.click(screen.getByText('+ Add buy resource'));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ RecipeBuyResource: '' }));
+  });
 });
