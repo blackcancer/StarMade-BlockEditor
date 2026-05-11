@@ -145,6 +145,53 @@ describe('Properties', () => {
     expect(useBlockStore.getState().draft?.lightSourceColor[0]).toBeCloseTo(0x60 / 255);
   });
 
+  it('uses ?? 1 fallback when lightSourceColor has only 3 elements', () => {
+    // lightSourceColor[3] === undefined → ?? 1 branches in color/hex/range/palette
+    seed(block({ lightSource: true, lightSourceColor: [0.5, 0.5, 0.5] as any }));
+    render(<Properties />);
+    // Range input should show 1 (from ?? 1 in value={draft.lightSourceColor[3] ?? 1})
+    const rangeInput = screen.getByTitle('Emissive intensity') as HTMLInputElement;
+    expect(rangeInput.value).toBe('1');
+
+    // Hex text input valid → hexToRgba(hex, [3] ?? 1) (covers line 297)
+    const hexInputs = screen.getAllByDisplayValue('#808080');
+    fireEvent.change(hexInputs[hexInputs.length - 1], { target: { value: '#123456' } });
+    expect(useBlockStore.getState().draft?.lightSourceColor[3]).toBe(1);
+
+    // Reset to 3-element array for next tests
+    const d = useBlockStore.getState().draft!;
+    useBlockStore.setState({ draft: { ...d, lightSourceColor: [0.5, 0.5, 0.5] as any } });
+
+    // Palette click → hexToRgba(hex, [3] ?? 1) (covers line 319)
+    fireEvent.click(screen.getByTitle('#60b8ff'));
+    expect(useBlockStore.getState().draft?.lightSourceColor[3]).toBe(1);
+
+    // Reset again for color input test
+    const d2 = useBlockStore.getState().draft!;
+    useBlockStore.setState({ draft: { ...d2, lightSourceColor: [0, 1, 0] as any } });
+    // color input covers line 288
+    const colorInputs = document.querySelectorAll('input[type="color"]');
+    fireEvent.change(colorInputs[0], { target: { value: '#ff0000' } });
+    expect(useBlockStore.getState().draft?.lightSourceColor[3]).toBe(1);
+  });
+
+  it('uses ?? 0 and ?? {} when effectArmor is absent', () => {
+    seed(block({ effectArmor: undefined as any, slab: undefined as any, extraProperties: undefined as any }));
+    render(<Properties />);
+    // effectArmor?.[type] ?? 0 → value=0; effectArmor ?? {} → builds new object on change
+    const effectArmorSection = screen.getByText('Effect Armor').closest('.field')!;
+    const inputs = effectArmorSection.querySelectorAll('input[type="number"]');
+    expect((inputs[0] as HTMLInputElement).value).toBe('0');
+    fireEvent.change(inputs[0], { target: { value: '0.3' } });
+    expect(useBlockStore.getState().draft?.effectArmor).toMatchObject({ Heat: 0.3 });
+    // draft.slab ?? 0 → slab select shows '0'
+    const slabSection = screen.getByText('Slab geometry').closest('.field')!;
+    const slabSelect = slabSection.querySelector('select') as HTMLSelectElement;
+    expect(slabSelect.value).toBe('0');
+    // draft.extraProperties ?? {} → no crash
+    expect(screen.getByText('edit-extra')).toBeTruthy();
+  });
+
 
   it('edits the remaining numeric, select, flag and variant controls', () => {
     seed(block(), [block(), block({ id: 2, name: 'ALT -- Variant', xmlTypeName: 'ALT' }), block({ id: 3, name: 'BETA -- Style', xmlTypeName: 'BETA' })]);
@@ -223,6 +270,13 @@ describe('Properties', () => {
     let resolveImport!: (r: Response) => void;
     vi.mocked(fetch).mockReturnValueOnce(new Promise(res => { resolveImport = res; }));
     render(<Properties />);
+
+    // Click the Import… button — it triggers iconFileRef.current?.click() (covers ?. branch)
+    const clickSpy = vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(() => {});
+    fireEvent.click(screen.getByText('Import…'));
+    expect(clickSpy).toHaveBeenCalled();
+    clickSpy.mockRestore();
+
     const input = document.querySelector('input[type="file"]')!;
     const file = new File(['icon'], 'icon.png', { type: 'image/png' });
     await act(async () => {
