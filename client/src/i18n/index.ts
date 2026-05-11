@@ -29,6 +29,8 @@
 import { create } from 'zustand';
 import en from './en.js';
 import fr from './fr.js';
+import de from './de.js';
+import es from './es.js';
 import type { Translations } from './en.js';
 
 // ── Available locales ─────────────────────────────────────────────────────────
@@ -38,8 +40,10 @@ import type { Translations } from './en.js';
  * Add new locales here.
  */
 export const LOCALES: Record<string, { label: string; translations: Translations }> = {
-  en: { label: 'English', translations: en },
+  en: { label: 'English',  translations: en },
   fr: { label: 'Français', translations: fr },
+  de: { label: 'Deutsch',  translations: de },
+  es: { label: 'Español',  translations: es },
 };
 
 /** The default locale used when no preference is stored. */
