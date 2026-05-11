@@ -32,12 +32,13 @@
  */
 
 import express from 'express';
+import compression from 'compression';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { configRouter }   from './api/config.js';
-import { blocksRouter }   from './api/blocks.js';
-import { texturesRouter } from './api/textures.js';
+import { blocksRouter, warmBlockCache } from './api/blocks.js';
+import { texturesRouter, warmAtlasCache, warmIconCache } from './api/textures.js';
 
 // ── Environment ───────────────────────────────────────────────────────────────
 
@@ -73,6 +74,26 @@ const app = express();
 if (!IS_PROD) {
   app.use(cors());
 }
+
+/**
+ * Compress text/JSON responses to reduce transfer time for large payloads such
+ * as `/api/blocks`. PNG atlas/icon responses are excluded because they are
+ * already compressed and re-compressing them wastes CPU for negligible gain.
+ */
+app.use(compression({
+  threshold: 1024,
+  filter: (req, res) => {
+    if (
+      req.path.startsWith('/api/textures/atlas') ||
+      req.path.startsWith('/api/textures/tile/') ||
+      req.path.startsWith('/api/textures/icon/') ||
+      req.path.startsWith('/api/textures/icons/sheet/')
+    ) {
+      return false;
+    }
+    return compression.filter(req, res);
+  },
+}));
 
 /** Parse JSON request bodies (block saves, config updates). */
 app.use(express.json());
@@ -126,4 +147,34 @@ app.listen(PORT, () => {
     console.log(`[BlockEditor Server] Running on http://localhost:${PORT}`);
     console.log(`[BlockEditor Server] Client dev server: http://localhost:5174`);
   }
+
+  try {
+    const { dir, count } = warmBlockCache();
+    console.log(`[BlockEditor Server] Block cache warmed: ${count} blocks from ${dir}`);
+  } catch (error) {
+    console.warn(`[BlockEditor Server] Block cache warm-up skipped: ${(error as Error).message}`);
+  }
+
+  void warmAtlasCache()
+    .then(({ pack, size, diffuseBytes, normalBytes }) => {
+      console.log(
+        `[BlockEditor Server] Atlas cache warmed: ${pack} ${size}px ` +
+        `(diffuse ${(diffuseBytes / 1024 / 1024).toFixed(1)} MB, ` +
+        `normal ${(normalBytes / 1024 / 1024).toFixed(1)} MB)`,
+      );
+    })
+    .catch((error) => {
+      console.warn(`[BlockEditor Server] Atlas cache warm-up skipped: ${(error as Error).message}`);
+    });
+
+  void warmIconCache()
+    .then(({ icons, sheets, failed }) => {
+      console.log(
+        `[BlockEditor Server] Icon cache warmed: ${icons} icons across ${sheets} sheets` +
+        (failed > 0 ? ` (${failed} failed)` : ''),
+      );
+    })
+    .catch((error) => {
+      console.warn(`[BlockEditor Server] Icon cache warm-up skipped: ${(error as Error).message}`);
+    });
 });

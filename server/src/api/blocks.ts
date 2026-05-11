@@ -671,6 +671,38 @@ function loadAllBlocks(): BlockDef[] {
   return sorted;
 }
 
+/**
+ * Warm the in-memory block cache at server startup.
+ *
+ * This is best-effort only: callers should catch errors so the server can
+ * still boot when StarMade is not configured yet.
+ *
+ * @returns {{ dir: string; count: number }} Cache warm-up summary.
+ */
+export function warmBlockCache(): { dir: string; count: number } {
+  const blocks = loadAllBlocks();
+  return {
+    dir: blockCache.dir,
+    count: blocks.length,
+  };
+}
+
+/**
+ * Return the unique build-icon IDs referenced by the current block set.
+ *
+ * Uses the normal block cache path, so after warm-up this is just an in-memory
+ * scan over the cached block list.
+ *
+ * @returns {number[]} Sorted unique icon IDs.
+ */
+export function getBlockIconIds(): number[] {
+  return [...new Set(
+    loadAllBlocks()
+      .map(block => block.icon)
+      .filter((icon): icon is number => Number.isInteger(icon) && icon >= 0),
+  )].sort((a, b) => a - b);
+}
+
 // =============================================================================
 // Serialisation helpers
 // =============================================================================

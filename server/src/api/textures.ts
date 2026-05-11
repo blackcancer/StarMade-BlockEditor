@@ -57,6 +57,8 @@ import express, { Router, Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
 import sharp from 'sharp';
+import { getBlockIconIds } from './blocks.js';
+import { loadConfig } from './config.js';
 import { resolveStarmadeRoot } from '../utils/path.js';
 
 // =============================================================================
@@ -338,6 +340,74 @@ function getCompositeAtlasBuffer(
   return pending;
 }
 
+/**
+ * Warm the active atlas cache in memory using the current editor config.
+ *
+ * Pre-builds both diffuse and normal composite atlases for the configured
+ * pack/size so the first viewer request does not pay the Sharp composition cost.
+ * This reuses the normal atlas Promise cache, so concurrent real requests will
+ * attach to the same work instead of duplicating it.
+ *
+ * @returns {Promise<{ pack: string; size: TileSize; diffuseBytes: number; normalBytes: number }>}
+ *   Summary of the warmed atlas variant.
+ */
+export async function warmAtlasCache(): Promise<{
+  pack: string;
+  size: TileSize;
+  diffuseBytes: number;
+  normalBytes: number;
+}> {
+  const cfg = loadConfig();
+  const size = parseSize(cfg.atlasSize);
+  const pack = parsePack(cfg.texturePack);
+  const [diffuse, normal] = await Promise.all([
+    getCompositeAtlasBuffer(size, pack, 'diffuse'),
+    getCompositeAtlasBuffer(size, pack, 'normal'),
+  ]);
+
+  return {
+    pack,
+    size,
+    diffuseBytes: diffuse.byteLength,
+    normalBytes: normal.byteLength,
+  };
+}
+
+/**
+ * Warm the build-icon cache for all unique icon IDs referenced by loaded blocks.
+ *
+ * Icons are extracted in small batches to avoid spawning hundreds of Sharp jobs
+ * at once during startup.
+ *
+ * @returns {Promise<{ icons: number; sheets: number; failed: number }>}
+ *   Summary of the icon cache warm-up.
+ */
+export async function warmIconCache(): Promise<{
+  icons: number;
+  sheets: number;
+  failed: number;
+}> {
+  const iconIds = getBlockIconIds();
+  const sheetCount = new Set(iconIds.map(id => Math.floor(id / 256))).size;
+  let warmed = 0;
+  let failed = 0;
+
+  for (let i = 0; i < iconIds.length; i += 24) {
+    const batch = iconIds.slice(i, i + 24);
+    const results = await Promise.allSettled(batch.map(iconId => getBuildIcon(iconId)));
+    for (const result of results) {
+      if (result.status === 'fulfilled') warmed += 1;
+      else failed += 1;
+    }
+  }
+
+  return {
+    icons: warmed,
+    sheets: sheetCount,
+    failed,
+  };
+}
+
 // =============================================================================
 // Icon helpers
 // =============================================================================
@@ -396,7 +466,10 @@ async function getBuildIcon(iconId: number): Promise<Buffer> {
         .extract({ left: col * iconSize, top: row * iconSize, width: iconSize, height: iconSize })
         .png()
         .toBuffer();
-    })();
+    })().catch((error) => {
+      iconBufferCache.delete(iconId);
+      throw error;
+    });
     iconBufferCache.set(iconId, pending);
   }
   return pending;
