@@ -50,6 +50,7 @@ describe('geometry factory', () => {
     const geometries = [
       makeCubeGeometry([], 1),
       makeCubeGeometry([undefined as unknown as number, undefined as unknown as number, 8], 3),
+      makeCubeGeometry([1], 3), // textureIds[2] undefined in case 3 → ?? 0 branch
       makeCubeGeometry([1, 2, 3, 4, 5, 6], 6),
       makeCrossGeometry([]),
       makeWedgeGeometry([]),
