@@ -211,12 +211,16 @@ describe('ExtraPropertiesEditor UI', () => {
     // Newline string → value.includes('\n') branch → textarea
     // Multi-item StringElementListEditor: editing item at index 1 covers the i !== index false branch
     // Consistence item missing @_count → ?? 1 fallback
+    // LodShape absent → ?? '' fallback in LodMeshEditor
+    // Factory key absent → 'Factory' in value === false → no Factory field
     render(<ExtraPropertiesEditor value={{
       FloatProp: 1.5,
       NewlineProp: 'line1\nline2',
       ChamberConfigGroups: { Element: ['GroupA', 'GroupB'] },
       Consistence: { Item: [{ '#text': 'METAL' }] },
       InRecipe: true,
+      ProducedInFactory: 0,
+      LodActivationAnimationStyle: 0,
     }} blocks={blocks} onChange={onChange} />);
 
     // Float → step 0.01
@@ -239,5 +243,12 @@ describe('ExtraPropertiesEditor UI', () => {
 
     // Consistence with missing @_count → count defaults to 1
     expect(screen.getByDisplayValue('1')).toBeTruthy();
+
+    // LodShape absent → LodMeshEditor shows empty string input
+    const lodInputs = document.querySelectorAll('input[value=""]') as NodeListOf<HTMLInputElement>;
+    expect(lodInputs.length).toBeGreaterThan(0);
+
+    // 'Factory' not in value → Factory slot select is not rendered
+    expect(screen.queryByText('Factory slot')).toBeNull();
   });
 });

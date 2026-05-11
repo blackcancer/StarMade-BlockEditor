@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useBlockStore, type BlockDef } from '../../store/blockStore.js';
 import { Properties } from './Properties.js';
@@ -225,12 +225,17 @@ describe('Properties', () => {
     render(<Properties />);
     const input = document.querySelector('input[type="file"]')!;
     const file = new File(['icon'], 'icon.png', { type: 'image/png' });
-    fireEvent.change(input, { target: { files: [file] } });
+    await act(async () => {
+      fireEvent.change(input, { target: { files: [file] } });
+    });
     // While fetch is pending the button should read 'Importing…'
-    await waitFor(() => expect(screen.getByText('Importing…')).toBeTruthy());
+    expect(screen.getByText('Importing…')).toBeTruthy();
+    expect(screen.getByText('Importing…').closest('button')?.disabled).toBe(true);
     // Resolve so the component can clean up
-    resolveImport({ ok: true, text: async () => 'ok' } as Response);
-    await waitFor(() => expect(screen.getByText('Import…')).toBeTruthy());
+    await act(async () => {
+      resolveImport({ ok: true, text: async () => 'ok' } as Response);
+    });
+    expect(screen.getByText('Import…')).toBeTruthy();
   });
 
   it('saves, reverts and deletes custom blocks with confirmation', () => {
