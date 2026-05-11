@@ -220,8 +220,13 @@ describe('ExtraPropertiesEditor UI', () => {
       Consistence: { Item: [{ '#text': 'METAL' }] },
       InRecipe: true,
       ProducedInFactory: 0,
-      LodActivationAnimationStyle: 0,
-    }} blocks={blocks} onChange={onChange} />);
+      LodShape: null,
+      LodShapeSwitchStyleActive: null,
+      LodActivationAnimationStyle: null,
+      SensorInput: false,
+      ResourceInjection: null,
+      ExplosionAbsorbtion: null,
+    }} blocks={blocks} onChange={onChange} />) ;
 
     // Float → step 0.01
     const floatInput = screen.getByDisplayValue('1.5');
@@ -245,6 +250,7 @@ describe('ExtraPropertiesEditor UI', () => {
     expect(screen.getByDisplayValue('1')).toBeTruthy();
 
     // LodShape absent → LodMeshEditor shows empty string input
+    // Pass all three LOD keys but with null values → triggers ?? '' and ?? 0 branches
     const lodInputs = document.querySelectorAll('input[value=""]') as NodeListOf<HTMLInputElement>;
     expect(lodInputs.length).toBeGreaterThan(0);
 
