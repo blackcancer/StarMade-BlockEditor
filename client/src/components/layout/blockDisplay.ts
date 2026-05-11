@@ -1,5 +1,5 @@
 /**
- * @fileoverview Block display name helpers.
+ * @fileoverview Block display name helpers — with result cache.
  *
  * StarMade block names in BlockConfig.xml follow several conventions:
  *   - `METAL_MESH -- Metal mesh`  : XML type prefix + human label separated by `--`
@@ -11,6 +11,26 @@
  * This module strips the technical prefix and exposes the shortest readable name
  * for display in the sidebar, property panel header, and dropdowns.
  *
+ * ## Opt 3 — display name cache
+ * `displayBlockName` is called for every block in every dropdown that renders
+ * (`BlockIdSelect`, `BlockTypeSelect`, `VariantSelector`, sidebar `BlockCard`).
+ * With 1 500+ vanilla blocks, the sidebar list and all the dropdowns inside the
+ * advanced property editors trigger hundreds of calls per render.
+ *
+ * The function involves string operations (`.includes`, `.slice`, `.replace`,
+ * regex, `.toLowerCase`). These are cheap individually but add up when called
+ * hundreds of times per render cycle.
+ *
+ * A module-level `Map<number, string>` keyed by `block.id` caches the computed
+ * display name the first time a block is seen. Since block definitions are
+ * immutable within a session (only names/fields change via the draft system,
+ * and the draft has a different ID-based lookup), the cache is safe.
+ *
+ * Cache invalidation: exposed via `invalidateDisplayNameCache()` — called
+ * automatically when a block is saved so the updated name is re-computed.
+ *
+ * Memory: 1 500 entries × ~30 bytes avg string = ~45 kB — negligible.
+ *
  * @module blockDisplay
  * @author InitSysRev
  * @version 1.0.0
@@ -18,8 +38,54 @@
 
 import type { BlockDef } from '../../store/blockStore.js';
 
+// ── Display name cache ────────────────────────────────────────────────────────
+
 /**
- * Derive a human-readable display name from a block definition.
+ * Module-level cache: composite key `"id\x00name\x00xmlTypeName"` → display name.
+ *
+ * Using a composite key instead of just `block.id` makes the cache safe for:
+ *  - Tests that create blocks with the same ID but different names
+ *  - Draft blocks whose name is being edited (the draft has the same id but
+ *    a different name from the saved block)
+ *  - Blocks whose name changed between two server reloads
+ *
+ * The full string key is a bit longer than a numeric key but still very fast
+ * (Map<string, string> lookup is O(1) with a good hash) and avoids any
+ * correctness issue from stale cache entries.
+ *
+ * Memory: 1 500 entries × ~70 bytes key + ~30 bytes value ≈ 150 kB — acceptable.
+ */
+const _nameCache = new Map<string, string>();
+
+function cacheKey(block: Pick<BlockDef, 'id' | 'name' | 'xmlTypeName'>): string {
+  return `${block.id}\x00${block.name ?? ''}\x00${block.xmlTypeName ?? ''}`;
+}
+
+/**
+ * Invalidate one or all entries in the display name cache.
+ *
+ * Because the cache key includes the block name, explicit invalidation is
+ * rarely necessary (a name change automatically produces a new key).
+ * However, calling this on full list reload clears stale entries for
+ * blocks that have been deleted.
+ *
+ * @param {number} [id] Block ID whose entries to remove. Omit to clear everything.
+ */
+export function invalidateDisplayNameCache(id?: number): void {
+  if (id === undefined) {
+    _nameCache.clear();
+  } else {
+    // Remove all entries whose key starts with this id
+    for (const key of _nameCache.keys()) {
+      if (key.startsWith(`${id}\x00`)) _nameCache.delete(key);
+    }
+  }
+}
+
+// ── Core helpers ──────────────────────────────────────────────────────────────
+
+/**
+ * Compute the raw (uncached) display name for a block.
  *
  * Resolution order:
  *  1. If the raw name contains `--`, return everything after the last `--`
@@ -29,26 +95,44 @@ import type { BlockDef } from '../../store/blockStore.js';
  *     If stripping leaves an empty string, fall through to prettifyTypeName.
  *  3. Return the trimmed name if non-empty, otherwise prettify the type name
  *     (underscores → spaces, title-case), or finally fall back to the block ID.
+ */
+function computeDisplayName(block: Pick<BlockDef, 'id' | 'name' | 'xmlTypeName'>): string {
+  const name       = block.name?.trim() || '';
+  const typePrefix = block.xmlTypeName?.trim();
+
+  if (name.includes('--')) return name.split('--').pop()!.trim();
+
+  if (typePrefix && name.toLowerCase().startsWith(typePrefix.toLowerCase())) {
+    return name.slice(typePrefix.length).replace(/^\s*[-–—:]\s*/, '').trim()
+      || prettifyTypeName(typePrefix);
+  }
+
+  return name || prettifyTypeName(typePrefix || String(block.id));
+}
+
+// ── Public API ────────────────────────────────────────────────────────────────
+
+/**
+ * Derive a human-readable display name from a block definition.
+ *
+ * Results are cached by `block.id`. Subsequent calls with the same ID return
+ * the cached string immediately (O(1) Map lookup).
+ *
+ * The cache assumes block names are stable within a session. After saving a
+ * block, call `invalidateDisplayNameCache(block.id)` so the next render
+ * re-computes the updated name.
  *
  * @param {Pick<BlockDef, 'id' | 'name' | 'xmlTypeName'>} block Block to name.
  * @returns {string} Non-empty human-readable display name.
  */
 export function displayBlockName(block: Pick<BlockDef, 'id' | 'name' | 'xmlTypeName'>): string {
-  const name = block.name?.trim() || '';
-  const typePrefix = block.xmlTypeName?.trim();
+  const key    = cacheKey(block);
+  const cached = _nameCache.get(key);
+  if (cached !== undefined) return cached;
 
-  // Convention 1: "TYPE -- Label" → "Label"
-  if (name.includes('--')) return name.split('--').pop()!.trim();
-
-  // Convention 2: name starts with the XML type prefix (case-insensitive)
-  if (typePrefix && name.toLowerCase().startsWith(typePrefix.toLowerCase())) {
-    // Remove the prefix and any leading separator (–, —, :, -)
-    return name.slice(typePrefix.length).replace(/^\s*[-–—:]\s*/, '').trim()
-      || prettifyTypeName(typePrefix);
-  }
-
-  // Convention 3: use raw name, or prettify type/id as a last resort
-  return name || prettifyTypeName(typePrefix || String(block.id));
+  const name = computeDisplayName(block);
+  _nameCache.set(key, name);
+  return name;
 }
 
 /**
@@ -64,7 +148,7 @@ export function displayBlockName(block: Pick<BlockDef, 'id' | 'name' | 'xmlTypeN
  */
 export function prettifyTypeName(typeName: string): string {
   return typeName
-    .replace(/_/g, ' ')           // underscores → spaces
-    .toLowerCase()                // fully lower-case
-    .replace(/\b\w/g, c => c.toUpperCase()); // title-case each word
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, c => c.toUpperCase());
 }

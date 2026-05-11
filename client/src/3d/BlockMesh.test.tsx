@@ -77,6 +77,8 @@ describe('BlockMesh pure helpers', () => {
     expect(getSlabTransform(2)).toEqual({ thickness: 0.5, offsetZ: -0.25 });
     expect(getSlabTransform(3)).toEqual({ thickness: 0.25, offsetZ: -0.375 });
     expect(getSlabTransform(99)).toEqual({ thickness: 1, offsetZ: 0 });
+    // Opt 4: same slab value returns the exact same frozen object (LUT reference)
+    expect(getSlabTransform(2)).toBe(getSlabTransform(2));
   });
 
   it('clamps light color/intensity and emissive strength to preview-safe ranges', () => {
@@ -104,6 +106,10 @@ describe('BlockMesh pure helpers', () => {
     const qNeg = getOrientationQuaternion(-1);
     const qLast = getOrientationQuaternion(11);
     expect(qNeg.angleTo(qLast)).toBeCloseTo(0);
+
+    // Opt 1: same index returns same pre-computed object (not a new allocation)
+    expect(getOrientationQuaternion(3)).toBe(getOrientationQuaternion(3));
+    expect(getOrientationQuaternion(0)).toBe(getOrientationQuaternion(12)); // wrap
   });
 });
 

@@ -27,6 +27,7 @@ import { useCallback, useEffect } from 'react';
 import { useBlockStore, type BlockDef } from '../store/blockStore.js';
 import { useConfigStore } from '../store/configStore.js';
 import { invalidateAtlasCache } from '../3d/AtlasTexture.js';
+import { invalidateDisplayNameCache } from '../components/layout/blockDisplay.js';
 
 /** Base URL prefix for all API requests. */
 const API = '/api';
@@ -134,6 +135,7 @@ export function useBlocks(autoload = true) {
     try {
       const res    = await fetch(`${API}/blocks`);
       const blocks = await res.json() as BlockDef[];
+      invalidateDisplayNameCache(); // Full reload — all names may have changed.
       setBlocks(blocks);
       setError(null);
     } catch (e) {
@@ -187,6 +189,7 @@ export function useSaveBlock() {
       });
       if (!res.ok) throw new Error(`Save failed: ${res.statusText}`);
       const saved = await res.json() as BlockDef;
+      invalidateDisplayNameCache(saved.id); // Name may have changed on save.
       // Replace the matching entry in the block list.
       setBlocks(blocks.map(b => b.id === saved.id ? saved : b));
       selectBlock(saved); // Resets isDirty and clones a fresh draft.
@@ -226,6 +229,7 @@ export function useDeleteBlock() {
       const res = await fetch(`${API}/blocks/${block.id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error(`Delete failed: ${res.statusText}`);
       const nextBlocks = blocks.filter(b => b.id !== block.id);
+      invalidateDisplayNameCache(block.id); // Remove deleted block from name cache.
       setBlocks(nextBlocks);
       // Select the first remaining block, or deselect if none remain.
       selectBlock(nextBlocks[0] ?? null);
@@ -268,6 +272,7 @@ export function useCreateBlock() {
         body:    JSON.stringify({}),
       });
       const created = await res.json() as BlockDef;
+      invalidateDisplayNameCache(created.id); // New block — prime cache with its name.
       setBlocks([...blocks, created]); // Append to list (server sorts on read).
       selectBlock(created);            // Immediately select for editing.
       setError(null);

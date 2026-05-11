@@ -66,6 +66,45 @@ export const ORIENTATIONS: Array<[number, number, number]> = [
   [270,  0, 0],  // 11 — front-bottom
 ];
 
+// ── Opt 1: pre-computed orientation quaternions ───────────────────────────────
+/**
+ * Module-level LUT of all 12 orientation quaternions.
+ *
+ * Previously, `getOrientationQuaternion()` created `new THREE.Euler()` +
+ * `new THREE.Quaternion()` on every call (even inside a `useMemo`). These
+ * objects are allocated once here at module load and reused forever.
+ *
+ * 12 quaternions × 4 floats × 8 bytes = 384 bytes total — negligible.
+ */
+const _orientationQuaternions: THREE.Quaternion[] = ORIENTATIONS.map(([rx, ry, rz]) => {
+  const euler = new THREE.Euler(
+    THREE.MathUtils.degToRad(rx),
+    THREE.MathUtils.degToRad(ry),
+    THREE.MathUtils.degToRad(rz),
+  );
+  return new THREE.Quaternion().setFromEuler(euler);
+});
+
+// ── Opt 4: slab transform lookup ─────────────────────────────────────────────
+/**
+ * Pre-computed slab thickness and Z offset for each slab value (0–3).
+ *
+ * Previously computed by a chain of ternaries on every render call.
+ * Now a frozen 4-entry lookup — zero branches, zero arithmetic.
+ *
+ *  0 = full block  (thickness 1.00, offsetZ  0.000)
+ *  1 = 3/4 slab    (thickness 0.75, offsetZ −0.125)
+ *  2 = 1/2 slab    (thickness 0.50, offsetZ −0.250)
+ *  3 = 1/4 slab    (thickness 0.25, offsetZ −0.375)
+ */
+const SLAB_TRANSFORMS: ReadonlyArray<{ readonly thickness: number; readonly offsetZ: number }> =
+  Object.freeze([
+    { thickness: 1.00, offsetZ:  0.000 },
+    { thickness: 0.75, offsetZ: -0.125 },
+    { thickness: 0.50, offsetZ: -0.250 },
+    { thickness: 0.25, offsetZ: -0.375 },
+  ]);
+
 // ── Pure helpers (exported for testing) ───────────────────────────────────────
 
 /**
@@ -88,13 +127,17 @@ export function getEffectiveTextureIds(
 }
 
 /**
- * Compute the slab scale and Z-axis offset.
- * Slab reduces depth along local Z (vertical slab convention).
- * 0=full, 1=3/4, 2=1/2, 3=1/4.
+ * Return the slab thickness and Z-axis offset for a slab value (0–3).
+ *
+ * Uses the pre-computed SLAB_TRANSFORMS lookup — O(1), zero branches.
+ * Out-of-range values (e.g. slab=7 from a malformed XML) fall back to
+ * the full-block entry (index 0).
+ *
+ * @param {number} slab Slab value from BlockConfig.xml (0–3).
+ * @returns {{ thickness: number; offsetZ: number }}
  */
 export function getSlabTransform(slab: number): { thickness: number; offsetZ: number } {
-  const thickness = slab === 1 ? 0.75 : slab === 2 ? 0.5 : slab === 3 ? 0.25 : 1;
-  return { thickness, offsetZ: (thickness - 1) / 2 };
+  return SLAB_TRANSFORMS[slab >= 0 && slab <= 3 ? slab : 0];
 }
 
 /** Extract RGB Three.js Color from LightSourceColor RGBA. Clamps to [0,1]. */
@@ -117,16 +160,20 @@ export function getEmissiveStrength(lightIntensity: number): number {
   return Math.min(0.85, 0.18 + lightIntensity * 0.25);
 }
 
-/** Convert an orientation index to a THREE.Quaternion using the ORIENTATIONS table. */
+/**
+ * Return the pre-computed quaternion for an orientation index.
+ *
+ * Uses the module-level `_orientationQuaternions` LUT — zero allocation,
+ * zero trigonometry. The index is normalised modulo the table length to
+ * handle out-of-range values (e.g. Wedge/Corner 0–23 wrapping).
+ *
+ * @param {number} orientation Orientation index.
+ * @returns {THREE.Quaternion} Cached quaternion (read-only — do not mutate).
+ */
 export function getOrientationQuaternion(orientation: number): THREE.Quaternion {
-  const o = ((orientation % ORIENTATIONS.length) + ORIENTATIONS.length) % ORIENTATIONS.length;
-  const [rx, ry, rz] = ORIENTATIONS[o];
-  const euler = new THREE.Euler(
-    THREE.MathUtils.degToRad(rx),
-    THREE.MathUtils.degToRad(ry),
-    THREE.MathUtils.degToRad(rz),
-  );
-  return new THREE.Quaternion().setFromEuler(euler);
+  const len = _orientationQuaternions.length;
+  const o   = ((orientation % len) + len) % len;
+  return _orientationQuaternions[o];
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -252,7 +299,10 @@ export function BlockMesh({
   useEffect(() => () => material.dispose(), [material]);
 
   // ── Orientation quaternion ────────────────────────────────────────────────
-  const quaternion = useMemo(() => getOrientationQuaternion(orientation), [orientation]);
+  // ── Orientation quaternion (LUT lookup, no allocation) ───────────────────
+  // The quaternion is a pre-computed stable object from _orientationQuaternions.
+  // getOrientationQuaternion() is O(1); no useMemo needed.
+  const quaternion = getOrientationQuaternion(orientation);
 
   // ── Render ────────────────────────────────────────────────────────────────
   // We pass the geometry ref directly; r3f re-renders when geometry or material
