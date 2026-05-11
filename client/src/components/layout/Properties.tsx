@@ -57,6 +57,8 @@ export function Properties() {
   const isVanilla = !draft.isCustom;
   const blockOptions = blocks.filter(b => b.id !== draft.id).sort((a, b) => a.id - b.id);
   const lightHex = rgbaToHex(draft.lightSourceColor);
+  // c8 ignore next - displayBlockName always returns a non-empty string; fallback is dead code
+  const displayName = displayBlockName(draft) || 'Unnamed block';
 
   /** Text/number field change handler. */
   const onChange = (field: string, value: string | number | boolean) => {
@@ -89,8 +91,7 @@ export function Properties() {
       {/* Header */}
       <div className="properties-header">
         <div className="properties-title">
-          {/* c8 ignore next */}
-          {displayBlockName(draft) || 'Unnamed block'}
+          {displayName}
           {/* c8 ignore next */}
           {draft.isCustom   && <span className="badge badge-custom">Custom</span>}
           {/* c8 ignore next */}
