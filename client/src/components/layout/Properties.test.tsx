@@ -287,7 +287,8 @@ describe('Properties', () => {
     clickSpy.mockRestore();
 
     const input = document.querySelector('input[type="file"]')!;
-    const file = new File(['icon'], 'icon.png', { type: 'image/png' });
+    // File without type → file.type = '' → 'application/octet-stream' branch (line 72)
+    const file = new File(['icon'], 'icon.bin', { type: '' });
     await act(async () => {
       fireEvent.change(input, { target: { files: [file] } });
     });
