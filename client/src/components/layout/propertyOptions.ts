@@ -524,51 +524,27 @@ export function getBlockStyleName(blockStyle: number, t: Translations): string {
 }
 
 /**
- * Localise an EXTRA_PROPERTY_GROUPS group title.
- * Group titles are English keys; the translation maps them by index order.
+ * Translate an EXTRA_PROPERTY_GROUPS group title using the active locale.
+ *
+ * The English group title is used as an internal key (for dispatcher comparisons).
+ * This function maps it to the locale-specific display string.
+ *
+ * @param {string} title  English group title key.
+ * @param {Translations} t Active locale translations.
+ * @returns {string} Localised group title.
  */
-const GROUP_TITLE_KEYS = [
-  'Resources / Recipes',
-  'Factory / Production',
-  'Chambers',
-  'Controllers',
-  'Collision / Physical',
-  'LOD / Mesh',
-  'Logic / Gameplay',
-  'Reactor / Structure',
-  'Inventory / Metadata',
-] as const;
-
-type GroupTitleKey = typeof GROUP_TITLE_KEYS[number];
-
-// Map each English group title to a key path in the translations object
-const GROUP_TITLE_MAP: Record<GroupTitleKey, (t: Translations) => string> = {
-  'Resources / Recipes':  (t) => t.section.extra,  // use extra as fallback; real map below
-  'Factory / Production': (t) => t.section.extra,
-  'Chambers':             (t) => t.section.extra,
-  'Controllers':          (t) => t.section.extra,
-  'Collision / Physical': (t) => t.section.extra,
-  'LOD / Mesh':           (t) => t.section.extra,
-  'Logic / Gameplay':     (t) => t.section.extra,
-  'Reactor / Structure':  (t) => t.section.extra,
-  'Inventory / Metadata': (t) => t.section.extra,
-};
-
-/** Translate a property group title (passthrough for English). */
 export function localiseGroupTitle(title: string, t: Translations): string {
-  // The group titles don't change structurally; only a subset need translation.
-  // Using a simple inline map avoids adding many new keys to the locale files.
-  const map: Record<string, (t: Translations) => string> = {
-    'Resources / Recipes':  (t) => t.advanced.materialReqs.replace(' requirements', '') + ' / Recettes',
-    'Factory / Production': (t) => t.advanced.producedIn.split(' ')[0] + ' / Production',
-    'Chambers':             () => 'Chambers',
-    'Controllers':          () => 'Controllers',
-    'Collision / Physical': () => 'Collision / Physical',
-    'LOD / Mesh':           () => 'LOD / Mesh',
-    'Logic / Gameplay':     () => 'Logic / Gameplay',
-    'Reactor / Structure':  () => 'Reactor / Structure',
-    'Inventory / Metadata': () => 'Inventory / Metadata',
-    'Other':                () => 'Other',
+  const map: Record<string, string> = {
+    'Resources / Recipes':  t.groupTitle.resources,
+    'Factory / Production': t.groupTitle.factory,
+    'Chambers':             t.groupTitle.chambers,
+    'Controllers':          t.groupTitle.controllers,
+    'Collision / Physical': t.groupTitle.collision,
+    'LOD / Mesh':           t.groupTitle.lod,
+    'Logic / Gameplay':     t.groupTitle.logic,
+    'Reactor / Structure':  t.groupTitle.reactor,
+    'Inventory / Metadata': t.groupTitle.inventory,
+    'Other':                t.groupTitle.other,
   };
-  return map[title]?.(t) ?? title;
+  return map[title] ?? title;
 }

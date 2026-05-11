@@ -33,8 +33,13 @@ import { useBlockStore } from '../../store/blockStore.js';
 import { AtlasPicker } from './AtlasPicker.js';
 import { useT } from '../../i18n/index.js';
 
-/** Face labels in textureId array order. */
-const FACE_LABELS = ['FRONT', 'BACK', 'TOP', 'BOTTOM', 'RIGHT', 'LEFT'] as const;
+/**
+ * Face labels in textureId array order — localised via useT().
+ * The keys in the `face` locale correspond to these indices:
+ *   0=front, 1=back, 2=top, 3=bottom, 4=right, 5=left
+ */
+const FACE_KEYS = ['front', 'back', 'top', 'bottom', 'right', 'left'] as const;
+type FaceKey = typeof FACE_KEYS[number];
 type FaceIndex = 0 | 1 | 2 | 3 | 4 | 5;
 
 /**
@@ -91,16 +96,19 @@ export function FaceSelector() {
       <div className="face-selector">
         <div className="face-selector-label">{t.faceSelector.label}</div>
         <div className="face-selector-grid">
-          {FACE_LABELS.map((label, i) => (
-            <button
-              key={i}
-              className={`face-btn ${highlightFace === i ? 'active' : ''}`}
-              onClick={() => openPicker(i as FaceIndex)}
-              title={label}
-            >
-              <span className="face-btn-label">{label}</span>
-            </button>
-          ))}
+          {FACE_KEYS.map((key, i) => {
+            const label = t.face[key as FaceKey];
+            return (
+              <button
+                key={i}
+                className={`face-btn ${highlightFace === i ? 'active' : ''}`}
+                onClick={() => openPicker(i as FaceIndex)}
+                title={label}
+              >
+                <span className="face-btn-label">{label}</span>
+              </button>
+            );
+          })}
         </div>
         <div className="face-import-row">
           <button type="button" className="btn-secondary" onClick={() => setAtlasManagerOpen(true)}>

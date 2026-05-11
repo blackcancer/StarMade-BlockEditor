@@ -158,9 +158,10 @@ export function BlockTypeSelect({ blocks, value, onChange }: {
   value: string;
   onChange: (value: string) => void;
 }) {
+  const t = useT();
   return (
     <select value={value} onChange={e => onChange(e.target.value)}>
-      <option value="">None</option>
+      <option value="">{t.none}</option>
       {blocks.map(block => (
         <option key={block.id} value={block.xmlTypeName}>
           {displayBlockName(block)}
@@ -200,9 +201,10 @@ export function BlockIdSelect({ blocks, value, onChange, allowNone = false }: {
   onChange: (value: number) => void;
   allowNone?: boolean;
 }) {
+  const t = useT();
   return (
     <select value={value} onChange={e => onChange(+e.target.value)}>
-      {allowNone && <option value={0}>None</option>}
+      {allowNone && <option value={0}>{t.none}</option>}
       {blocks.map(block => (
         <option key={block.id} value={block.id}>
           {displayBlockName(block)}

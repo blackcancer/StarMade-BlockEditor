@@ -375,6 +375,33 @@ const en = {
       `${key} from BlockConfig.xml. This field is preserved and saved back for StarMade compatibility.`,
   },
 
+  // ── Extra property group titles ──
+  groupTitle: {
+    resources:   'Resources / Recipes',
+    factory:     'Factory / Production',
+    chambers:    'Chambers',
+    controllers: 'Controllers',
+    collision:   'Collision / Physical',
+    lod:         'LOD / Mesh',
+    logic:       'Logic / Gameplay',
+    reactor:     'Reactor / Structure',
+    inventory:   'Inventory / Metadata',
+    other:       'Other',
+  },
+
+  // ── Face labels (FRONT/BACK/TOP/BOTTOM/RIGHT/LEFT buttons) ──
+  face: {
+    front:  'FRONT',
+    back:   'BACK',
+    top:    'TOP',
+    bottom: 'BOTTOM',
+    right:  'RIGHT',
+    left:   'LEFT',
+  },
+
+  // ── Generic None option ──
+  none: 'None',
+
 };
 
 export type Translations = typeof en;

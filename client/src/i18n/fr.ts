@@ -354,6 +354,33 @@ const fr: Translations = {
       `${key} depuis BlockConfig.xml. Ce champ est préservé et réenregistré pour la compatibilité StarMade.`,
   },
 
+  // ── Titres de groupes de propriétés ──
+  groupTitle: {
+    resources:   'Ressources / Recettes',
+    factory:     'Usine / Production',
+    chambers:    'Chambres',
+    controllers: 'Contrôleurs',
+    collision:   'Collision / Physique',
+    lod:         'LOD / Maillage',
+    logic:       'Logique / Gameplay',
+    reactor:     'Réacteur / Structure',
+    inventory:   'Inventaire / Métadonnées',
+    other:       'Autre',
+  },
+
+  // ── Labels de faces (boutons de texture) ──
+  face: {
+    front:  'AVANT',
+    back:   'ARRIÈRE',
+    top:    'DESSUS',
+    bottom: 'DESSOUS',
+    right:  'DROITE',
+    left:   'GAUCHE',
+  },
+
+  // ── Option générique "Aucun" ──
+  none: 'Aucun',
+
 };
 
 export default fr;

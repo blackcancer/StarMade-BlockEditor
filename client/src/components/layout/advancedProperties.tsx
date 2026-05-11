@@ -49,6 +49,7 @@ import {
   getResourceInjectionOptions,
   getResourceTypeOptions,
   getSlabOptions,
+  localiseGroupTitle,
   tooltipForExtraPropertyL10n,
 } from './propertyOptions.js';
 import { useT } from '../../i18n/index.js';
@@ -160,7 +161,7 @@ export function ExtraPropertiesEditor({ value, blocks, onChange }: {
           open={normalizedFilter !== '' || group.title !== 'Other'}
         >
           <summary>
-            <span>{group.title}</span>
+            <span>{localiseGroupTitle(group.title, t)}</span>
             <span className="extra-property-count">{group.keys.length}</span>
           </summary>
           <div className="extra-property-fields">
