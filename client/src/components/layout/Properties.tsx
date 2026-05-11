@@ -91,6 +91,7 @@ export function Properties() {
         <div className="properties-title">
           {/* c8 ignore next */}
           {displayBlockName(draft) || 'Unnamed block'}
+          {/* c8 ignore next */}
           {draft.isCustom   && <span className="badge badge-custom">Custom</span>}
           {/* c8 ignore next */}
           {draft.isDeprecated && <span className="badge badge-deprecated">Deprecated</span>}

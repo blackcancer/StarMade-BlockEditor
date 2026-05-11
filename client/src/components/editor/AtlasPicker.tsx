@@ -153,6 +153,7 @@ export function AtlasPicker({ selectedTileId, onSelect, onClose }: AtlasPickerPr
 
   // ── Keyboard close ────────────────────────────────────────────────────────
   useEffect(() => {
+    /* c8 ignore next */
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);

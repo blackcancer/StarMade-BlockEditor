@@ -133,7 +133,7 @@ describe('AtlasPicker', () => {
     expect(clickSpy).toHaveBeenCalled();
     const fileInputs = document.querySelectorAll('input[type="file"]');
     fireEvent.change(fileInputs[0], { target: { files: [] } });
-    const fullAtlas = new File(['x'], 'atlas.png', { type: 'image/png' });
+    const fullAtlas = new File(['x'], 'atlas.bin', { type: '' });  // empty type → || 'application/octet-stream'
     fireEvent.change(fileInputs[0], { target: { files: [fullAtlas] } });
 
     await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/textures/custom-atlas?size=64&map=diffuse', expect.objectContaining({ method: 'PUT', body: fullAtlas })));
