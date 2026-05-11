@@ -282,4 +282,38 @@ describe('ExtraPropertiesEditor UI', () => {
     fireEvent.click(screen.getByText('+ Add buy resource'));
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ RecipeBuyResource: '' }));
   });
+
+  it('covers false branch of i !== index in ResourceListEditor and ElementListEditor with multi-item lists', () => {
+    const onChange = vi.fn();
+    // 2 Consistence items → update index 0 → item at index 1 stays (covers i !== index false branch of ResourceListEditor)
+    // 2 ElementList items → update index 0 → item at index 1 stays
+    render(<ExtraPropertiesEditor value={{
+      Consistence: { Item: [{ '#text': 'METAL', '@_count': '1' }, { '#text': 'CRYSTAL', '@_count': '2' }] },
+      RecipeBuyResource: { Element: ['METAL', 'CRYSTAL'] },
+      InRecipe: true,
+      CustomNull: null,
+    }} blocks={blocks} onChange={onChange} />);
+
+    // Update count of first Consistence item → second item preserved (i !== index branch)
+    const counts = document.querySelectorAll('input.resource-count');
+    fireEvent.change(counts[0], { target: { value: '5' } });
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({
+      Consistence: { Item: [
+        { '#text': 'METAL', '@_count': '5' },
+        { '#text': 'CRYSTAL', '@_count': '2' },
+      ]},
+    }));
+
+    // Update first ElementList item → second item preserved
+    const selects = document.querySelectorAll('.element-list-editor select');
+    fireEvent.change(selects[0], { target: { value: 'CRYSTAL' } });
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({
+      RecipeBuyResource: { Element: ['CRYSTAL', 'CRYSTAL'] },
+    }));
+
+    // value[key] === null → JSON.stringify(null ?? '') branch (matchesFilter on 'Other' group)
+    const searchInput = document.querySelector('.extra-properties-toolbar input')! as HTMLInputElement;
+    fireEvent.change(searchInput, { target: { value: 'custom' } });
+    expect(screen.getByText('Custom Null')).toBeTruthy();
+  });
 });
