@@ -117,4 +117,11 @@ describe('Sidebar', () => {
     render(<Sidebar />);
     expect(screen.getByText('Hull')).toBeTruthy();
   });
+
+  it('falls back to block id string when both name and typePrefix are empty', () => {
+    const b = block({ id: 99, xmlTypeName: '', name: '', isCustom: false });
+    useBlockStore.setState({ blocks: [b], filter: { search: '', showCustom: true, showVanilla: true, showDeprecated: false } });
+    render(<Sidebar />);
+    expect(screen.getByText('99')).toBeTruthy();
+  });
 });

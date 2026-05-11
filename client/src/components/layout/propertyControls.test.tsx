@@ -64,6 +64,13 @@ describe('propertyControls', () => {
     rerender(<VariantSelector ids={[1, 2]} options={blocks} onChange={onChange} />);
     fireEvent.click(screen.getByText(/Block 1 ×/));
     expect(onChange).toHaveBeenLastCalledWith([2]);
+
+    // duplicate id — already in set, should be ignored
+    rerender(<VariantSelector ids={[1, 2]} options={blocks} onChange={onChange} />);
+    onChange.mockClear();
+    // id=0 (empty/falsy) should also be ignored
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: '0' } });
+    expect(onChange).not.toHaveBeenCalled();
   });
 
   it('renders empty/unknown variant states', () => {

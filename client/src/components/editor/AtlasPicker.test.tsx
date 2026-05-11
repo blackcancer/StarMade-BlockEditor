@@ -60,14 +60,39 @@ describe('AtlasPicker', () => {
     const canvas = document.querySelector('canvas')!;
     vi.spyOn(canvas, 'getBoundingClientRect').mockReturnValue({ left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0, x: 0, y: 0, toJSON: () => ({}) });
 
+    // Hover tile 1 (column 1)
     fireEvent.mouseMove(canvas, { clientX: 49, clientY: 1 });
     expect((document.querySelector('.atlas-picker-hovered') as HTMLElement).style.left).toBe('48px');
+
+    // Hover same tile again — no-op branch (prev === nextTile ? prev : nextTile)
+    fireEvent.mouseMove(canvas, { clientX: 49, clientY: 1 });
 
     fireEvent.mouseLeave(canvas);
     expect(document.querySelector('.atlas-picker-hovered')).toBeNull();
 
+    // Out-of-bounds — col >= ATLAS_COLS (64): returns -1 → onClick returns early
     fireEvent.click(canvas, { clientX: 48 * 64, clientY: 1 });
     expect(onSelect).not.toHaveBeenCalled();
+
+    // Negative col: clientX < 0 relative to rect → col < 0 → id=-1 → onClick returns early
+    fireEvent.click(canvas, { clientX: -1, clientY: 1 });
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('in manager mode: valid click outside custom slot range is a no-op', () => {
+    render(<AtlasPicker selectedTileId={0} onClose={vi.fn()} />);
+    const canvas = document.querySelector('canvas')!;
+    vi.spyOn(canvas, 'getBoundingClientRect').mockReturnValue({ left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0, x: 0, y: 0, toJSON: () => ({}) });
+    // Click tile 0 (id < PAGE_TILES*7) — not in custom range, no onSelect → both branches uncovered by previous test
+    const slotBefore = (screen.getByLabelText('Slot') as HTMLInputElement).value;
+    fireEvent.click(canvas, { clientX: 1, clientY: 1 });
+    // slot should be unchanged since id < PAGE_TILES*7
+    expect((screen.getByLabelText('Slot') as HTMLInputElement).value).toBe(slotBefore);
+  });
+
+  it('handles null canvas context gracefully (early return guard)', () => {
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
+    expect(() => render(<AtlasPicker selectedTileId={0} onClose={vi.fn()} />)).not.toThrow();
   });
 
   it('manages custom atlas imports and dispatches refresh events', async () => {
@@ -104,6 +129,10 @@ describe('AtlasPicker', () => {
     fireEvent.change(slot, { target: { value: '9999' } });
     expect(slot.value).toBe('255');
 
+    // empty value → +'' = NaN → || 0 → slot becomes 0
+    fireEvent.change(slot, { target: { value: '' } });
+    expect(slot.value).toBe('0');
+
     fireEvent.click(screen.getByText('Replace selected tile…'));
     expect(clickSpy).toHaveBeenCalled();
     const fileInputs = document.querySelectorAll('input[type="file"]');
@@ -111,7 +140,7 @@ describe('AtlasPicker', () => {
     fireEvent.change(fileInputs[1], { target: { files: [] } });
     fireEvent.change(fileInputs[1], { target: { files: [tile] } });
 
-    await waitFor(() => expect(fetch).toHaveBeenCalledWith(`/api/textures/custom-tile/${PAGE_TILES * 7 + 255}?size=64&map=normal`, expect.objectContaining({ method: 'PUT', body: tile })));
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith(`/api/textures/custom-tile/${PAGE_TILES * 7 + 0}?size=64&map=normal`, expect.objectContaining({ method: 'PUT', body: tile })));
 
     fireEvent.change(fileInputs[1], { target: { files: [tile] } });
     await waitFor(() => expect(alert).toHaveBeenCalledWith(expect.stringContaining('Tile import failed: Error: nope')));

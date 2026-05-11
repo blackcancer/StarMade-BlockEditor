@@ -89,4 +89,27 @@ describe('App', () => {
     fireEvent.change(selects[1], { target: { value: 'Custom' } });
     await waitFor(() => expect(useConfigStore.getState().texturePack).toBe('Custom'));
   });
+
+  it('handles fetch error for texture packs gracefully', async () => {
+    useConfigStore.setState({ starmadeDir: '/StarMade', atlasSize: 64, texturePack: 'Default', isValid: true });
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.mocked(fetch).mockRejectedValueOnce(new Error('network down'));
+    render(<App />);
+    await waitFor(() => expect(consoleSpy).toHaveBeenCalled());
+    consoleSpy.mockRestore();
+  });
+
+  it('uses fallback values from saveTextureConfig when API response is missing fields', async () => {
+    useConfigStore.setState({ starmadeDir: '/StarMade', atlasSize: 64, texturePack: 'Default', isValid: true });
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(jsonResponse({ packs: [] }))
+      .mockResolvedValueOnce(jsonResponse({}));
+    render(<App />);
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/textures/packs?size=64'));
+    const selects = screen.getAllByRole('combobox');
+    fireEvent.change(selects[0], { target: { value: '128' } });
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/config', expect.objectContaining({ method: 'POST' })));
+    // atlasSize ?? next.atlasSize → 128, texturePack ?? 'Default', isValid ?? true
+    expect(useConfigStore.getState()).toMatchObject({ atlasSize: 128, texturePack: 'Default', isValid: true });
+  });
 });

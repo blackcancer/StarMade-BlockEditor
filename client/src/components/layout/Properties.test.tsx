@@ -218,6 +218,21 @@ describe('Properties', () => {
     await waitFor(() => expect(alert).toHaveBeenCalledWith(expect.stringContaining('Icon import failed: Error: bad image')));
   });
 
+  it('shows Importing… label while icon upload is in flight', async () => {
+    seed(block({ isCustom: true }));
+    let resolveImport!: (r: Response) => void;
+    vi.mocked(fetch).mockReturnValueOnce(new Promise(res => { resolveImport = res; }));
+    render(<Properties />);
+    const input = document.querySelector('input[type="file"]')!;
+    const file = new File(['icon'], 'icon.png', { type: 'image/png' });
+    fireEvent.change(input, { target: { files: [file] } });
+    // While fetch is pending the button should read 'Importing…'
+    await waitFor(() => expect(screen.getByText('Importing…')).toBeTruthy());
+    // Resolve so the component can clean up
+    resolveImport({ ok: true, text: async () => 'ok' } as Response);
+    await waitFor(() => expect(screen.getByText('Import…')).toBeTruthy());
+  });
+
   it('saves, reverts and deletes custom blocks with confirmation', () => {
     const original = block({ isCustom: true, name: 'Custom Hull' });
     seed(original);

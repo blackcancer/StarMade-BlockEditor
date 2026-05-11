@@ -118,6 +118,24 @@ describe('FaceSelector', () => {
     expect(screen.getByText(/Animated preview/)).toBeTruthy();
   });
 
+  it('normalises sparse textureId arrays using textureId[0] as fallback', () => {
+    // textureId has only 1 element — missing indices use textureId[0]
+    useBlockStore.setState({ draft: block({ individualSides: 6, textureId: [42] }), highlightFace: -1 });
+    render(<FaceSelector />);
+    fireEvent.click(screen.getByTitle('BACK'));
+    // pickerFace=1 → tileIds[1] = textureId[1] ?? textureId[0] = 42
+    expect(screen.getByRole('dialog').textContent).toContain('selected:42');
+  });
+
+  it('falls back to 0 when textureId is completely empty', () => {
+    // textureId=[] → tileIds[i] = undefined ?? undefined ?? 0 = 0
+    useBlockStore.setState({ draft: block({ individualSides: 6, textureId: [] }), highlightFace: -1 });
+    render(<FaceSelector />);
+    fireEvent.click(screen.getByTitle('TOP'));
+    // tileIds[2] = textureId[2] ?? textureId[0] ?? 0 = 0
+    expect(screen.getByRole('dialog').textContent).toContain('selected:0');
+  });
+
   it('opens and closes the atlas manager without selecting a face', () => {
     useBlockStore.setState({ draft: block(), highlightFace: -1 });
     render(<FaceSelector />);

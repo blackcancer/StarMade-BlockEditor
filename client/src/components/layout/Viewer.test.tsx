@@ -82,6 +82,13 @@ describe('ViewerColumn', () => {
     expect(useBlockStore.getState().orientation).toBe(0);
   });
 
+  it('uses fallback of 6 orientations for unknown block styles', () => {
+    // blockStyle 99 not in ORIENTATION_COUNT → ?? 6
+    useBlockStore.setState({ draft: block({ blockStyle: 99 as any }), orientation: 0 });
+    render(<ViewerColumn />);
+    expect(screen.getAllByRole('option')).toHaveLength(6);
+  });
+
   it('shows active preview only for light or activation-texture blocks, not canActivate alone', () => {
     const { rerender } = render(<ViewerColumn />);
     useBlockStore.setState({ draft: block({ canActivate: true, lightSource: false, hasActivationTexture: false }) });
@@ -93,5 +100,13 @@ describe('ViewerColumn', () => {
     expect(screen.getByText(/Activation texture preview/)).toBeTruthy();
     fireEvent.click(screen.getByText('Toggle'));
     expect(useBlockStore.getState().previewActive).toBe(false);
+
+    // lightSource branch — shows 'Light preview' instead of 'Activation texture preview'
+    useBlockStore.setState({ draft: block({ lightSource: true, hasActivationTexture: false }), previewActive: false });
+    rerender(<ViewerColumn />);
+    expect(screen.getByText(/Light preview/)).toBeTruthy();
+    expect(screen.getByText(/OFF/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('checkbox'));
+    expect(useBlockStore.getState().previewActive).toBe(true);
   });
 });

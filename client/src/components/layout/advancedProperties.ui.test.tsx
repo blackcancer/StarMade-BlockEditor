@@ -204,4 +204,40 @@ describe('ExtraPropertiesEditor UI', () => {
     fireEvent.change(screen.getByDisplayValue('0.1'), { target: { value: '0.9' } });
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ ExplosionAbsorbtion: 0.9 }));
   });
+
+  it('covers float step, newline textarea, StringElementListEditor multi-item and missing @_count', () => {
+    const onChange = vi.fn();
+    // Float number → step=0.01 branch in ExtraValueEditor
+    // Newline string → value.includes('\n') branch → textarea
+    // Multi-item StringElementListEditor: editing item at index 1 covers the i !== index false branch
+    // Consistence item missing @_count → ?? 1 fallback
+    render(<ExtraPropertiesEditor value={{
+      FloatProp: 1.5,
+      NewlineProp: 'line1\nline2',
+      ChamberConfigGroups: { Element: ['GroupA', 'GroupB'] },
+      Consistence: { Item: [{ '#text': 'METAL' }] },
+      InRecipe: true,
+    }} blocks={blocks} onChange={onChange} />);
+
+    // Float → step 0.01
+    const floatInput = screen.getByDisplayValue('1.5');
+    expect(floatInput.getAttribute('step')).toBe('0.01');
+    fireEvent.change(floatInput, { target: { value: '2.5' } });
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ FloatProp: 2.5 }));
+
+    // Newline string → textarea
+    const textareas = document.querySelectorAll('textarea');
+    const textarea = textareas[textareas.length - 1] as HTMLTextAreaElement;
+    expect(textarea.tagName).toBe('TEXTAREA');
+    fireEvent.change(textarea, { target: { value: 'changed' } });
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ NewlineProp: 'changed' }));
+
+    // StringElementListEditor multi-item: edit GroupB (index 1) → covers i !== index branch
+    const groupInputs = screen.getAllByDisplayValue(/Group/);
+    fireEvent.change(groupInputs[1], { target: { value: 'GroupC' } });
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ ChamberConfigGroups: { Element: ['GroupA', 'GroupC'] } }));
+
+    // Consistence with missing @_count → count defaults to 1
+    expect(screen.getByDisplayValue('1')).toBeTruthy();
+  });
 });
