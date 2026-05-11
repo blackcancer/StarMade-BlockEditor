@@ -146,6 +146,9 @@ describe('BlockMesh component', () => {
 
     expect(document.querySelector('pointlight')).toBeTruthy();
     expect(frameState.callbacks).toHaveLength(1);
+    // First call: frame changes 0 → 2 (covers false branch prev !== nextFrame)
+    act(() => frameState.callbacks[0]({ clock: { elapsedTime: 1.1 } }));
+    // Second call with same elapsedTime: frame stays 2 (covers true branch prev === nextFrame)
     act(() => frameState.callbacks[0]({ clock: { elapsedTime: 1.1 } }));
     rerender(
       <BlockMesh
