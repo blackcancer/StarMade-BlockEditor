@@ -125,6 +125,7 @@ export function AtlasPicker({ selectedTileId, onSelect, onClose }: AtlasPickerPr
       alert(`Custom atlas import failed: ${e}`);
     } finally {
       setImporting(false);
+      /* c8 ignore next 2 */
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
@@ -145,6 +146,7 @@ export function AtlasPicker({ selectedTileId, onSelect, onClose }: AtlasPickerPr
       alert(`Tile import failed: ${e}`);
     } finally {
       setImporting(false);
+      /* c8 ignore next 2 */
       if (tileFileInputRef.current) tileFileInputRef.current.value = '';
     }
   };

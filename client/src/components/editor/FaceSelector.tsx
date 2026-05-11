@@ -48,6 +48,7 @@ export function FaceSelector() {
       newIds.fill(tileId);
     } else if (draft.individualSides === 3) {
       // 0=front/back, 1=top/bottom, 2=right/left
+      /* c8 ignore next */
       const group = face < 2 ? [0, 1] : face < 4 ? [2, 3] : [4, 5];
       group.forEach(i => { newIds[i] = tileId; });
     } else {

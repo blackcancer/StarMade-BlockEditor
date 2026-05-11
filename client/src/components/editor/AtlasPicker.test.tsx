@@ -164,7 +164,7 @@ describe('AtlasPicker', () => {
     fireEvent.click(screen.getByText('Replace selected tile…'));
     expect(clickSpy).toHaveBeenCalled();
     const fileInputs = document.querySelectorAll('input[type="file"]');
-    const tile = new File(['tile'], 'tile.png', { type: 'image/png' });
+    const tile = new File(['tile'], 'tile.bin', { type: '' });  // empty type → || 'application/octet-stream'
     fireEvent.change(fileInputs[1], { target: { files: [] } });
     fireEvent.change(fileInputs[1], { target: { files: [tile] } });
 
