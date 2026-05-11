@@ -1,8 +1,38 @@
 /**
- * @fileoverview Atlas picker modal.
+ * @fileoverview Atlas picker modal — visual texture tile selector.
  *
- * Shows the 16×16 texture atlas as a clickable grid.
- * Clicking a tile returns its ID to the caller.
+ * Displays the full composite atlas (64×32 tiles) as a clickable canvas,
+ * allowing the user to select a tile ID for face texture assignment or to
+ * manage the custom texture atlas (import / replace).
+ *
+ * ## Two operating modes
+ *
+ * ### Picker mode (when `onSelect` is provided)
+ * The user sees the atlas grid and clicks a tile to select it.
+ * The selected tile is highlighted; hovering shows a hover indicator.
+ * Clicking fires `onSelect(tileId)` then `onClose()`.
+ * A footer hint reads: “Click a tile to select · Escape to close”.
+ *
+ * ### Manager mode (when `onSelect` is omitted)
+ * The user can import a full custom atlas or replace individual tiles.
+ * Clicking a tile in the custom zone (page 7, IDs 1792–2047) updates the
+ * `customSlot` state for the tile importer.
+ * Footer shows import controls:
+ *  - Map kind selector (diffuse / normal)
+ *  - “Import full custom atlas…” — uploads to `PUT /api/textures/custom-atlas`
+ *  - Advanced: “Replace selected tile…” — uploads to `PUT /api/textures/custom-tile/:id`
+ *
+ * ## Canvas rendering
+ * The atlas grid is drawn onto a `<canvas>` by loading the composite atlas
+ * PNG from the API and drawing each tile cell with a faint 0.5px grid stroke.
+ * The canvas re-renders when `atlasSize`, `texturePack`, or `atlasVersion`
+ * (incremented after each import) changes.
+ *
+ * Selected and hovered tiles are shown as CSS-positioned overlay `<div>` elements
+ * (not drawn on the canvas) to avoid full canvas redraws on mouse move.
+ *
+ * ## Keyboard close
+ * The Escape key closes the modal via a window `keydown` listener.
  *
  * @author InitSysRev
  * @version 1.0.0

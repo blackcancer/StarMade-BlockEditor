@@ -1,9 +1,38 @@
 /**
  * @fileoverview Build icon picker modal.
  *
- * StarMade build icons are stored in 1024x1024 sheets named
- * build-icons-XX-16x16-gui-.png. The engine maps iconId / 256 to the sheet
- * and iconId % 256 to a 16x16 multisprite slot (64x64 px in the PNG).
+ * Allows the user to select a StarMade build-menu icon for the selected block.
+ *
+ * ## Icon system
+ * StarMade stores build icons in numbered sprite sheets:
+ *   `data/image-resource/build-icons-NN-16x16-gui-.png`
+ * where `NN = Math.floor(iconId / 256)` (zero-padded to 2 digits).
+ *
+ * Each sheet is a 1024×1024 sprite atlas with 16×16 = 256 icon slots.
+ * Each slot is 64×64 px in the PNG. The editor renders 6 sheets side-by-side
+ * in a 3-column grid (2 rows of 3 sheets = 1536 icons visible).
+ *
+ * ## Canvas rendering
+ * All 6 icon sheets are loaded from `/api/textures/icons/sheet/:layer` and
+ * drawn onto a single `<canvas>` at 36 px per icon. The canvas is populated
+ * once on mount (sheets load asynchronously via `img.onload`).
+ *
+ * Selected and hovered icons are shown as CSS-positioned overlay `<div>`
+ * elements (class `atlas-picker-selected` / `atlas-picker-hovered`).
+ *
+ * ## Hit testing
+ * `iconFromEvent` maps a mouse click to an icon ID by:
+ *  1. Computing `col = floor((x - left) / DISPLAY_ICON)` and
+ *     `row = floor((y - top) / DISPLAY_ICON)`.
+ *  2. Determining the sheet (`sheetRow * 3 + sheetCol`) and local slot
+ *     (`localRow * 16 + localCol`).
+ *  3. Returning `sheet * 256 + localRow * 16 + localCol`.
+ *
+ * ## Keyboard close
+ * Escape closes the modal via a `window.keydown` listener.
+ *
+ * @author InitSysRev
+ * @version 1.0.0
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';

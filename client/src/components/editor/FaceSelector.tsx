@@ -1,8 +1,28 @@
 /**
- * @fileoverview Face selector component.
+ * @fileoverview Face selector component — per-face texture tile picker.
  *
- * Shows 6 face buttons (FRONT/BACK/TOP/BOTTOM/RIGHT/LEFT).
- * Clicking a face opens the AtlasPicker to change its texture tile.
+ * Renders 6 face buttons (FRONT / BACK / TOP / BOTTOM / RIGHT / LEFT)
+ * that map to the StarMade textureId array order:
+ *   index 0=FRONT, 1=BACK, 2=TOP, 3=BOTTOM, 4=RIGHT, 5=LEFT.
+ *
+ * ## Interaction flow
+ *  1. User clicks a face button → `openPicker(face)` is called.
+ *  2. `pickerFace` is set to the clicked face index.
+ *  3. `highlightFace` in the block store is set, causing the 3D viewer to
+ *     visually highlight that face (future: rendered face overlay).
+ *  4. The `<AtlasPicker>` modal opens with the current tile ID pre-selected.
+ *  5. User clicks a tile → `applyTile(tileId)` assigns it to the face.
+ *  6. The assignment respects `individualSides` mode:
+ *      - `1` — all 6 faces get the same tile.
+ *      - `3` — groups: face<2 → [0,1], face<4 → [2,3], else [4,5].
+ *      - `6` — only the clicked face is updated.
+ *  7. The picker closes and `highlightFace` resets to -1.
+ *
+ * A "Manage custom atlas…" button opens the AtlasPicker in manager-only mode
+ * (no tile selection) so the user can import a custom atlas without changing a face.
+ *
+ * The hint line below the grid shows the current `individualSides` mode and
+ * relevant texture behaviour flags (`hasActivationTexture`, `animated`).
  *
  * @author InitSysRev
  * @version 1.0.0

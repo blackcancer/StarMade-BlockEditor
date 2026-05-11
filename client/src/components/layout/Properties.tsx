@@ -1,9 +1,40 @@
 /**
  * @fileoverview Properties panel — block field editor.
  *
- * Renders all editable fields for the selected block.
- * All changes go through the draft system (updateDraft) and
- * are only persisted when the user clicks Save.
+ * Renders all editable fields for the currently selected block.
+ * All changes go through the **draft system**: edits update `draft` in the
+ * block store and set `isDirty = true`. Nothing is written to disk until the
+ * user clicks “Save to Custom”.
+ *
+ * ## Draft workflow
+ *  - Select block → `selectBlock(block)` clones the block into `draft`.
+ *  - Edit any field → `updateDraft(patch)` updates the in-memory copy.
+ *  - Save → `useSaveBlock()` writes to the API, re-selects the saved block.
+ *  - Revert → `selectBlock(selectedBlock)` re-clones from the saved state.
+ *
+ * ## Write policy
+ * Vanilla blocks are promoted to custom on first save
+ * (`customBlockConfig/BlockConfigImport.xml`). The panel shows a warning banner
+ * when a vanilla block is being edited. Vanilla blocks cannot be deleted via
+ * the UI — they must be marked Deprecated instead.
+ *
+ * ## Sections
+ *  - **Identity**   — Name, build icon (picker + import), description
+ *  - **Stats**      — HP, mass, volume, price, armor, effect armor
+ *  - **Shape**      — Block style, slab geometry, texture face mode, computer reference
+ *  - **Rendering**  — orientation flags, extended texture, LOD shape
+ *  - **Extra**      — `<ExtraPropertiesEditor>` for all remaining BlockConfig fields
+ *  - **Flags**      — placable, inShop, orientation, canActivate, deprecated,
+ *                     lightSource, transparency, door, logicBlock, animated
+ *  - **Light Color** — shown only when `lightSource = true`:
+ *                     colour picker, hex input, intensity slider, palette presets
+ *  - **Variants**   — slab variant and style variant ID lists
+ *
+ * ## Icon import
+ * The “Import…” button on the icon field uploads a custom icon image via
+ * `PUT /api/textures/icon/:id`. The file input ref is cleared after upload
+ * to allow re-importing the same file. The `importingIcon` state disables the
+ * button and changes its label to “Importing…” while the upload is in flight.
  *
  * @author InitSysRev
  * @version 1.0.0
@@ -406,11 +437,27 @@ export function Properties() {
   );
 }
 
+/**
+ * Convert an RGBA float array to a CSS hex colour string.
+ *
+ * Each channel is clamped to [0, 1] and scaled to 0–255 before hex encoding.
+ * Only the RGB channels are used; the alpha (W) channel is ignored.
+ *
+ * @param {number[]} rgba RGBA float array from `lightSourceColor`.
+ * @returns {string} CSS hex string (e.g. `"#60b8ff"`).
+ */
 function rgbaToHex(rgba: number[]): string {
   const [r = 1, g = 1, b = 1] = rgba;
   return `#${[r, g, b].map(v => Math.round(Math.max(0, Math.min(1, v)) * 255).toString(16).padStart(2, '0')).join('')}`;
 }
 
+/**
+ * Convert a CSS hex colour string back to a [R, G, B, alpha] float array.
+ *
+ * @param {string} hex  CSS hex colour string with or without leading `#`.
+ * @param {number} [alpha=1] Alpha/intensity value to use as the 4th channel.
+ * @returns {number[]} [R, G, B, alpha] normalised to [0, 1] (alpha may exceed 1).
+ */
 function hexToRgba(hex: string, alpha = 1): number[] {
   const clean = hex.replace('#', '');
   const r = parseInt(clean.slice(0, 2), 16) / 255;

@@ -1,7 +1,31 @@
 /**
- * @fileoverview Center viewer column component.
+ * @fileoverview Center viewer column — 3D preview + orientation + face controls.
  *
- * Contains the 3D block viewer, face selector, and orientation controls.
+ * The viewer column is the central panel of the three-column editor layout.
+ * It contains, from top to bottom:
+ *
+ *  1. **BlockViewer** — the react-three-fiber 3D canvas (fills most of the column).
+ *     An empty-state message is shown when no block is selected.
+ *
+ *  2. **Block style badge** — displays the current `blockStyle` name and index
+ *     (e.g. “Wedge (style 1)”) for quick visual reference.
+ *
+ *  3. **FaceSelector** — 6 face buttons for per-face texture tile assignment
+ *     (only shown when a block is selected).
+ *
+ *  4. **Orientation controls** — a `<select>` dropdown plus ◄/► buttons for
+ *     cycling through the valid orientations for the block's style.
+ *     The maximum orientation count is taken from `ORIENTATION_COUNT` which maps
+ *     each block style to the number of orientations it supports (matching
+ *     `starmade_gl.js` and the StarMade engine).
+ *     If the current orientation exceeds the new maximum (e.g. when changing
+ *     from Wedge to Cube), it is automatically reset to 0.
+ *
+ *  5. **Active state preview toggle** — only shown for blocks with
+ *     `lightSource = true` or `hasActivationTexture = true`.
+ *     (Blocks with only `canActivate = true` do NOT have a texture state change.)
+ *     Displays “Activation texture preview” or “Light preview” depending on
+ *     which property enables the active state.
  *
  * @author InitSysRev
  * @version 1.0.0

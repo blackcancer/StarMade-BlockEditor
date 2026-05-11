@@ -1,8 +1,22 @@
 /**
  * @fileoverview Block list sidebar component.
  *
- * Displays all loaded blocks with search, category filter, and
- * custom/vanilla/deprecated toggles.
+ * Displays all loaded blocks as a scrollable, searchable, filterable card list.
+ *
+ * ## Features
+ *  - **Search** — filters by block name, XML type name, or numeric ID.
+ *  - **Toggles** — independently show/hide vanilla, custom, and deprecated blocks.
+ *  - **BlockCard** — shows the build-menu icon (from `/api/textures/icon/:id`),
+ *    the human-readable display name, the block style, and a custom/deprecated badge.
+ *    Icons that fail to load (missing sheet) are hidden gracefully.
+ *  - **Footer** — Vanilla/Custom block counts.
+ *  - **Loading/error** — passes loading and error state from the block store.
+ *
+ * ## Display name logic
+ * Block names in BlockConfig.xml often include the XML type prefix:
+ *  - `"METAL_MESH -- Metal mesh"` → displayed as `"Metal mesh"`
+ *  - `"HULL_COLOR_GREY: Grey Hull"` → displayed as `"Grey Hull"`
+ * See `displayBlockName()` and `prettifyTypeName()` (local copies of blockDisplay.ts).
  *
  * @author InitSysRev
  * @version 1.0.0

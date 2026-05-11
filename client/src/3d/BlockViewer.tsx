@@ -1,11 +1,27 @@
 /**
- * @fileoverview BlockViewer 3D canvas component.
+ * @fileoverview BlockViewer — 3D canvas for block preview.
  *
- * Renders the selected block in a react-three-fiber Canvas with:
- *  - OrbitControls (drag to rotate, scroll to zoom)
- *  - Ambient + directional lighting
- *  - Grid helper
- *  - Atlas texture loading via /api/textures/atlas
+ * Wraps the react-three-fiber `<Canvas>` to provide the full 3D preview
+ * environment for the selected block:
+ *
+ *  - **OrbitControls** — drag-to-rotate, scroll-to-zoom, with damping.
+ *  - **Preview floor** — 48×48 units plane that catches shadows and makes
+ *    light-source emission visible without an infinite-grid distraction.
+ *  - **Grid** — subtle infinite grid at y=-0.5 for spatial reference.
+ *  - **LightingRig** — two-mode lighting:
+ *      - *Standard*: ambient + hemisphere + directional + two fill points.
+ *        Matches typical StarMade outdoor lighting at comfortable brightness.
+ *      - *Active light preview*: dramatically dimmed base scene so the block's
+ *        emitted light (pointLight + emissive material) is clearly visible.
+ *  - **Scene** — loads atlas textures and renders the block mesh.
+ *    Falls back to a wireframe cube while loading and an error cube on failure.
+ *  - **LightFootprint** — radial gradient circle under a light-source block,
+ *    illustrating the light's reach (radius = 22, matching `Occlusion.RAY_LENGTH`).
+ *
+ * ## Atlas texture loading
+ * Textures are loaded via `loadAtlasTexture()` whenever `atlasSize`,
+ * `texturePack`, or `isValid` changes, or when the `atlas-imported`
+ * CustomEvent is dispatched (after a custom atlas import).
  *
  * @author InitSysRev
  * @version 1.0.0

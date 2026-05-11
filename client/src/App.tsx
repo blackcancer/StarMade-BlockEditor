@@ -1,8 +1,21 @@
 /**
- * @fileoverview App root component.
+ * @fileoverview App root component — layout shell and global state bootstrap.
  *
- * Layout: three-column (Sidebar | Viewer | Properties).
- * Loads config + blocks on mount.
+ * Renders the three-column editor layout and bootstraps global data loading:
+ *
+ *  Sidebar | Viewer | Properties
+ *
+ * On mount, `useConfig()` fetches `SMToolConfig.json` and `useBlocks()` loads
+ * all block definitions. If `isValid` is false (starmadeDir not configured),
+ * a `<ConfigDialog>` overlay is shown prompting the user to set the path.
+ *
+ * ## Component tree
+ *  App
+ *  ├── Header         — brand, path indicator, resolution/pack selectors, actions
+ *  ├── Sidebar        — searchable block list with filter toggles
+ *  ├── ViewerColumn   — 3D preview + face selector + orientation controls
+ *  ├── Properties     — all editable block fields with draft system
+ *  └── ConfigDialog   — initial setup overlay (shown when starmadeDir is unset)
  *
  * @author InitSysRev
  * @version 1.0.0

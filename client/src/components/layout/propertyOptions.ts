@@ -1,15 +1,92 @@
-/** Shared display options and source-informed tooltips for the properties panel. */
+/**
+ * @fileoverview Shared display options, constants and source-informed tooltips
+ * for the block properties panel.
+ *
+ * All option lists, labels and tooltip texts in this file are derived from
+ * StarMade source code analysis — primarily:
+ *   - `ElementInformation.java`  (block fields, light, armor, recipe, chambers)
+ *   - `ElemType.java`            (XML type enum)
+ *   - `BlockConfig.xml` schema   (extra property keys)
+ *   - Factory/Reactor/Chamber systems from the StarMade-Open source reference
+ *
+ * Keeping this data separate from the React components makes it easy to update
+ * tooltip accuracy as the StarMade source evolves without touching UI logic.
+ *
+ * @module propertyOptions
+ * @author InitSysRev
+ * @version 1.0.0
+ */
 
+// ── Shape / geometry ─────────────────────────────────────────────────────────
+
+/**
+ * All valid BlockStyle values in BlockConfig.xml.
+ *
+ * Source: `ElementInformation.BlockStyle` field + `starmade_gl.js` geometry map.
+ *  0 = Cube    (most blocks, default)
+ *  1 = Wedge   (triangular prism — roofs, ramps)
+ *  2 = Corner  (corner piece of a wedge)
+ *  3 = Cross   (two crossed planes — flora, vegetation)
+ *  4 = Tetra   (tetrahedron — decorative 4-vertex shape)
+ *  5 = Penta   (pentagon prism — "hepta" variant)
+ *  6 = Hepta   (treated as cube in rendering — rare)
+ */
 export const BLOCK_STYLES = [0, 1, 2, 3, 4, 5, 6];
 
+// ── IndividualSides modes ─────────────────────────────────────────────────────
+
+/**
+ * Options for the `IndividualSides` field in BlockConfig.xml.
+ *
+ * Controls how the six textureId entries are interpreted by the rendering engine.
+ * Source: `ElementInformation.IndividualSides` + cube shader UV lookup.
+ *
+ *  1 — all six faces share textureId[0]
+ *  3 — grouped: front/back = textureId[0], top/bottom = textureId[1],
+ *                right/left = textureId[2]
+ *  6 — each face has its own tile:
+ *       [0]=front, [1]=back, [2]=top, [3]=bottom, [4]=right, [5]=left
+ */
 export const IND_SIDES_OPTIONS = [
   { value: 1, label: 'All faces same tile' },
   { value: 3, label: 'Grouped faces: front/back · top/bottom · sides' },
   { value: 6, label: 'Each face independent' },
 ];
 
-export const LIGHT_PRESETS = ['#ffffff', '#60b8ff', '#34d399', '#fbbf24', '#f87171', '#a78bfa', '#22d3ee', '#f97316'];
+// ── Light source colour presets ───────────────────────────────────────────────
 
+/**
+ * Common light colour presets shown in the colour picker palette row.
+ *
+ * Colours are CSS hex strings and map to LightSourceColor RGB channels.
+ * Source: typical StarMade light-source blocks (e.g. light panels, beacons).
+ */
+export const LIGHT_PRESETS = [
+  '#ffffff', // Pure white — standard light panel
+  '#60b8ff', // Cool blue  — engine glow, thruster
+  '#34d399', // Green      — power core, reactor indicator
+  '#fbbf24', // Amber      — warning light, cargo
+  '#f87171', // Red        — alarm, hazard
+  '#a78bfa', // Purple     — exotic/purple light source
+  '#22d3ee', // Cyan       — shield/electric block
+  '#f97316', // Orange     — fire/heat indicator
+];
+
+// ── Slab geometry ─────────────────────────────────────────────────────────────
+
+/**
+ * Options for the `Slab` field in BlockConfig.xml.
+ *
+ * Controls vertical thickness of the block in the engine's slab system.
+ * Source: `ElementInformation.Slab` + geometry rendering in StarMade-Open.
+ *
+ *  0 = Full block (no slab)
+ *  1 = 3/4 thickness
+ *  2 = 1/2 thickness
+ *  3 = 1/4 thickness
+ *
+ * Slabs reduce depth along the Z axis in the preview (not Y — vertical slab convention).
+ */
 export const SLAB_OPTIONS = [
   { value: 0, label: 'Full block' },
   { value: 1, label: '3/4 slab' },
@@ -17,8 +94,34 @@ export const SLAB_OPTIONS = [
   { value: 3, label: '1/4 slab' },
 ];
 
+// ── Effect armour ─────────────────────────────────────────────────────────────
+
+/**
+ * Per-damage-type armour modifier keys exposed via the `EffectArmor` XML node.
+ *
+ * Source: `ElementInformation.EffectArmor` sub-field names, StarMade-Open.
+ *  Heat    — thermal / fire damage resistance
+ *  Kinetic — kinetic / projectile damage resistance
+ *  EM      — electromagnetic / EMP damage resistance
+ */
 export const EFFECT_ARMOR_TYPES = ['Heat', 'Kinetic', 'EM'];
 
+// ── Economy / resource ────────────────────────────────────────────────────────
+
+/**
+ * Options for the `BlockResourceType` field.
+ *
+ * Maps the economy category of the block for shop/recipe systems.
+ * Source: `ElementInformation.BlockResourceType` enum.
+ *
+ *  0 = Ore              — raw mined material
+ *  1 = Plant            — flora / organic resource
+ *  2 = Basic resource   — processed basic material (default)
+ *  3 = Cubatom-splittable — can be split via cubatom refinery
+ *  4 = Manufactory      — produced by manufactory systems
+ *  5 = Advanced         — advanced crafted component
+ *  6 = Capsule          — capsule-type product
+ */
 export const RESOURCE_TYPE_OPTIONS = [
   { value: 0, label: 'Ore' },
   { value: 1, label: 'Plant' },
@@ -29,6 +132,21 @@ export const RESOURCE_TYPE_OPTIONS = [
   { value: 6, label: 'Capsule' },
 ];
 
+// ── Factory ───────────────────────────────────────────────────────────────────
+
+/**
+ * Options for the `ProducedInFactory` field.
+ *
+ * Identifies which factory tier can craft this block.
+ * Source: `ElementInformation.ProducedInFactory` + factory block implementations.
+ *
+ *  0 = None              — cannot be produced in a factory
+ *  1 = Capsule refinery  — produced in the basic capsule refinery
+ *  2 = Micro assembler   — produced in the micro assembler
+ *  3 = Component factory — produced in the component factory
+ *  4 = Block assembler   — produced in the block assembler
+ *  5 = Chemical factory  — produced in the chemical factory
+ */
 export const FACTORY_OPTIONS = [
   { value: 0, label: 'None' },
   { value: 1, label: 'Capsule refinery' },
@@ -38,93 +156,279 @@ export const FACTORY_OPTIONS = [
   { value: 5, label: 'Chemical factory' },
 ];
 
+// ── Resource injection ────────────────────────────────────────────────────────
+
+/**
+ * Options for the `ResourceInjection` field.
+ *
+ * Controls how the block injects resources into the world/terrain generation.
+ * Source: `ElementInformation.ResourceInjection` enum.
+ *
+ *  0 = Off                  — block does not inject resources
+ *  1 = Ore / terrain resource — injects as a terrain/ore resource
+ *  2 = Flora resource        — injects as a flora/plant resource
+ */
 export const RESOURCE_INJECTION_OPTIONS = [
   { value: 0, label: 'Off' },
   { value: 1, label: 'Ore / terrain resource' },
   { value: 2, label: 'Flora resource' },
 ];
 
+// ── LOD ───────────────────────────────────────────────────────────────────────
+
+/**
+ * Options for the `LodActivationAnimationStyle` field.
+ *
+ * Determines how the LOD (Level of Detail) mesh transitions when the block
+ * switches between active and inactive states.
+ * Source: `ElementInformation.LodActivationAnimationStyle`.
+ *
+ *  0 = No active LOD switch           — LOD stays the same regardless of state
+ *  1 = Use active LOD shape while active — switches to the active-state LOD mesh
+ */
 export const LOD_ACTIVATION_ANIMATION_OPTIONS = [
   { value: 0, label: 'No active LOD switch' },
   { value: 1, label: 'Use active LOD shape while active' },
 ];
 
+// ── Extra property groups ─────────────────────────────────────────────────────
+
+/**
+ * Ordered list of named property groups for the advanced editor.
+ *
+ * Each group contains the XML keys (from BlockConfig.xml `<Block>` nodes) that
+ * belong to a logical subsystem. Keys that appear in a group are rendered with
+ * a custom sub-editor; keys not listed in any group fall into the `Other` bucket
+ * and use a generic value editor.
+ *
+ * Source: BlockConfig.xml schema + `ElementInformation.java` field names.
+ */
 export const EXTRA_PROPERTY_GROUPS = [
-  { title: 'Resources / Recipes', keys: ['Consistence', 'CubatomConsistence', 'InRecipe', 'RecipeBuyResource', 'BlockResourceType'] },
-  { title: 'Factory / Production', keys: ['ProducedInFactory', 'BasicResourceFactory', 'FactoryBakeTime', 'Factory'] },
-  { title: 'Chambers', keys: ['GeneralChamber', 'ChamberCapacity', 'ChamberRoot', 'ChamberParent', 'ChamberUpgradesTo', 'ChamberPermission', 'ChamberAppliesTo', 'ChamberPrerequisites', 'ChamberMutuallyExclusive', 'ChamberChildren', 'ChamberConfigGroups'] },
-  { title: 'Controllers', keys: ['ControlledBy', 'Controlling', 'MainCombinationController', 'SupportCombinationController', 'EffectCombinationController'] },
-  { title: 'Collision / Physical', keys: ['Physical', 'CollisionDefault', 'CubeCubeCollision', 'UseDetailedCollisionForAstronautMode', 'DetailedCollisionForAstronautMode', 'LodCollisionPhysical', 'Enterable'] },
-  { title: 'LOD / Mesh', keys: ['LodShape', 'LodShapeSwitchStyleActive', 'LodActivationAnimationStyle'] },
-  { title: 'Logic / Gameplay', keys: ['SensorInput', 'DrawLogicConnection', 'LogicSignaledByRail', 'LogicBlockButton', 'Beacon', 'ResourceInjection', 'ExplosionAbsorbtion'] },
-  { title: 'Reactor / Structure', keys: ['StructureHPContribution', 'SourceReference', 'ReactorHp', 'ReactorGeneralIconIndex', 'LowHpSetting', 'OldHitpoints', 'SystemBlock'] },
-  { title: 'Inventory / Metadata', keys: ['InventoryGroup', 'FullName', 'WildcardIds'] },
+  {
+    title: 'Resources / Recipes',
+    keys: ['Consistence', 'CubatomConsistence', 'InRecipe', 'RecipeBuyResource', 'BlockResourceType'],
+  },
+  {
+    title: 'Factory / Production',
+    keys: ['ProducedInFactory', 'BasicResourceFactory', 'FactoryBakeTime', 'Factory'],
+  },
+  {
+    title: 'Chambers',
+    keys: [
+      'GeneralChamber', 'ChamberCapacity', 'ChamberRoot', 'ChamberParent',
+      'ChamberUpgradesTo', 'ChamberPermission', 'ChamberAppliesTo',
+      'ChamberPrerequisites', 'ChamberMutuallyExclusive', 'ChamberChildren',
+      'ChamberConfigGroups',
+    ],
+  },
+  {
+    title: 'Controllers',
+    keys: [
+      'ControlledBy', 'Controlling',
+      'MainCombinationController', 'SupportCombinationController', 'EffectCombinationController',
+    ],
+  },
+  {
+    title: 'Collision / Physical',
+    keys: [
+      'Physical', 'CollisionDefault', 'CubeCubeCollision',
+      'UseDetailedCollisionForAstronautMode', 'DetailedCollisionForAstronautMode',
+      'LodCollisionPhysical', 'Enterable',
+    ],
+  },
+  {
+    title: 'LOD / Mesh',
+    keys: ['LodShape', 'LodShapeSwitchStyleActive', 'LodActivationAnimationStyle'],
+  },
+  {
+    title: 'Logic / Gameplay',
+    keys: [
+      'SensorInput', 'DrawLogicConnection', 'LogicSignaledByRail',
+      'LogicBlockButton', 'Beacon', 'ResourceInjection', 'ExplosionAbsorbtion',
+    ],
+  },
+  {
+    title: 'Reactor / Structure',
+    keys: [
+      'StructureHPContribution', 'SourceReference', 'ReactorHp',
+      'ReactorGeneralIconIndex', 'LowHpSetting', 'OldHitpoints', 'SystemBlock',
+    ],
+  },
+  {
+    title: 'Inventory / Metadata',
+    keys: ['InventoryGroup', 'FullName', 'WildcardIds'],
+  },
 ];
 
+// ── Per-field tooltip texts ───────────────────────────────────────────────────
+
+/**
+ * Tooltip text for each known extra BlockConfig property.
+ *
+ * Derived from `ElementInformation.java`, `ElemType.java`, reactor/chamber
+ * system code and BlockConfig.xml schema analysis (StarMade-Open reference).
+ *
+ * Tooltips for unknown keys are generated dynamically by `tooltipForExtraProperty`.
+ */
 const EXTRA_TOOLTIPS: Record<string, string> = {
-  Consistence: 'Crafting/material requirements. StarMade reads Item entries with a count and a block/resource type.',
-  CubatomConsistence: 'Special material list used by cubatom/capsule splitting logic. Usually empty for regular blocks.',
-  InRecipe: 'Controls whether StarMade includes this block in recipe/production systems.',
-  RecipeBuyResource: 'Additional resources consumed by buy/craft recipes.',
-  BlockResourceType: 'Economy/resource category used to group ores, plants, basic resources, manufactory outputs, advanced parts and capsules.',
-  ProducedInFactory: 'Factory tier/category that can produce this block.',
-  BasicResourceFactory: 'Factory/resource block associated with basic-resource production.',
-  FactoryBakeTime: 'Production time used by the factory pipeline.',
-  Factory: 'Marks a factory slot role, typically input or output.',
-  GeneralChamber: 'Marks a reactor chamber as a general/root-capable chamber.',
-  ChamberCapacity: 'Capacity contribution for reactor chamber systems.',
-  ChamberRoot: 'Root chamber this chamber belongs to.',
-  ChamberParent: 'Parent chamber required in the upgrade tree.',
-  ChamberUpgradesTo: 'Target chamber unlocked/upgraded from this chamber.',
-  ChamberPermission: 'Permission mode used by the chamber system.',
-  ChamberAppliesTo: 'Block/chamber targets this chamber can apply to.',
-  ChamberPrerequisites: 'Required chambers before this chamber can be used.',
-  ChamberMutuallyExclusive: 'Chambers that cannot be combined with this one.',
-  ChamberChildren: 'Child chambers in the chamber upgrade tree.',
-  ChamberConfigGroups: 'Named chamber configuration groups used by reactor UI/configuration.',
-  ControlledBy: 'Controller block types that can control this block.',
-  Controlling: 'Block types this controller can control.',
-  MainCombinationController: 'Marks this block as the main controller in a controller/support/effect combination.',
-  SupportCombinationController: 'Marks this block as a support controller in combination systems.',
-  EffectCombinationController: 'Marks this block as an effect controller in combination systems.',
-  Physical: 'Whether the block participates as a physical/collidable object.',
-  CollisionDefault: 'Default collision shape. Source supports None, a block-style collision shape with slab thickness, or a convex hull mesh.',
-  CubeCubeCollision: 'Uses simple cube-vs-cube collision handling.',
-  UseDetailedCollisionForAstronautMode: 'Enables detailed collision when the player is in astronaut mode.',
-  DetailedCollisionForAstronautMode: 'Optional detailed collision shape used in astronaut mode; often a named convex hull mesh for non-cube blocks.',
-  LodCollisionPhysical: 'Physical collision behavior for low-detail LOD meshes.',
-  Enterable: 'Whether an entity/player can enter or pass into the block volume.',
-  LodShape: 'Low-detail mesh used when LOD rendering is active.',
-  LodShapeSwitchStyleActive: 'Controls how the LOD shape switches when active/inactive.',
-  LodActivationAnimationStyle: 'LOD activation behavior. Style “Use active LOD shape while active” enables the active LOD shape field in the source editor.',
-  SensorInput: 'Allows the block to act as a sensor input in logic systems.',
-  DrawLogicConnection: 'Draws visible logic connection lines for this block.',
-  LogicSignaledByRail: 'Allows rail state/signals to feed the logic system.',
-  LogicBlockButton: 'Treats the block as a logic button/input.',
-  Beacon: 'Marks this block as beacon-like for gameplay/UI behavior.',
-  ResourceInjection: 'Resource injection mode. Source enum maps Off, Ore/terrain resources, and Flora resources for generated/resource blocks.',
-  ExplosionAbsorbtion: 'Explosion absorption factor used by damage calculations.',
-  StructureHPContribution: 'Additional structure hit points contributed by this block.',
-  SourceReference: 'References another block/system as source for this entry.',
-  ReactorHp: 'Reactor hit point contribution/value.',
-  ReactorGeneralIconIndex: 'Icon index used by reactor/chamber UI.',
-  LowHpSetting: 'Behavior/threshold setting used when structure HP is low.',
-  OldHitpoints: 'Legacy hit point value retained for compatibility/migration.',
-  SystemBlock: 'Marks the block as part of a ship/station system.',
-  InventoryGroup: 'Inventory/build menu grouping.',
-  FullName: 'Long display name used by game UI.',
-  WildcardIds: 'Alternative block IDs/types accepted as equivalent by some systems.',
+  // ── Resources / Recipes ────────────────────────────────────────────────────
+  Consistence:
+    'Crafting/material requirements. StarMade reads Item entries with a count and a block/resource type.',
+  CubatomConsistence:
+    'Special material list used by cubatom/capsule splitting logic. Usually empty for regular blocks.',
+  InRecipe:
+    'Controls whether StarMade includes this block in recipe/production systems.',
+  RecipeBuyResource:
+    'Additional resources consumed by buy/craft recipes.',
+  BlockResourceType:
+    'Economy/resource category used to group ores, plants, basic resources, manufactory outputs, advanced parts and capsules.',
+
+  // ── Factory / Production ────────────────────────────────────────────────────
+  ProducedInFactory:
+    'Factory tier/category that can produce this block.',
+  BasicResourceFactory:
+    'Factory/resource block associated with basic-resource production.',
+  FactoryBakeTime:
+    'Production time (in game ticks) used by the factory pipeline.',
+  Factory:
+    'Marks a factory slot role for this block — typically INPUT (resource slot) or OUTPUT (product slot).',
+
+  // ── Chambers ────────────────────────────────────────────────────────────────
+  GeneralChamber:
+    'Marks a reactor chamber as a general/root-capable chamber in the reactor system.',
+  ChamberCapacity:
+    'Capacity contribution provided to the reactor by this chamber.',
+  ChamberRoot:
+    'Root chamber this chamber belongs to in the upgrade tree.',
+  ChamberParent:
+    'Parent chamber required before this one can be installed.',
+  ChamberUpgradesTo:
+    'Chamber that becomes available once this chamber is installed.',
+  ChamberPermission:
+    'Permission/access level flag for the chamber system.',
+  ChamberAppliesTo:
+    'Block types or chamber targets this chamber effect applies to.',
+  ChamberPrerequisites:
+    'List of chambers that must be present before this one is available.',
+  ChamberMutuallyExclusive:
+    'Chambers that cannot be combined/installed alongside this one.',
+  ChamberChildren:
+    'Child chambers in the upgrade tree branching from this chamber.',
+  ChamberConfigGroups:
+    'Named configuration groups used by the reactor UI to group related chambers.',
+
+  // ── Controllers ─────────────────────────────────────────────────────────────
+  ControlledBy:
+    'XML type names of controller blocks that can control this block.',
+  Controlling:
+    'XML type names of blocks this controller block can control.',
+  MainCombinationController:
+    'Marks this block as the primary controller in a controller/support/effect combination system.',
+  SupportCombinationController:
+    'Marks this block as a support controller in the combination system.',
+  EffectCombinationController:
+    'Marks this block as an effect (output) controller in the combination system.',
+
+  // ── Collision / Physical ────────────────────────────────────────────────────
+  Physical:
+    'Whether the block participates as a physical/collidable object in the physics engine.',
+  CollisionDefault:
+    'Default collision shape. Supports None (no collision), a block-style shape with slab thickness, or a named convex hull mesh.',
+  CubeCubeCollision:
+    'Uses simple axis-aligned cube-vs-cube collision instead of a detailed mesh.',
+  UseDetailedCollisionForAstronautMode:
+    'Enables the detailed collision shape when the player is in astronaut (walking) mode.',
+  DetailedCollisionForAstronautMode:
+    'The detailed collision shape used in astronaut mode; typically a convex hull mesh for non-cube block shapes.',
+  LodCollisionPhysical:
+    'Whether LOD-reduced geometry retains physical/collision properties.',
+  Enterable:
+    'Whether an entity or player can pass into or occupy the block volume.',
+
+  // ── LOD / Mesh ──────────────────────────────────────────────────────────────
+  LodShape:
+    'Low-detail mesh resource name used when LOD rendering activates at distance.',
+  LodShapeSwitchStyleActive:
+    'Active-state LOD mesh; enabled when the block is active and LodActivationAnimationStyle = 1.',
+  LodActivationAnimationStyle:
+    'LOD activation transition mode. 0 = no switch; 1 = swap to active LOD mesh while block is active.',
+
+  // ── Logic / Gameplay ────────────────────────────────────────────────────────
+  SensorInput:
+    'Allows this block to act as a sensor/input node in the logic network.',
+  DrawLogicConnection:
+    'Draws visible wire/connection lines between this block and connected logic blocks.',
+  LogicSignaledByRail:
+    'Allows rail/activator rail signals to drive the logic state of this block.',
+  LogicBlockButton:
+    'Treats this block as a momentary button input in the logic system.',
+  Beacon:
+    'Marks this block as a beacon — visible on scanners and navigation overlays.',
+  ResourceInjection:
+    'Resource injection mode for world generation. Off = no injection; 1 = ore/terrain; 2 = flora.',
+  ExplosionAbsorbtion:
+    'Explosion energy absorption factor used by the damage system (0.0–1.0+).',
+
+  // ── Reactor / Structure ──────────────────────────────────────────────────────
+  StructureHPContribution:
+    'Additional structure hit points contributed by this block to the ship/station hull.',
+  SourceReference:
+    'References another block or system entry as the source/parent of this block.',
+  ReactorHp:
+    'Hit point contribution or capacity this block provides to the reactor system.',
+  ReactorGeneralIconIndex:
+    'Icon index used by the reactor/chamber configuration UI.',
+  LowHpSetting:
+    'Behavioral threshold or setting applied when the structure drops below a critical HP level.',
+  OldHitpoints:
+    'Legacy hit point value retained for save-game compatibility and migration.',
+  SystemBlock:
+    'Marks this block as part of a ship/station system group (weapons, shields, thrusters, etc.).',
+
+  // ── Inventory / Metadata ─────────────────────────────────────────────────────
+  InventoryGroup:
+    'Category/group used to sort and display the block in the build/inventory menu.',
+  FullName:
+    'Long-form display name shown in some game UI contexts where brevity is less important.',
+  WildcardIds:
+    'Alternative block IDs or XML type names accepted as equivalent by certain game systems.',
 };
 
+/**
+ * Return the tooltip text for a named extra BlockConfig property.
+ *
+ * Returns the source-informed description from EXTRA_TOOLTIPS if the key is
+ * known, or a generic fallback message that still provides useful context.
+ *
+ * @param {string} key BlockConfig XML node/attribute key (e.g. `"Consistence"`).
+ * @returns {string} Human-readable tooltip text.
+ */
 export function tooltipForExtraProperty(key: string): string {
-  return EXTRA_TOOLTIPS[key] ?? `${formatPropertyLabel(key)} from BlockConfig.xml. This field is preserved and saved back for StarMade compatibility.`;
+  return (
+    EXTRA_TOOLTIPS[key] ??
+    `${formatPropertyLabel(key)} from BlockConfig.xml. This field is preserved and saved back for StarMade compatibility.`
+  );
 }
 
+/**
+ * Convert a raw BlockConfig XML key into a readable UI label.
+ *
+ * Strips attribute prefixes (`@_`, `#`), inserts spaces before camelCase
+ * boundaries, and replaces underscores with spaces.
+ *
+ * Examples:
+ *   `"IndividualSides"` → `"Individual Sides"`
+ *   `"@_type"`          → `"Type"`
+ *   `"#text"`           → `"Value"`
+ *
+ * @param {string} key Raw XML key.
+ * @returns {string} Human-readable label.
+ */
 export function formatPropertyLabel(key: string): string {
   const cleaned = key.replace(/^@_/, '').replace(/^#/, '');
   return cleaned
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .replace(/_/g, ' ')
-    .replace(/^text$/i, 'Value')
-    .replace(/^count$/i, 'Count');
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2') // camelCase → words
+    .replace(/_/g, ' ')                       // snake_case → words
+    .replace(/^text$/i, 'Value')              // #text → Value
+    .replace(/^count$/i, 'Count');            // @_count → Count
 }
