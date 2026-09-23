@@ -1,0 +1,29 @@
+name: Admin snapshot test driver
+on:
+  push:
+    branches: [integration/starmade-admin-runtime-20260923]
+    paths: [.github/workflows/admin-driver-test.yml]
+permissions:
+  contents: read
+jobs:
+  fixture-driver:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Retrieve the archived public driver matching the supplied snapshot
+        run: |
+          set -eu
+          base=https://repo.maven.apache.org/maven2/org/hsqldb/hsqldb/2.3.4
+          curl --fail --show-error --silent --location "$base/hsqldb-2.3.4.jar" --output hsqldb-2.3.4.jar
+          expected=$(curl --fail --show-error --silent --location "$base/hsqldb-2.3.4.jar.sha1")
+          printf '%s  hsqldb-2.3.4.jar\n' "$expected" | sha1sum --check
+          sha256sum hsqldb-2.3.4.jar > hsqldb-2.3.4.sha256
+          printf '%s\n' 'Test-only archived driver. Do not update a game installation with this artifact.' > NOTICE.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: admin-snapshot-test-driver
+          path: |
+            hsqldb-2.3.4.jar
+            hsqldb-2.3.4.sha256
+            NOTICE.txt
+          retention-days: 7
