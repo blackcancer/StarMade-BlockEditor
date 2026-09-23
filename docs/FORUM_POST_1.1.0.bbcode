@@ -1,0 +1,60 @@
+[size=150][b]StarMade Block Editor — v1.1.0[/b][/size]
+
+A visual editor for StarMade block definitions, with a live 3D preview and tools for working with custom blocks, textures and build icons.
+
+Run the editor locally, open it in your browser and point it to your StarMade installation. You can inspect existing blocks, create custom definitions and edit their properties without manually editing XML.
+
+[url=https://github.com/blackcancer/StarMade-BlockEditor]Project, source code and installation guide[/url]
+[url=https://github.com/blackcancer/StarMade-BlockEditor/blob/main/CHANGELOG.md]Full changelog[/url]
+
+[b]What you can do[/b]
+[list]
+[*]Search the block catalogue and preview a selected block in 3D.
+[*]Edit properties such as hitpoints, mass, price, armour, textures, light colour and advanced block settings.
+[*]Create custom blocks or save an override of an existing vanilla definition. Removing an override reveals the vanilla definition again.
+[*]Work with custom textures and build icons through visual pickers.
+[*]Use the interface in English, French, German, Spanish, Russian or Japanese.
+[/list]
+
+[b]New in v1.1.0[/b]
+
+[b]Native StarMade rendering[/b]
+The preview now uses StarMade-3D 1.0.0 for native block geometry, orientations, slabs, animated textures, lighting, transparency and LOD models. It loads the required graphical resources from your StarMade installation.
+
+[b]Generate a build icon from your block[/b]
+Choose “Generate from block” in the Properties panel to create a transparent 64 × 64 PNG. The export uses a fixed orthographic view, with framing and lighting aligned with the existing cube icons, while retaining the selected block orientation and active state.
+
+You can inspect the generated image before choosing “Apply icon”, or cancel it. Applying an icon changes its slot in the game's icon sheet; that slot may be shared by several blocks. The original image is backed up, and “Restore original icon” restores the selected slot.
+
+[b]Updated block decoding and safer saving[/b]
+StarMade-Decoder 2.0.0 now handles block definitions. The editor preserves unknown block XML attributes and nested properties when updating supported fields. Saves use atomic file replacement and backups. If a definition changes after you loaded it, the editor refuses a stale save and keeps your unsaved draft available.
+
+[b]Phone and tablet layout[/b]
+Smaller screens use three tabs: Blocks, Preview and Properties. Your draft stays available when switching tabs, the controls are adapted for touch, and the 3D renderer pauses while its panel is hidden. Icon generation also works directly from Properties.
+
+[b]Desktop layout and translations[/b]
+The desktop header now keeps its dropdowns and buttons aligned and visible at narrower window sizes. All six interface languages have been completed, including mobile controls, error messages and rendering warnings. Block names and descriptions supplied by the game remain game data.
+
+[b]Getting started[/b]
+
+You will need:
+[list]
+[*]Node.js 22.16 or newer, with npm.
+[*]A browser with WebGL2 support.
+[*]A StarMade installation containing its configuration, shaders and textures. Game resources are not included with the editor.
+[/list]
+
+Download or clone the repository, open a terminal in its folder, then run:
+[code]npm ci
+npm run build
+npm start[/code]
+
+Open [url=http://localhost:3847]http://localhost:3847[/url] and select your StarMade installation. The repository also includes start.bat for Windows and start.sh for Linux/WSL.
+
+[b]Validation[/b]
+This update passes 425 application tests and 6 tooling tests, with 100% line and branch coverage for each executable source file in the editor. Browser checks cover editing, save conflicts, XML preservation, native rendering, icon generation and restoration, and desktop/mobile layouts.
+
+The graphical checks were run with Chromium on Linux, including emulated mobile viewports and touch interactions. Physical phones and Safari/iOS have not been qualified in this release.
+
+[b]Feedback[/b]
+If you find a rendering or editing issue, please include the block name or ID, your browser and operating system, and the steps needed to reproduce it. Screenshots are especially useful for layout and icon-rendering issues.

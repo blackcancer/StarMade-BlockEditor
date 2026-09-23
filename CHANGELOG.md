@@ -11,12 +11,15 @@ Ce projet suit le [Versionnage Sémantique](https://semver.org/lang/fr/).
 
 - Intégration de StarMade-Decoder 2.0.0 et StarMade-3D 1.0.0, archives locales vérifiées et verrouillées.
 - Rendu natif des sept styles, orientations, slabs, animations, lumières, transparence et modèles LOD activables.
-- Génération d’icônes PNG64×64 orthographiques, cadrées sur les cubes existants, avec aperçu avant application et restauration du slot original.
+- Génération d’icônes PNG de 64 × 64 pixels en vue orthographique, cadrées sur les cubes existants, avec aperçu avant application et restauration du slot original.
 - Interface mobile et tablette à trois onglets, commandes tactiles, dialogues accessibles et brouillons conservés lors de la navigation.
 - Traductions complétées dans les six langues, y compris les messages d’erreur, les avertissements du rendu et les propriétés avancées.
+- Correction de l’en-tête PC : listes déroulantes et boutons alignés, espacement explicite et hauteur adaptée aux fenêtres plus étroites.
+- Retour du focus au bouton d’ouverture après fermeture des sélecteurs d’icônes et de textures ; rendu 3D suspendu lorsqu’il est masqué sur mobile.
 - Conservation des attributs/XML inconnus, sauvegardes atomiques avec backups, ETag obligatoire et refus des écritures concurrentes obsolètes.
 - Protection des brouillons et des réponses asynchrones, erreurs explicites et restrictions de l’aperçu distant à une copie de jeu.
-- Node.js22.16+, dépendances actualisées, couverture bloquante100% lignes et branches par fichier, recette navigateur sur copie isolée.
+- Node.js 22.16+, dépendances actualisées, couverture bloquante à 100 % des lignes et branches par fichier, recette navigateur sur copie isolée.
+- Qualification : 425 tests applicatifs et 6 tests d’outillage réussis ; recettes navigateur d’édition, de rendu natif, d’export et de mise en page PC/mobile. Voir les rapports de qualification et du correctif d’en-tête dans `docs/`.
 
 ## [1.0.0] — 2026-05-11
 
