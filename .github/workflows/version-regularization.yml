@@ -1,0 +1,24 @@
+name: Reconcile historical versions
+on:
+  push:
+    branches: [maintenance/version-regularization-20260923]
+    paths: [.github/workflows/version-regularization.yml]
+permissions:
+  contents: write
+concurrency:
+  group: version-regularization-20260923
+  cancel-in-progress: false
+jobs:
+  reconcile:
+    if: github.repository == 'blackcancer/StarMade-BlockEditor'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Retrieve the reviewed reconciliation script at an immutable commit
+        run: curl --fail --silent --show-error --max-time 60 https://raw.githubusercontent.com/blackcancer/StarMade-DB/36af107bce5e332210e81faccdffb533dc65f1ee/scripts/regularize-versions.mjs -o regularize-versions.mjs
+      - name: Validate targets, preserve published refs, restore tags and releases
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          VERSION_PLAN: >-
+            {"repository":"blackcancer/StarMade-BlockEditor","snapshot":"fc06e1798c7c6fb95b28b983d7769d5818919427","latest":"v1.1.1","existingTags":{"v1.0.0":"060746205e04f916730b6c40763ee53539c39f83","v1.1.1":"4c328529dfcc53e4b6963df029b6e7d04053f99e"},"versions":[{"tag":"v1.0.0","original":"da4cf1aff4a18d5b10ec42735ca2280cf441f535","originalVersion":"1.0.0","summary":"Initial stable block editor release. The existing tag, release and distribution files remain unchanged."},{"tag":"v1.1.0","original":"9da5b80f8bcb3cc09c19f566ebabc4a0eea5a70a","originalVersion":"1.1.0","summary":"Native rendering integration, orthographic icon generation, mobile/tablet interface, complete localization and protected custom saves. This tag records the final historical 1.1.0 snapshot with desktop header fixes and English documentation, before the Display additions of 1.1.1."},{"tag":"v1.1.1","original":"fc06e1798c7c6fb95b28b983d7769d5818919427","originalVersion":"1.1.1","summary":"Display rendering and final desktop/mobile layout corrections. The existing tag, release and distribution files remain unchanged."}]}
+        run: node regularize-versions.mjs
