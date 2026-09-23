@@ -24,23 +24,10 @@
 
 import React, { useMemo } from 'react';
 import { useBlockStore, type BlockDef } from '../../store/blockStore.js';
-import { blockStyleName } from '../../3d/geometries/index.js';
+import { displayBlockName } from '../layout/blockDisplay.js';
 import { useT } from '../../i18n/index.js';
 import { getBlockStyleName } from '../layout/propertyOptions.js';
-
-function displayBlockName(block: BlockDef): string {
-  const name = block.name?.trim() || '';
-  const typePrefix = block.xmlTypeName?.trim();
-  if (name.includes('--')) return name.split('--').pop()!.trim();
-  if (typePrefix && name.toLowerCase().startsWith(typePrefix.toLowerCase())) {
-    return name.slice(typePrefix.length).replace(/^\s*[-–—:]\s*/, '').trim() || prettifyTypeName(typePrefix);
-  }
-  return name || prettifyTypeName(typePrefix || String(block.id));
-}
-
-function prettifyTypeName(typeName: string): string {
-  return typeName.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
-}
+import { localizeMessage, technicalDetail } from '../../i18n/messages.js';
 
 // ── Style badge ────────────────────────────────────────────────────────────
 
@@ -69,28 +56,29 @@ function BlockCard({ block, selected, onSelect }: {
   onSelect: (b: BlockDef) => void;
 }) {
   const t = useT();
+  const iconRevision = useBlockStore(s => s.iconRevision);
   return (
-    <div
+    <button type="button" aria-pressed={selected}
       className={`block-card ${selected ? 'selected' : ''} ${block.isCustom ? 'custom' : ''}`}
       onClick={() => onSelect(block)}
       title={getBlockStyleName(block.blockStyle, t)}
     >
-      <div className="block-card-icon">
+      <span className="block-card-icon">
         <img
-          src={`/api/textures/icon/${block.icon}`}
+          src={`/api/textures/icon/${block.icon}?v=${iconRevision}`}
           alt=""
           loading="lazy"
           onError={e => { e.currentTarget.style.display = 'none'; }}
         />
-      </div>
-      <div className="block-card-body">
-        <div className="block-card-name">{displayBlockName(block)}</div>
-        <div className="block-card-meta">
+      </span>
+      <span className="block-card-body">
+        <span className="block-card-name">{displayBlockName(block)}</span>
+        <span className="block-card-meta">
           {getBlockStyleName(block.blockStyle, t)}
           <BlockBadge block={block} />
-        </div>
-      </div>
-    </div>
+        </span>
+      </span>
+    </button>
   );
 }
 
@@ -104,7 +92,7 @@ function BlockCard({ block, selected, onSelect }: {
  * @returns Filter controls and block selection list.
  */
 
-export function Sidebar() {
+export function Sidebar({ onBlockOpen }: { onBlockOpen?: () => void }) {
   const t          = useT();
   const blocks       = useBlockStore(s => s.blocks);
   const selectedBlock = useBlockStore(s => s.selectedBlock);
@@ -113,6 +101,8 @@ export function Sidebar() {
   const setFilter    = useBlockStore(s => s.setFilter);
   const loading      = useBlockStore(s => s.loading);
   const error        = useBlockStore(s => s.error);
+  const isDirty = useBlockStore(s => s.isDirty);
+  const detail = error && technicalDetail(error, t);
 
   // ── Filtered + sorted block list ────────────────────────────────────────
   const visible = useMemo(() => {
@@ -167,7 +157,9 @@ export function Sidebar() {
 
       {/* Status */}
       {loading && <div className="sidebar-status">{t.sidebar.loading}</div>}
-      {error   && <div className="sidebar-status error">{error}</div>}
+      {error && <div className="sidebar-status error">{localizeMessage(error, t)}
+        {detail && <details><summary>{t.errors.technicalDetails}</summary><div>{detail}</div></details>}
+      </div>}
 
       {/* List */}
       <div className="sidebar-list">
@@ -176,7 +168,13 @@ export function Sidebar() {
             key={block.id}
             block={block}
             selected={selectedBlock?.id === block.id}
-            onSelect={selectBlock}
+            onSelect={block => {
+              if (block.id !== selectedBlock?.id) {
+                if (isDirty && !window.confirm(t.sidebar.discardConfirm)) return;
+                selectBlock(block);
+              }
+              onBlockOpen?.();
+            }}
           />
         ))}
         {!loading && visible.length === 0 && (

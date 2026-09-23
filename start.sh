@@ -37,7 +37,12 @@ done
 
 if ! command -v node >/dev/null 2>&1; then
   echo "[BlockEditor] Node.js is required but was not found in PATH." >&2
-  echo "Install Node.js 20+ and retry." >&2
+  echo "Install Node.js 22.16+ and retry." >&2
+  exit 1
+fi
+
+if ! node -e "const [a,b]=process.versions.node.split('.').map(Number);process.exit(a*1000+b>=22016?0:1)"; then
+  echo "[BlockEditor] Node.js 22.16+ is required." >&2
   exit 1
 fi
 
@@ -47,8 +52,8 @@ if ! command -v npm >/dev/null 2>&1; then
 fi
 
 if [ ! -d "node_modules" ]; then
-  echo "[BlockEditor] Dependencies not found; running npm install..."
-  npm install
+  echo "[BlockEditor] Dependencies not found; running npm ci..."
+  npm ci
 fi
 
 if [ "$FORCE_BUILD" -eq 1 ] || [ ! -f "server/dist/index.js" ] || [ ! -f "client/dist/index.html" ]; then

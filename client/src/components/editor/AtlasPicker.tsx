@@ -32,17 +32,18 @@
  * (not drawn on the canvas) to avoid full canvas redraws on mouse move.
  *
  * ## Keyboard close
- * The Escape key closes the modal via a window `keydown` listener.
+ * Escape uses the native dialog cancel event and restores focus to the opener.
  *
  * @author InitSysRev
  * @version 1.0.0
  */
 
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
-import { invalidateAtlasCache } from '../../3d/AtlasTexture.js';
 import { useConfigStore } from '../../store/configStore.js';
 import { ATLAS_COLS, ATLAS_ROWS, PAGE_COLS, PAGE_ROWS, PAGE_TILES, PAGE_GRID_COLS } from '../../3d/geometries/index.js';
 import { useT } from '../../i18n/index.js';
+import { useModal } from '../../hooks/useModal.js';
+import { localizeMessage, technicalDetail } from '../../i18n/messages.js';
 
 const DISPLAY_TILE = 48; // px per tile in the picker grid
 
@@ -68,6 +69,9 @@ interface AtlasPickerProps {
 
 export function AtlasPicker({ selectedTileId, onSelect, onClose }: AtlasPickerProps) {
   const t           = useT();
+  const [error, setError] = useState<string | null>(null);
+  const detail = error && technicalDetail(error, t);
+  const modal = useModal();
   const atlasSize   = useConfigStore(s => s.atlasSize);
   const texturePack = useConfigStore(s => s.texturePack);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -98,16 +102,14 @@ export function AtlasPicker({ selectedTileId, onSelect, onClose }: AtlasPickerPr
 
   // ── Draw the atlas grid onto canvas ──────────────────────────────────────
   useEffect(() => {
-    const canvas = canvasRef.current;
-    /* c8 ignore next 2 */
-    if (!canvas) return;
+    const canvas = canvasRef.current!;
     const ctx    = canvas.getContext('2d');
-    /* c8 ignore next 2 */
+
     if (!ctx) return;
 
     const img = new Image();
     img.src   = `/api/textures/atlas?size=${atlasSize}&pack=${encodeURIComponent(texturePack)}&v=3&refresh=${atlasVersion}`;
-    /* c8 ignore next */
+
     img.onload = () => {
       canvas.width  = ATLAS_COLS * DISPLAY_TILE;
       canvas.height = ATLAS_ROWS * DISPLAY_TILE;
@@ -143,7 +145,7 @@ export function AtlasPicker({ selectedTileId, onSelect, onClose }: AtlasPickerPr
   }, []);
 
   const refreshAtlas = () => {
-    invalidateAtlasCache();
+
     window.dispatchEvent(new CustomEvent('atlas-imported'));
     // Increment local version so the canvas redraws immediately in this modal
     setAtlasVersion(v => v + 1);
@@ -151,6 +153,7 @@ export function AtlasPicker({ selectedTileId, onSelect, onClose }: AtlasPickerPr
 
   const importCustomAtlas = async (file: File | null) => {
     if (!file) return;
+    setError(null);
     setImporting(true);
     try {
       const res = await fetch(`/api/textures/custom-atlas?size=${atlasSize}&map=${mapKind}`, {
@@ -161,16 +164,17 @@ export function AtlasPicker({ selectedTileId, onSelect, onClose }: AtlasPickerPr
       if (!res.ok) throw new Error(await res.text());
       refreshAtlas();
     } catch (e) {
-      alert(t.atlasPicker.errorImportAtlas(e));
+      setError(String(e));
     } finally {
       setImporting(false);
-      /* c8 ignore next 2 */
+
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
   const importCustomTile = async (file: File | null) => {
     if (!file) return;
+    setError(null);
     const targetTile = PAGE_TILES * 7 + Math.max(0, Math.min(PAGE_TILES - 1, customSlot));
     setImporting(true);
     try {
@@ -182,32 +186,29 @@ export function AtlasPicker({ selectedTileId, onSelect, onClose }: AtlasPickerPr
       if (!res.ok) throw new Error(await res.text());
       refreshAtlas();
     } catch (e) {
-      alert(t.atlasPicker.errorImportTile(e));
+      setError(String(e));
     } finally {
       setImporting(false);
-      /* c8 ignore next 2 */
+
       if (tileFileInputRef.current) tileFileInputRef.current.value = '';
     }
   };
 
-  // ── Keyboard close ────────────────────────────────────────────────────────
-  useEffect(() => {
-    /* c8 ignore next */
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [onClose]);
-
   return (
-    <div className="atlas-picker-overlay" onClick={onClose}>
+    <dialog ref={modal} className="atlas-picker-overlay" aria-label={onSelect ? t.atlasPicker.titlePick : t.atlasPicker.titleManager}
+      onClick={onClose} onCancel={event => { event.preventDefault(); onClose(); }}>
       <div className="atlas-picker-modal" onClick={e => e.stopPropagation()}>
+        {error && <div className="properties-error" role="alert">{localizeMessage(error, t)}
+          {detail && <details><summary>{t.errors.technicalDetails}</summary><div>{detail}</div></details>}
+        </div>}
         <div className="atlas-picker-header">
           <span>{onSelect ? t.atlasPicker.titlePick : t.atlasPicker.titleManager}</span>
-          <button onClick={onClose}>{t.atlasPicker.close}</button>
+          <button autoFocus onClick={onClose} aria-label={t.atlasPicker.closeLabel}>{t.atlasPicker.close}</button>
         </div>
         <div className="atlas-picker-canvas-wrap">
           <canvas
             ref={canvasRef}
+            aria-label={t.atlasPicker.titlePick}
             style={{ cursor: 'crosshair', display: 'block' }}
             onMouseMove={e => {
               const nextTile = tileFromEvent(e);
@@ -276,7 +277,7 @@ export function AtlasPicker({ selectedTileId, onSelect, onClose }: AtlasPickerPr
                     min={0}
                     max={PAGE_TILES - 1}
                     value={customSlot}
-                    /* c8 ignore next */
+
                     onChange={e => setCustomSlot(Math.max(0, Math.min(PAGE_TILES - 1, +e.target.value || 0)))}
                   />
                 </label>
@@ -295,6 +296,6 @@ export function AtlasPicker({ selectedTileId, onSelect, onClose }: AtlasPickerPr
           )}
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }

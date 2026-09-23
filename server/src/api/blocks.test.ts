@@ -4,7 +4,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import request from 'supertest';
-import { blocksRouter, collectExtraProperties, parseEffectArmor, serializeEffectArmor } from './blocks.js';
+import { blocksRouter, collectExtraProperties, parseEffectArmor, serializeEffectArmor, warmBlockCache, getBlockIconIds } from './blocks.js';
 
 describe('block API XML helpers', () => {
   it('parses effect armor records defensively', () => {
@@ -37,6 +37,8 @@ describe('blocks API routes', () => {
   let tmp: string;
   let game: string;
   let app: express.Express;
+
+  async function revision(): Promise<string> { return (await request(app).get('/blocks').expect(200)).headers.etag; }
 
   function writeFixtureFiles(): void {
     game = path.join(tmp, 'StarMade');
@@ -153,7 +155,7 @@ describe('blocks API routes', () => {
 
   it('creates, updates, serializes and reloads custom blocks', async () => {
     await request(app)
-      .put('/blocks/1')
+      .put('/blocks/1').set('If-Match', await revision())
       .send({ name: 'Custom Hull', textureId: [9, 8, 7], slab: 3, effectArmor: { Kinetic: 2 }, lightSourceColor: [1, 0, 0, 0.5], extraProperties: { CustomFoo: 'baz' } })
       .expect(200)
       .expect(res => {
@@ -170,28 +172,62 @@ describe('blocks API routes', () => {
       .expect(res => expect(res.body).toMatchObject({ name: 'Custom Hull', isCustom: true, effectArmor: { Kinetic: 2 } }));
 
     await request(app)
-      .post('/blocks')
+      .post('/blocks').set('If-Match', await revision())
       .send({ name: 'Created Block', textureId: [3], extraProperties: { FullName: 'Created Full' } })
       .expect(201)
       .expect(res => {
-        expect(res.body).toMatchObject({ id: 1000, name: 'Created Block', xmlTypeName: 'CUSTOM_BLOCK_1000', isCustom: true });
+        expect(res.body).toMatchObject({ id: 1000, name: 'Created Block', xmlTypeName: '1000', isCustom: true });
       });
 
-    await request(app).put('/blocks/999').send({ name: 'nope' }).expect(404);
+    await request(app).put('/blocks/999').set('If-Match', await revision()).send({ name: 'nope' }).expect(404);
   });
 
   it('deletes only custom blocks and preserves vanilla blocks', async () => {
-    await request(app).delete('/blocks/2').expect(403);
-    await request(app).delete('/blocks/999').expect(404);
+    await request(app).delete('/blocks/2').set('If-Match', await revision()).expect(403);
+    await request(app).delete('/blocks/999').set('If-Match', await revision()).expect(404);
 
     let createdId = 0;
-    await request(app).post('/blocks').send({ name: 'Delete Me' }).expect(201).expect(res => { createdId = res.body.id; });
-    await request(app).delete(`/blocks/${createdId}`).expect(200).expect(res => expect(res.body).toEqual({ ok: true, deletedId: createdId }));
+    await request(app).post('/blocks').set('If-Match', await revision()).send({ name: 'Delete Me' }).expect(201).expect(res => { createdId = res.body.id; });
+    await request(app).delete(`/blocks/${createdId}`).set('If-Match', await revision()).expect(200).expect(res => expect(res.body).toEqual({ ok: true, deletedId: createdId }));
     await request(app).get(`/blocks/${createdId}`).expect(404);
+  });
+
+  it('requires matching catalogue preconditions and rejects malformed route IDs', async () => {
+    const old = await revision();
+    await request(app).post('/blocks').send({}).expect(428);
+    await request(app).put('/blocks/1').send({}).expect(428);
+    await request(app).delete('/blocks/1').expect(428);
+    await request(app).post('/blocks').set('If-Match', '*').send({}).expect(409)
+      .expect(res => expect(res.body.error).toContain('Reload, then use Revert'));
+    await request(app).put('/blocks/1').set('If-Match', old).send({ hp: 101 }).expect(200);
+    await request(app).put('/blocks/1').set('If-Match', old).send({ hp: 102 }).expect(409)
+      .expect(res => {
+        expect(res.body.error).toContain('Reload, then use Revert');
+        expect(res.body.error).toContain('Copy any edits');
+      });
+    await request(app).delete('/blocks/1x').set('If-Match', await revision()).expect(400);
+    await request(app).get('/blocks/nope').expect(400);
+    await request(app).put('/blocks/1').set('If-Match', await revision()).send({ hp: -1 }).expect(400);
   });
 
   it('returns 500 when config is missing', async () => {
     fs.rmSync(path.join(tmp, 'SMToolConfig.json'));
     await request(app).get('/blocks').expect(500).expect(res => expect(res.body.error).toContain('SMToolConfig.json not found'));
+  });
+
+  it('warms Decoder models and exposes sorted unique valid icons', () => {
+    expect(warmBlockCache()).toEqual({ dir: game, count: 2 });
+    expect(getBlockIconIds()).toEqual([5, 6]);
+    fs.appendFileSync(path.join(game, 'data/config/BlockTypes.properties'), 'BAD=3\nFRACTION=4\n');
+    fs.writeFileSync(path.join(game, 'data/config/BlockConfig.xml'), '<Config><Block type="BAD" name="Bad" icon="-1"/><Block type="FRACTION" name="Fraction" icon="1.5"/></Config>');
+    expect(getBlockIconIds()).toEqual([]);
+  });
+
+  it('returns safe JSON errors for an unset installation and inaccessible catalogue', async () => {
+    fs.writeFileSync(path.join(tmp, 'SMToolConfig.json'), JSON.stringify({ starmadeDir: '' }));
+    await request(app).get('/blocks').expect(400);
+    fs.writeFileSync(path.join(tmp, 'SMToolConfig.json'), JSON.stringify({ starmadeDir: game }));
+    fs.unlinkSync(path.join(game, 'data/config/BlockTypes.properties'));
+    await request(app).get('/blocks').expect(500).expect(res => expect(res.body.error).not.toContain(game));
   });
 });

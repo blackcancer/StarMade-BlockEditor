@@ -81,7 +81,7 @@ function resolveInitialLocale(): string {
     const stored = typeof localStorage !== 'undefined'
       ? localStorage.getItem(STORAGE_KEY)
       : null;
-    if (stored && LOCALES[stored]) return stored;
+    if (stored && Object.prototype.hasOwnProperty.call(LOCALES, stored)) return stored;
   } catch {
     // localStorage may be unavailable in some environments.
   }
@@ -89,9 +89,9 @@ function resolveInitialLocale(): string {
   // 2. Browser preference
   try {
     const browserLang = typeof navigator !== 'undefined'
-      ? navigator.language?.split('-')[0]
+      ? navigator.language?.toLowerCase().split('-')[0]
       : null;
-    if (browserLang && LOCALES[browserLang]) return browserLang;
+    if (browserLang && Object.prototype.hasOwnProperty.call(LOCALES, browserLang)) return browserLang;
   } catch {
     // navigator may be unavailable (SSR).
   }
@@ -111,11 +111,11 @@ const initialLocale = resolveInitialLocale();
 
 export const useI18nStore = create<I18nStore>((set) => ({
   locale: initialLocale,
-  t:      LOCALES[initialLocale]?.translations ?? en,
+  t:      LOCALES[initialLocale].translations,
 
   setLocale: (code: string) => {
+    if (!Object.prototype.hasOwnProperty.call(LOCALES, code)) return;
     const entry = LOCALES[code];
-    if (!entry) return;
     // Persist choice
     try {
       if (typeof localStorage !== 'undefined') localStorage.setItem(STORAGE_KEY, code);

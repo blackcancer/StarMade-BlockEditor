@@ -29,7 +29,7 @@
  *  3 = Cross   (two crossed planes — flora, vegetation)
  *  4 = Tetra   (tetrahedron — decorative 4-vertex shape)
  *  5 = Penta   (pentagon prism — "hepta" variant)
- *  6 = Hepta   (treated as cube in rendering — rare)
+ *  6 = Normal24 (cube with 24 native orientations)
  */
 export const BLOCK_STYLES = [0, 1, 2, 3, 4, 5, 6];
 
@@ -166,12 +166,12 @@ export const FACTORY_OPTIONS = [
  *
  *  0 = Off                  — block does not inject resources
  *  1 = Ore / terrain resource — injects as a terrain/ore resource
- *  2 = Flora resource        — injects as a flora/plant resource
+ * 17 = Flora resource        — native FLORA value in the Decoder contract
  */
 export const RESOURCE_INJECTION_OPTIONS = [
   { value: 0, label: 'Off' },
   { value: 1, label: 'Ore / terrain resource' },
-  { value: 2, label: 'Flora resource' },
+  { value: 17, label: 'Flora resource' },
 ];
 
 // ── LOD ───────────────────────────────────────────────────────────────────────
@@ -365,7 +365,7 @@ const EXTRA_TOOLTIPS: Record<string, string> = {
   Beacon:
     'Marks this block as a beacon — visible on scanners and navigation overlays.',
   ResourceInjection:
-    'Resource injection mode for world generation. Off = no injection; 1 = ore/terrain; 2 = flora.',
+    'Resource injection mode for world generation. Off = no injection; 1 = ore/terrain; 17 = flora.',
   ExplosionAbsorbtion:
     'Explosion energy absorption factor used by the damage system (0.0–1.0+).',
 
@@ -439,6 +439,14 @@ export function formatPropertyLabel(key: string): string {
 // Import `Translations` type from i18n to keep them decoupled from the store.
 
 import type { Translations } from '../../i18n/en.js';
+
+/** Translate supported XML field labels while leaving extension identifiers intact. */
+export function labelForExtraPropertyL10n(key: string, t: Translations): string {
+  if (key === '#text') return t.advanced.value;
+  if (key === '@_count') return t.advanced.count;
+  const labels = t.extraLabel as Record<string, string>;
+  return Object.prototype.hasOwnProperty.call(labels, key) ? labels[key] : key;
+}
 
 /**
  * Return localised labels for `IndividualSides` selector values.
@@ -529,7 +537,7 @@ export function getResourceInjectionOptions(t: Translations) {
   return [
     { value: 0, label: t.options.resourceInjection.off },
     { value: 1, label: t.options.resourceInjection.ore },
-    { value: 2, label: t.options.resourceInjection.flora },
+    { value: 17, label: t.options.resourceInjection.flora },
   ];
 }
 

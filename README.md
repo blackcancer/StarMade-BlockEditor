@@ -1,259 +1,76 @@
-# StarMade Block Editor
+# StarMade Block Editor 1.1
 
-Visual block editor for **StarMade** with a 3D preview, texture atlas editing, icon selection, and safe custom BlockConfig persistence.
+Éditeur de blocs StarMade avec **StarMade-Decoder 2.0.0** pour les définitions et **StarMade-3D 1.0.0** pour le rendu natif. L’interface existe en français, anglais, allemand, espagnol, russe et japonais.
 
-The application reads the vanilla StarMade block data, lets you edit or create blocks in a graphical interface, and writes changes to StarMade's custom configuration files instead of modifying the original game files directly.
+Les six langues possèdent les mêmes 396 entrées vérifiées, y compris les messages d’erreur, les avertissements du rendu et les commandes mobiles.
 
----
+## Démarrer
 
-## Features
-
-- **3D block preview** with StarMade-style geometry and atlas UV mapping.
-- **Supported shapes:** Cube, Wedge, Corner, Cross, Tetra, Penta, and Hepta-as-cube fallback.
-- **Face texture editor** using the StarMade composite atlas.
-- **Custom atlas manager** for importing a complete custom atlas or replacing individual custom tiles.
-- **Build icon picker** with icon sheet preview and custom icon import.
-- **Block properties editor** for identity, stats, shape, rendering, flags, lighting, variants, and advanced BlockConfig fields.
-- **Vanilla + custom block workflow:** vanilla blocks are read from the game, edits are saved as custom overrides.
-- **Search and filters** for vanilla, custom, deprecated blocks, names, type names, and IDs.
-- **Multi-language UI:** English, French, German, Spanish, Russian, and Japanese.
-- **Production startup scripts** for Windows and Linux/macOS/WSL.
-
----
-
-## Requirements
-
-- **Node.js 18+** recommended, Node.js 20+ preferred.
-- **npm**.
-- A local **StarMade installation**.
-
-The app can run from Windows, Linux, macOS, or WSL. Windows paths such as `D:\Games\StarMade` are normalised automatically when the server runs under WSL.
-
----
-
-## Quick start
-
-### Windows
-
-```bat
-start.bat
-```
-
-### Linux / macOS / WSL
+Prérequis : **Node.js 22.16 ou supérieur**, npm, un navigateur WebGL2 et une installation locale de StarMade contenant ses shaders et textures.
 
 ```bash
-./start.sh
-```
-
-The startup scripts will:
-
-1. verify that Node.js and npm are available;
-2. install dependencies if `node_modules` is missing;
-3. build the production server/client if `dist` output is missing;
-4. start the app in production mode;
-5. open the browser at:
-
-```text
-http://localhost:3847
-```
-
-Force a rebuild before starting:
-
-```bash
-./start.sh --rebuild
-```
-
-```bat
-start.bat --rebuild
-```
-
-Use a custom port:
-
-```bash
-PORT=8080 ./start.sh
-```
-
-```bat
-set PORT=8080
-start.bat
-```
-
----
-
-## First launch
-
-On first launch, the app asks for your StarMade installation directory.
-
-Examples:
-
-```text
-D:\Jeux\Steam\steamapps\common\StarMade\
-```
-
-```text
-/mnt/d/Jeux/Steam/steamapps/common/StarMade/
-```
-
-The server resolves nested StarMade folders automatically. A directory is valid when the expected StarMade files such as `data/config/BlockConfig.xml` can be found.
-
-The editor stores its local configuration in:
-
-```text
-SMToolConfig.json
-```
-
----
-
-## Manual development workflow
-
-Install dependencies:
-
-```bash
-npm install
-```
-
-Start the development servers:
-
-```bash
-npm run dev
-```
-
-Development URLs:
-
-```text
-Client: http://localhost:5174
-API:    http://localhost:3847
-```
-
-Build production output:
-
-```bash
+npm ci
 npm run build
-```
-
-Start production server after build:
-
-```bash
 npm start
 ```
 
-Run tests:
+Ouvrir `http://localhost:3847`. Les scripts `./start.sh` et `start.bat` installent les dépendances manquantes, compilent et ouvrent cette adresse. Utiliser `--rebuild` après une mise à jour. Pour choisir un autre port local :
 
 ```bash
-npm test
+PORT=8003 ./start.sh --rebuild
 ```
 
-Check documentation coverage:
+Sous Windows : `set PORT=8003`, puis `start.bat --rebuild`. Le serveur écoute sur l’interface locale. Les réglages sont conservés dans `SMToolConfig.json`, dans le répertoire de lancement.
+
+L’installation doit contenir `data/config/BlockConfig.xml` et `BlockTypes.properties`. Les fichiers personnalisés ne sont pas nécessaires au premier démarrage. Les chemins Windows sont reconnus sous WSL.
+
+## Téléphone et tablette
+
+Sur les écrans étroits, les onglets **Blocs**, **Aperçu** et **Propriétés** donnent accès aux trois panneaux. Le brouillon reste conservé lors du passage d’un panneau à l’autre. L’aperçu se manipule au toucher et les réglages restent accessibles dans l’en-tête. Les sélecteurs d’images défilent dans leur propre fenêtre.
+
+## Édition et sauvegarde
+
+Les définitions vanilla restent intactes : **Save to Custom** crée ou met à jour une surcharge dans `customBlockConfig`. Supprimer cette surcharge réaffiche immédiatement la définition vanilla. StarMade-Decoder conserve les attributs et structures XML inconnus lors des modifications de champs connus.
+
+Chaque écriture conserve une sauvegarde des octets précédents (`.backup-*`) et remplace le fichier par renommage d’un temporaire local. Une révision du catalogue protège contre les modifications concurrentes. En cas de conflit, le brouillon reste disponible : noter les valeurs à conserver, recharger le catalogue, puis **Revert** pour reprendre la dernière définition avant de réappliquer ses changements. Le changement de bloc ou d’installation et la fermeture de la page protègent les brouillons non enregistrés.
+
+L’import d’une texture ou d’une icône écrit immédiatement une image, indépendamment de la sauvegarde de la définition du bloc. Une icône peut être partagée par plusieurs blocs. **Restore original icon** restaure uniquement le slot concerné depuis sa sauvegarde d’origine.
+
+## Rendu et création d’icônes
+
+Le rendu utilise les géométries, orientations, shaders, éclairages et modèles LOD natifs de StarMade-3D. Le style 6 correspond à **Normal, 24 orientations**. Les modes actif/inactif, les épaisseurs, les textures animées et les normal maps suivent les données natives. L’éditeur charge ses ressources depuis l’installation choisie ; les ressources propriétaires du jeu ne sont pas distribuées.
+
+Dans les propriétés du bloc, **Créer depuis le bloc** produit un aperçu PNG transparent de **64 × 64 pixels**. La caméra orthographique reprend l’angle et les marges des icônes de cubes existantes : cube centré sur une empreinte de 48 × 48 pixels. L’orientation et l’état actif choisis dans le visualiseur sont conservés ; la grille et la surbrillance de sélection sont absentes de l’image. **Appliquer l’icône** écrit le slot affiché. **Annuler** abandonne l’aperçu. La vue interactive est restaurée après l’export.
+
+Le sélecteur de textures présente 8 pages de 256 tuiles : pages 0–3 vanilla, pages 4–6 réservées, page 7 personnalisée (IDs 1792–2047). Les couches natives sont chargées séparément pour la 3D. Les normal maps TGA conservent leurs canaux de matériau ; un fichier personnalisé RGB sans canal alpha reçoit un alpha nul, avec un avertissement dans l’aperçu.
+
+## Développement et qualification
 
 ```bash
-npm run docs:check
+npm run dev             # Vite :5174, API locale :3847
+npm run validate        # provenance, documentation, types, tests, couverture et build
+npm audit               # dépendances directes et transitives
 ```
 
----
+La couverture bloque la livraison si **un seul fichier exécutable** de `client/src` ou `server/src` n’atteint pas exactement **100 % des lignes et branches**. Les points d’entrée sont inclus. Le contrôle indépendant refuse les directives d’exclusion et les fichiers absents des rapports. Les rapports HTML et JSON se trouvent dans `client/coverage` et `server/coverage`.
 
-## npm scripts
-
-| Command | Description |
-|---|---|
-| `npm run dev` | Starts the API server and Vite client for development. |
-| `npm run build` | Builds the server and client production output. |
-| `npm start` | Starts the production Express server. |
-| `npm run preview` | Builds then starts the production app. |
-| `npm test` | Runs server and client tests. |
-| `npm run coverage` | Runs coverage for server and client tests. |
-| `npm run docs:check` | Verifies production-source JSDoc coverage. |
-
----
-
-## Project structure
-
-```text
-StarMade-BlockEditor/
-├── start.sh                 # Linux/macOS/WSL startup script
-├── start.bat                # Windows startup script
-├── package.json             # npm workspace scripts
-├── SMToolConfig.json        # local editor configuration
-├── docs/
-│   ├── guide_en.md          # user guide
-│   └── CODEBASE_DOCUMENTATION.md
-├── client/
-│   └── src/
-│       ├── 3d/              # Three.js / React Three Fiber preview
-│       ├── components/      # UI panels, sidebar, editor modals
-│       ├── hooks/           # API loading and mutation hooks
-│       ├── i18n/            # translation dictionaries and locale store
-│       └── store/           # Zustand stores
-└── server/
-    └── src/
-        ├── api/             # config, block, and texture endpoints
-        ├── utils/           # path normalisation helpers
-        └── index.ts         # Express app entry point
-```
-
----
-
-## How saving works
-
-The editor does **not** rewrite the vanilla StarMade `BlockConfig.xml` directly.
-
-When you save a vanilla block, the app creates or updates a custom override in StarMade's custom block configuration. This keeps the original game data intact and makes custom changes easier to back up or remove.
-
-Unknown or advanced XML fields are preserved through `extraProperties` so that loading and saving a block does not silently drop StarMade metadata that the UI does not expose as a first-class field yet.
-
----
-
-## Texture atlas mapping
-
-The StarMade atlas is represented as a 4×2 page grid. Each page contains 16×16 tiles.
-
-| Page | Source | Tile IDs |
-|---|---|---|
-| 0 | `t000.png` | `0–255` |
-| 1 | `t001.png` | `256–511` |
-| 2 | `t002.png` | `512–767` |
-| 3 | `t003.png` | `768–1023` |
-| 4–6 | reserved / empty | `1024–1791` |
-| 7 | `custom.png` | `1792–2047` |
-
-Normal maps use the same layout with the `_NRM` suffix.
-
----
-
-## Documentation
-
-User guides:
-
-- English: [`docs/guide_en.md`](docs/guide_en.md)
-- Français: [`docs/guide_fr.md`](docs/guide_fr.md)
-- Deutsch: [`docs/guide_de.md`](docs/guide_de.md)
-- Español: [`docs/guide_es.md`](docs/guide_es.md)
-- Русский: [`docs/guide_ru.md`](docs/guide_ru.md)
-- 日本語: [`docs/guide_ja.md`](docs/guide_ja.md)
-
-Maintainer documentation:
-
-- Codebase documentation: [`docs/CODEBASE_DOCUMENTATION.md`](docs/CODEBASE_DOCUMENTATION.md)
-- Inline source documentation: JSDoc in `client/src` and `server/src`
-
----
-
-## Production validation checklist
-
-Before packaging or distributing a build, run:
+La recette de livraison utilise une **copie temporaire** des données du jeu, vérifie le navigateur et les sauvegardes, puis contrôle que la source reste inchangée :
 
 ```bash
-npm run docs:check
-npm test
-npm run build
+STARMADE_DIR=/chemin/StarMade CHROMIUM_PATH=/chemin/chromium npm run release:check
 ```
 
-Recommended browser smoke checks:
+Une installation absente fait échouer cette recette ; elle ne produit pas de validation partielle présentée comme complète. Les shaders sont compilés dans un vrai contexte WebGL2. Le rendu a également été qualifié avec Chromium/SwiftShader ; les performances sur GPU matériel dépendent du poste utilisé.
 
-1. App opens and loads the block list.
-2. StarMade directory is detected as valid.
-3. Search and select a vanilla block.
-4. Change a draft field and save as custom.
-5. Reload and confirm persistence.
-6. Open the atlas picker and icon picker.
-7. Toggle light/activation preview on a light-emitting block.
-8. Test a non-cube shape and a Cross/cutout block.
+## Dépendances StarMade
+
+Les SDK ne sont pas publiés sur le registre npm public. Les archives vérifiées sont donc livrées dans `vendor/`, sans lien symbolique vers un dépôt voisin. `vendor/manifest.json` conserve versions, commits source et empreintes SHA-256 ; `npm run vendor:check` vérifie les archives. Le fichier de verrouillage permet une installation reproductible avec `npm ci`.
+
+- StarMade-Decoder : commit `4cb21bd72258c87eb8115f90449a8334c34658a6` (2.0.0).
+- StarMade-3D : commit `bb80c2ebaccf262e944925a807671e67e4e15ac5` (1.0.0).
+
+## Aperçu distant
+
+Un proxy HTTPS peut publier le serveur local. `EDITOR_PUBLIC_ORIGIN` définit l’origine autorisée et `EDITOR_FIXED_STARMADE_DIR` restreint l’éditeur à sa copie de test. L’aperçu demandé est accessible directement sur **https://initsysrev.net:8003/**, sans jeton ni connexion. Le proxy préserve le Host. Voir [la configuration d’aperçu](docs/PREVIEW_DEPLOYMENT.md).
+
+Les résultats et limites de la livraison figurent dans le [rapport de qualification 1.1.0](docs/QUALIFICATION_1.1.0.md). L’audit initial est conservé dans [AUDIT_INTEGRATION_2026-09-23.md](docs/AUDIT_INTEGRATION_2026-09-23.md). Les guides historiques décrivent l’interface 1.0 ; les comportements de sauvegarde, de rendu et d’export de cette page font référence pour la version 1.1.

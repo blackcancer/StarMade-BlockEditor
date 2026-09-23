@@ -13,11 +13,82 @@
 import type { Translations } from './en.js';
 
 const ja: Translations = {
+  mobile: {"navigation": "エディターのパネル", "blocks": "ブロック", "preview": "プレビュー", "properties": "プロパティ"},
+  extraLabel: {
+    MainCombinationController: "主組み合わせコントローラー",
+    SupportCombinationController: "補助組み合わせコントローラー",
+    EffectCombinationController: "効果組み合わせコントローラー",
+    Physical: "物理衝突",
+    CubeCubeCollision: "キューブ同士の衝突",
+    LodCollisionPhysical: "LODの物理衝突",
+    UseDetailedCollisionForAstronautMode: "宇宙飛行士モードの詳細な衝突",
+    Enterable: "進入可能",
+    SensorInput: "センサー入力",
+    DrawLogicConnection: "論理接続を表示",
+    LogicSignaledByRail: "レールの論理信号",
+    LogicBlockButton: "瞬間動作の論理ボタン",
+    Beacon: "ビーコン",
+    StructureHPContribution: "構造耐久値への寄与",
+    SourceReference: "参照元",
+    ReactorHp: "リアクター耐久値",
+    ReactorGeneralIconIndex: "リアクターのアイコン",
+    LowHpSetting: "低耐久値の設定",
+    OldHitpoints: "旧耐久値",
+    SystemBlock: "システムブロック",
+    InventoryGroup: "インベントリのグループ",
+    FullName: "正式名称",
+    WildcardIds: "代替ブロックID",
+  },
+  errors: {
+    textureTile: (value: string) => "テクスチャタイル" + value + "はStarMadeのネイティブアトラスの範囲外です。",
+    numberValue: (value: string) => "" + value + "には有限の数値を指定してください。",
+    textValue: (value: string) => "" + value + "には文字列を指定してください。",
+    booleanValue: (value: string) => "" + value + "には有効または無効を指定してください。",
+    technicalDetails: "技術的な詳細",
+    unknown: "処理を完了できませんでした。再試行するか、エディターを再読み込みしてください。",
+    conflict: "ファイルがエディター外で変更されました。下書きを控えてから「再読み込み」と「元に戻す」を選び、最新の内容を読み込んでから保存してください。",
+    reload: "保存する前にブロック一覧を再読み込みしてください。",
+    configuration: "設定で既存のStarMadeインストール先を選んでください。",
+    configRead: "エディターの設定を読み込み、または保存できませんでした。",
+    catalogue: "ブロック一覧を読み込み、または保存できませんでした。インストール先のファイルを確認してください。",
+    network: "サーバーに接続できません。接続を確認して再試行してください。",
+    permission: "このエディターのセッションでは、この操作は許可されていません。",
+    invalidData: "無効な値があります。保存する前に各項目を確認してください。",
+    image: "画像を読み込めませんでした。形式とサイズを確認してください。",
+    imageMissing: "このインストール先に選択した画像またはアイコンシートがありません。",
+    iconBackup: "このスロットの元のアイコンのバックアップがありません。",
+    nativeShaders: "このインストール先にStarMadeのシェーダーファイルがありません。",
+    nativeTextures: "このパックと解像度のネイティブテクスチャがありません。",
+    nativeLod: "ネイティブモデルのファイルがないか、無効です。",
+    shader: "ネイティブシェーダーをコンパイルできませんでした。プレビューを再読み込みしてください。",
+    context: "グラフィックスの接続が失われました。プレビューを再読み込みしてください。",
+    capture: "アイコンを生成できませんでした。プレビューを再読み込みして再試行してください。",
+    notFound: "選択したブロックは存在しません。一覧を再読み込みしてください。",
+    vanillaDelete: "ゲームの標準ブロックは削除できません。カスタム定義のみ削除できます。",
+    noIds: "新しいカスタムブロックに使用できるIDがありません。",
+    unsafePath: "要求されたファイルは、許可されたインストール先の範囲外にあります。",
+    invalidValue: (value: string) => "" + value + "の値が無効です。",
+    imageDimensions: (value: string) => "必要な画像サイズ：" + value + "。",
+    animationTile: (value: string) => "タイル" + value + "のアニメーションがアトラスページの範囲を超えています。",
+    missingLayer: (value: string) => "選択したインストール先にテクスチャレイヤー" + value + "がありません。",
+    missingModel: (value: string) => "ネイティブモデル" + value + "を読み込めませんでした。",
+    http: (value: string) => "サーバーからHTTP " + value + "が返されました。再試行するか再読み込みしてください。",
+  },
+  warnings: {
+    missingLayer: (value: string) => "テクスチャレイヤー" + value + "がありません。",
+    missingNormal: (value: string) => "マテリアルの法線レイヤー" + value + "がありません。",
+    normalAlpha: (value: string) => "法線レイヤー" + value + "にアルファチャンネルがないため、マテリアルのアルファ値を0に設定します。",
+    overlay: "ネイティブのオーバーレイテクスチャがありません。",
+    lod: "ネイティブLODモデルの定義がありません。",
+    unknown: "一部のプレビュー用リソースが利用できません。",
+  },
+
 
   // ── App shell ──────────────────────────────────────────────────────────────
   app: {
+    settings: "設定",
     title:    '⚙ StarMade ブロックエディター',
-    subtitle: 'v1.0.0',
+    subtitle: 'v1.1.0',
     dirValid:   (name: string) => `✓ ${name}`,
     dirInvalid: '⚠ StarMade ディレクトリが未設定',
     blockCount: (n: number) => `${n} 個のブロック`,
@@ -32,6 +103,7 @@ const ja: Translations = {
 
   // ── Config dialog ──────────────────────────────────────────────────────────
   config: {
+    directoryLabel: "StarMadeのフォルダー",
     title:       '⚙ StarMade ブロックエディター',
     description: 'StarMade のインストールディレクトリのパスを設定して開始してください。',
     placeholder: '例: D:/Games/StarMade/StarMade',
@@ -40,6 +112,7 @@ const ja: Translations = {
 
   // ── Sidebar ────────────────────────────────────────────────────────────────
   sidebar: {
+    discardConfirm: "このブロックの未保存の変更を破棄しますか？",
     searchPlaceholder: '🔍 ブロックを検索…',
     filterVanilla:    (n: number) => `バニラ (${n})`,
     filterCustom:     (n: number) => `カスタム (${n})`,
@@ -51,6 +124,11 @@ const ja: Translations = {
 
   // ── Viewer column ──────────────────────────────────────────────────────────
   viewer: {
+    modelPreview: "アクティブモデルのプレビュー",
+    nativeLoading: "StarMade の描画を読み込み中…",
+    nativeError: (detail: string) => "3D プレビューを利用できません: " + detail,
+    webgl2Required: "このプレビューには WebGL 2 が必要です。",
+    nativeWarnings: (detail: string) => "プレビューのリソース: " + detail,
     emptyHint: 'リストからブロックを選択してプレビューしてください。',
     styleBadge: (name: string, index: number) => `${name} (スタイル ${index})`,
     orientation: '向き',
@@ -59,12 +137,12 @@ const ja: Translations = {
     nextOrientation: '次の向き',
     activationTexturePreview: 'アクティベーションテクスチャプレビュー',
     lightPreview:  'ライトプレビュー',
-    previewOn:  'ON',
-    previewOff: 'OFF',
+    previewOn: '有効',
+    previewOff: '無効',
     toggle: '切り替え',
     toggleTooltip: (label, state) => `${label}: ${state}`,
     activePreviewTooltip:
-      'LightSource または HasActivationTexture のみ表示されます。CanActivate 単独ではテクスチャ状態はありません。',
+      "ブロックに設定された光源、アクティブ状態のテクスチャと LOD モデルを表示します。",
   },
 
   // ── Face selector ──────────────────────────────────────────────────────────
@@ -73,14 +151,15 @@ const ja: Translations = {
     manageatlas:     'カスタムアトラスを管理…',
     hint:            '面をクリックしてテクスチャタイルを変更します。',
     hintAllSame:     ' (全面で同じタイルを共有)',
-    hintGrouped:     ' (3グループ: 前後・上下・側面)',
+    hintGrouped: "（上面、下面、共通の側面4つ）",
     hintIndependent: ' (6面それぞれ独立)',
     hintActivation:  ' 非アクティブプレビューはエンジンのアクティブ状態テクスチャパスと同様に、右隣のタイル (+1) を使用します。',
-    hintAnimated:    ' アニメーションプレビューは 0.5 秒ごとに 4 タイルをサイクルします。',
+    hintAnimated:    " テクスチャのアニメーションは StarMade と同じ動作になります。",
   },
 
   // ── Atlas picker ───────────────────────────────────────────────────────────
   atlasPicker: {
+    closeLabel: "閉じる",
     titlePick:    'テクスチャを選択',
     titleManager: 'カスタムアトラスマネージャー',
     close:        '✕',
@@ -101,6 +180,7 @@ const ja: Translations = {
 
   // ── Icon picker ────────────────────────────────────────────────────────────
   iconPicker: {
+    closeLabel: "閉じる",
     title: '建築アイコン',
     close: '✕',
     hint:  'アイコンをクリックして選択 · Escape で閉じる',
@@ -108,6 +188,13 @@ const ja: Translations = {
 
   // ── Properties panel — general ─────────────────────────────────────────────
   properties: {
+    generateIcon: "ブロックから作成",
+    generatingIcon: "作成中…",
+    applyGeneratedIcon: "アイコンを適用",
+    generatedIconPreview: "作成したアイコンのプレビュー",
+    cancelGeneratedIcon: "キャンセル",
+    iconWriteNotice: "インポートするとゲームのアイコンが置き換わります。復元用のバックアップが保存されます。",
+    restoreIcon: "元のアイコンを復元",
     empty: 'ブロックを選択してプロパティを編集してください。',
     subtitleCustom:  'カスタムブロック',
     subtitleVanilla: 'バニラブロック',
@@ -144,6 +231,9 @@ const ja: Translations = {
 
   // ── Properties panel — field labels & tooltips ─────────────────────────────
   field: {
+    damageHeat: "熱",
+    damageKinetic: "運動",
+    damageEM: "電磁",
     name:        { label: '名前',             tooltip: 'StarMade のインベントリ、ショップ/建築 UI、ブロックリストに表示される名前。' },
     icon:        { label: '建築アイコン',     tooltip: '建築メニューのアイコン。StarMade はアイコンシートに格納されています。カスタムアイコンの場合、正しいシートスロットに書き込みます。' },
     description: { label: '説明',             tooltip: 'StarMade UI/ツールチップでプレイヤーに表示される説明テキスト。' },
@@ -180,7 +270,7 @@ const ja: Translations = {
     transparency:   { label: '透明度',             tooltip: '透明/ブレンドレンダリングを有効にします。' },
     door:           { label: 'ドア',               tooltip: '開閉システムで使用されるドアタイプの動作フラグ。' },
     logicBlock:     { label: 'ロジックブロック',   tooltip: 'ブロックがロジックネットワークに参加するかどうか。' },
-    animated:       { label: 'アニメーション',     tooltip: '真の場合、ブロックのテクスチャは約 0.5 秒ごとに 4 タイルのサイクルを行います。' },
+    animated:       { label: 'アニメーション',     tooltip: "StarMade と同じフレーム順序とタイミングでテクスチャをアニメーション化します。" },
   },
 
   // ── Variant selector ────────────────────────────────────────────────────────
@@ -193,6 +283,8 @@ const ja: Translations = {
 
   // ── Advanced properties editor ─────────────────────────────────────────────
   advanced: {
+    value: "値",
+    count: "個数",
     searchPlaceholder: (n: number) => `${n} 個のプロパティを検索…`,
     clear:        'クリア',
     noProperties: 'BlockConfig の追加プロパティはありません。',
@@ -254,7 +346,7 @@ const ja: Translations = {
   options: {
     indSides: {
       allSame:     '全面同一タイル',
-      grouped:     'グループ面: 前後・上下・側面',
+      grouped:     "面のグループ：上面・下面・共通の側面4つ",
       independent: '各面独立',
     },
     slab: {
@@ -299,7 +391,7 @@ const ja: Translations = {
     cross:  'クロス',
     tetra:  'テトラ',
     penta:  'ペンタ',
-    hepta:  'ヘプタ',
+    hepta:  "立方体（24方向）",
     style:  (n: number) => `スタイル ${n}`,
   },
 
@@ -345,7 +437,7 @@ const ja: Translations = {
     LogicSignaledByRail:'レール/アクティベーターレールの信号がこのブロックのロジック状態を駆動できるようにします。',
     LogicBlockButton: 'このブロックをロジックシステムの瞬間ボタン入力として扱います。',
     Beacon:          'このブロックをビーコンとしてマーク — スキャナーとナビゲーションオーバーレイに表示されます。',
-    ResourceInjection:'ワールド生成のリソース注入モード。オフ = 注入なし; 1 = 鉱石/地形; 2 = 植生。',
+    ResourceInjection:'ワールド生成のリソース注入モード。オフ = 注入なし; 1 = 鉱石/地形; 17 = 植生。',
     ExplosionAbsorbtion:'ダメージシステムで使用される爆発エネルギー吸収係数 (0.0〜1.0+)。',
     StructureHPContribution:'このブロックが船/ステーションの船体に貢献する追加の構造 HP。',
     SourceReference:  'このブロックのソース/親として別のブロックまたはシステムエントリを参照します。',

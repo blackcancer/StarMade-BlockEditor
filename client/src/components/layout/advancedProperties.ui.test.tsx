@@ -3,6 +3,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { BlockDef } from '../../store/blockStore.js';
 import { ExtraPropertiesEditor } from './advancedProperties.js';
 import en from '../../i18n/en.js';
+import fr from '../../i18n/fr.js';
+import { useI18nStore } from '../../i18n/index.js';
 
 const block = (id: number, xmlTypeName = `TYPE_${id}`, name = `${xmlTypeName} -- Block ${id}`): BlockDef => ({
   id,
@@ -46,7 +48,19 @@ const block = (id: number, xmlTypeName = `TYPE_${id}`, name = `${xmlTypeName} --
 const blocks = [block(1, 'METAL'), block(2, 'CRYSTAL')];
 
 describe('ExtraPropertiesEditor UI', () => {
-  afterEach(cleanup);
+  afterEach(() => { cleanup(); useI18nStore.getState().setLocale('en'); });
+
+  it('localizes known XML fields and nested metadata while preserving extension keys and search', () => {
+    useI18nStore.getState().setLocale('fr');
+    render(<ExtraPropertiesEditor value={{ Physical: true, CustomExtension: { '#text': 'a', '@_count': '3' } }} blocks={blocks} onChange={vi.fn()} />);
+    expect(screen.getByText(fr.extraLabel.Physical)).toBeTruthy();
+    expect(screen.getByText(fr.advanced.value)).toBeTruthy();
+    expect(screen.getByText(fr.advanced.count)).toBeTruthy();
+    expect(screen.getByText('CustomExtension')).toBeTruthy();
+    fireEvent.change(screen.getByPlaceholderText(fr.advanced.searchPlaceholder(2)), { target: { value: fr.extraLabel.Physical } });
+    expect(screen.getByText(fr.extraLabel.Physical)).toBeTruthy();
+    expect(screen.queryByText('CustomExtension')).toBeNull();
+  });
 
   it('shows an empty state, filters properties and edits generic other values', () => {
     const onChange = vi.fn();
@@ -55,11 +69,11 @@ describe('ExtraPropertiesEditor UI', () => {
 
     rerender(<ExtraPropertiesEditor value={{ CustomString: 'hello', CustomNumber: 2, CustomBool: true, Nested: { '#text': 'value' } }} blocks={blocks} onChange={onChange} />);
     fireEvent.change(screen.getByPlaceholderText('Search 4 properties…'), { target: { value: 'custom string' } });
-    expect(screen.getByText('Custom String')).toBeTruthy();
+    expect(screen.getByText('CustomString')).toBeTruthy();
 
     fireEvent.change(screen.getByPlaceholderText('Search 4 properties…'), { target: { value: 'nested' } });
     expect(screen.getByText('Nested')).toBeTruthy();
-    expect(screen.queryByText('Custom String')).toBeNull();
+    expect(screen.queryByText('CustomString')).toBeNull();
 
     fireEvent.change(screen.getByPlaceholderText('Search 4 properties…'), { target: { value: 'zzzz' } });
     expect(screen.getByText(en.advanced.noMatch('zzzz'))).toBeTruthy();
@@ -159,9 +173,9 @@ describe('ExtraPropertiesEditor UI', () => {
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ ChamberConfigGroups: { Element: 'GroupA' } }));
     fireEvent.change(selects[3], { target: { value: '2' } });
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ ChamberRoot: 2 }));
-    fireEvent.click(screen.getByText(/Main Combination Controller/).closest('label')!.querySelector('input')!);
+    fireEvent.click(screen.getByText(en.extraLabel.MainCombinationController).closest('label')!.querySelector('input')!);
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ MainCombinationController: true }));
-    fireEvent.click(screen.getByText(/Support Combination Controller/).closest('label')!.querySelector('input')!);
+    fireEvent.click(screen.getByText(en.extraLabel.SupportCombinationController).closest('label')!.querySelector('input')!);
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ SupportCombinationController: true }));
     fireEvent.click(screen.getByText('+ Add controls'));
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ Controlling: { Element: 'METAL' } }));
@@ -181,7 +195,7 @@ describe('ExtraPropertiesEditor UI', () => {
       ExplosionAbsorbtion: 0.1,
     }} blocks={blocks} onChange={onChange} />);
 
-    fireEvent.click(screen.getByText('Physical').closest('label')!.querySelector('input')!);
+    fireEvent.click(screen.getByText(en.extraLabel.Physical).closest('label')!.querySelector('input')!);
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ Physical: true }));
     fireEvent.change(screen.getByDisplayValue('None'), { target: { value: 'BlockType' } });
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ CollisionDefault: { '@_type': 'BlockType', StyleId: 0, '@_slab': '0' } }));
@@ -198,12 +212,42 @@ describe('ExtraPropertiesEditor UI', () => {
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ LodShapeSwitchStyleActive: 'lod-active-new' }));
     fireEvent.change(screen.getByDisplayValue('No active LOD switch'), { target: { value: '1' } });
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ LodActivationAnimationStyle: 1 }));
-    fireEvent.click(screen.getByText(/Sensor Input/).closest('label')!.querySelector('input')!);
+    fireEvent.click(screen.getByText(en.extraLabel.SensorInput).closest('label')!.querySelector('input')!);
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ SensorInput: true }));
-    fireEvent.change(screen.getByDisplayValue('Off'), { target: { value: '2' } });
-    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ ResourceInjection: 2 }));
+    fireEvent.change(screen.getByDisplayValue('Off'), { target: { value: '17' } });
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ ResourceInjection: 17 }));
     fireEvent.change(screen.getByDisplayValue('0.1'), { target: { value: '0.9' } });
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ ExplosionAbsorbtion: 0.9 }));
+  });
+
+  it('edits chamber relationships, capacity and permissions without losing other fields', () => {
+    const onChange = vi.fn();
+    const value = { ChamberRoot: 1, ChamberCapacity: 1.25, ChamberPermission: 8,
+      ChamberConfigGroups: { Element: ['GroupA', 'GroupB'] }, ControlledBy: { Element: 'METAL' }, CustomExtension: 'keep' };
+    render(<ExtraPropertiesEditor value={value} blocks={blocks} onChange={onChange} />);
+    fireEvent.change(screen.getByDisplayValue('1.25'), { target: { value: '2.5' } });
+    expect(onChange).toHaveBeenLastCalledWith({ ...value, ChamberCapacity: 2.5 });
+    fireEvent.change(screen.getByDisplayValue('8'), { target: { value: '9' } });
+    expect(onChange).toHaveBeenLastCalledWith({ ...value, ChamberPermission: 9 });
+    const selects = document.querySelectorAll('.chambers-editor select');
+    fireEvent.change(selects[1], { target: { value: '2' } });
+    expect(onChange).toHaveBeenLastCalledWith({ ...value, ChamberParent: 2 });
+    fireEvent.change(selects[2], { target: { value: '2' } });
+    expect(onChange).toHaveBeenLastCalledWith({ ...value, ChamberUpgradesTo: 2 });
+    fireEvent.click(screen.getByDisplayValue('GroupA').parentElement!.querySelector('button')!);
+    expect(onChange).toHaveBeenLastCalledWith({ ...value, ChamberConfigGroups: { Element: 'GroupB' } });
+    fireEvent.click(screen.getByText(en.advanced.addControlledBy));
+    expect(onChange).toHaveBeenLastCalledWith({ ...value, ControlledBy: { Element: ['METAL', 'METAL'] } });
+  });
+
+  it('shows an existing unknown injection code without silently replacing it with a known mode', () => {
+    const onChange = vi.fn();
+    render(<ExtraPropertiesEditor value={{ ResourceInjection: 2, CustomExtension: 'keep' }} blocks={blocks} onChange={onChange} />);
+    const select = screen.getByDisplayValue('2') as HTMLSelectElement;
+    expect(select.value).toBe('2');
+    expect(onChange).not.toHaveBeenCalled();
+    fireEvent.change(select, { target: { value: '17' } });
+    expect(onChange).toHaveBeenCalledWith({ ResourceInjection: 17, CustomExtension: 'keep' });
   });
 
   it('covers float step, newline textarea, StringElementListEditor multi-item and missing @_count', () => {
@@ -315,7 +359,7 @@ describe('ExtraPropertiesEditor UI', () => {
     // value[key] === null → JSON.stringify(null ?? '') branch (matchesFilter on 'Other' group)
     const searchInput = document.querySelector('.extra-properties-toolbar input')! as HTMLInputElement;
     fireEvent.change(searchInput, { target: { value: 'custom' } });
-    expect(screen.getByText('Custom Null')).toBeTruthy();
+    expect(screen.getByText('CustomNull')).toBeTruthy();
   });
 
   it('covers value.Factory ?? \'\'  and JSON.stringify(undefined ?? \'\') edge branches', () => {
@@ -336,6 +380,6 @@ describe('ExtraPropertiesEditor UI', () => {
     // matchesFilter on 'CustomUndefined' (undefined value) → JSON.stringify(undefined ?? '')
     const searchInput = document.querySelector('.extra-properties-toolbar input')! as HTMLInputElement;
     fireEvent.change(searchInput, { target: { value: 'custom' } });
-    expect(screen.getByText('Custom Undefined')).toBeTruthy();
+    expect(screen.getByText('CustomUndefined')).toBeTruthy();
   });
 });

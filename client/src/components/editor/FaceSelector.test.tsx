@@ -55,7 +55,7 @@ const block = (patch: Partial<BlockDef> = {}): BlockDef => ({
 
 describe('FaceSelector', () => {
   beforeEach(() => {
-    useBlockStore.setState({ draft: null, selectedBlock: null, isDirty: false, highlightFace: -1 });
+    useBlockStore.setState({ draft: null, selectedBlock: null, isDirty: false, highlightFace: -1, orientation: 0 });
   });
   afterEach(cleanup);
 
@@ -75,6 +75,7 @@ describe('FaceSelector', () => {
 
     expect(useBlockStore.getState().draft?.textureId).toEqual([1, 2, 99, 4, 5, 6]);
     expect(screen.queryByRole('dialog')).toBeNull();
+    expect(useBlockStore.getState().highlightFace).toBe(-1);
 
     fireEvent.click(screen.getByTitle('FRONT'));
     expect(useBlockStore.getState().highlightFace).toBe(0);
@@ -94,16 +95,16 @@ describe('FaceSelector', () => {
     render(<FaceSelector />);
     fireEvent.click(screen.getByTitle('BOTTOM'));
     fireEvent.click(screen.getByText('pick-99'));
-    expect(useBlockStore.getState().draft?.textureId).toEqual([1, 2, 99, 99, 5, 6]);
+    expect(useBlockStore.getState().draft?.textureId).toEqual([1, 2, 3, 99, 5, 6]);
   });
 
-  it('covers the right/left face group in 3-side mode and shows block hints', () => {
-    // individualSides=3, face 4 (RIGHT) => group [4,5]
+  it('updates all four lateral faces in 3-side mode and shows block hints', () => {
+    // Native three-side mode shares all four lateral face slots.
     useBlockStore.setState({ draft: block({ individualSides: 3 }), highlightFace: -1 });
     const { unmount } = render(<FaceSelector />);
     fireEvent.click(screen.getByTitle('RIGHT'));
     fireEvent.click(screen.getByText('pick-99'));
-    expect(useBlockStore.getState().draft?.textureId).toEqual([1, 2, 3, 4, 99, 99]);
+    expect(useBlockStore.getState().draft?.textureId).toEqual([99, 99, 3, 4, 99, 99]);
     unmount();
 
     // hasActivationTexture hint
@@ -115,25 +116,25 @@ describe('FaceSelector', () => {
     // animated hint
     useBlockStore.setState({ draft: block({ animated: true }), highlightFace: -1 });
     render(<FaceSelector />);
-    expect(screen.getByText(/Animated preview/)).toBeTruthy();
+    expect(screen.getByText(/same texture animation as StarMade/)).toBeTruthy();
   });
 
-  it('normalises sparse textureId arrays using textureId[0] as fallback', () => {
+  it('expands sparse texture arrays according to the native six-side contract', () => {
     // textureId has only 1 element — missing indices use textureId[0]
     useBlockStore.setState({ draft: block({ individualSides: 6, textureId: [42] }), highlightFace: -1 });
     render(<FaceSelector />);
     fireEvent.click(screen.getByTitle('BACK'));
-    // pickerFace=1 → tileIds[1] = textureId[1] ?? textureId[0] = 42
-    expect(screen.getByRole('dialog').textContent).toContain('selected:42');
+    // Six-side shorthand expands consecutively: back uses 42 + 1.
+    expect(screen.getByRole('dialog').textContent).toContain('selected:43');
   });
 
-  it('falls back to 0 when textureId is completely empty', () => {
+  it('expands an empty six-side array from base tile zero', () => {
     // textureId=[] → tileIds[i] = undefined ?? undefined ?? 0 = 0
     useBlockStore.setState({ draft: block({ individualSides: 6, textureId: [] }), highlightFace: -1 });
     render(<FaceSelector />);
     fireEvent.click(screen.getByTitle('TOP'));
-    // tileIds[2] = textureId[2] ?? textureId[0] ?? 0 = 0
-    expect(screen.getByRole('dialog').textContent).toContain('selected:0');
+    // Native six-side shorthand: top uses base zero + 2.
+    expect(screen.getByRole('dialog').textContent).toContain('selected:2');
   });
 
   it('opens and closes the atlas manager without selecting a face', () => {

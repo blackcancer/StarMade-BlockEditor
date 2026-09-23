@@ -1,37 +1,15 @@
 /**
- * @fileoverview Face selector component — per-face texture tile picker.
- *
- * Renders 6 face buttons (FRONT / BACK / TOP / BOTTOM / RIGHT / LEFT)
- * that map to the StarMade textureId array order:
- *   index 0=FRONT, 1=BACK, 2=TOP, 3=BOTTOM, 4=RIGHT, 5=LEFT.
- *
- * ## Interaction flow
- *  1. User clicks a face button → `openPicker(face)` is called.
- *  2. `pickerFace` is set to the clicked face index.
- *  3. `highlightFace` in the block store is set, causing the 3D viewer to
- *     visually highlight that face (future: rendered face overlay).
- *  4. The `<AtlasPicker>` modal opens with the current tile ID pre-selected.
- *  5. User clicks a tile → `applyTile(tileId)` assigns it to the face.
- *  6. The assignment respects `individualSides` mode:
- *      - `1` — all 6 faces get the same tile.
- *      - `3` — groups: face<2 → [0,1], face<4 → [2,3], else [4,5].
- *      - `6` — only the clicked face is updated.
- *  7. The picker closes and `highlightFace` resets to -1.
- *
- * A "Manage custom atlas…" button opens the AtlasPicker in manager-only mode
- * (no tile selection) so the user can import a custom atlas without changing a face.
- *
- * The hint line below the grid shows the current `individualSides` mode and
- * relevant texture behaviour flags (`hasActivationTexture`, `animated`).
- *
- * @author InitSysRev
- * @version 1.0.0
+ * @fileoverview Edit the six displayed block faces through StarMade's native orientation mapping.
+ * Single-side mode shares all faces; three-side mode separates top, bottom and the four lateral faces.
+ * The native adapter expands sparse texture arrays and maps displayed sides back to stored slots.
+ * Selection highlights the corresponding native surface while the atlas picker is open.
  */
 
 import React, { useState } from 'react';
 import { useBlockStore } from '../../store/blockStore.js';
 import { AtlasPicker } from './AtlasPicker.js';
 import { useT } from '../../i18n/index.js';
+import { assignTexture, selectedTexture } from '../../3d/renderBlock.js';
 
 /**
  * Face labels in textureId array order — localised via useT().
@@ -55,14 +33,12 @@ export function FaceSelector() {
   const draft          = useBlockStore(s => s.draft);
   const updateDraft    = useBlockStore(s => s.updateDraft);
   const highlightFace  = useBlockStore(s => s.highlightFace);
+  const orientation = useBlockStore(s => s.orientation);
   const setHighlightFace = useBlockStore(s => s.setHighlightFace);
   const [pickerFace, setPickerFace] = useState<FaceIndex | null>(null);
   const [atlasManagerOpen, setAtlasManagerOpen] = useState(false);
 
   if (!draft) return null;
-
-  // Current tile IDs — normalise to 6 entries
-  const tileIds: number[] = Array.from({ length: 6 }, (_, i) => draft.textureId[i] ?? draft.textureId[0] ?? 0);
 
   /** Open the atlas picker for a face. */
   const openPicker = (face: FaceIndex) => {
@@ -71,27 +47,14 @@ export function FaceSelector() {
   };
 
   const assignTileToFace = (face: FaceIndex, tileId: number) => {
-    const newIds = [...tileIds];
-
-    // Respect individualSides mode
-    if (draft.individualSides === 1) {
-      newIds.fill(tileId);
-    } else if (draft.individualSides === 3) {
-      // 0=front/back, 1=top/bottom, 2=right/left
-      /* c8 ignore next */
-      const group = face < 2 ? [0, 1] : face < 4 ? [2, 3] : [4, 5];
-      group.forEach(i => { newIds[i] = tileId; });
-    } else {
-      newIds[face] = tileId;
-    }
-
-    updateDraft({ textureId: newIds });
+    updateDraft({ textureId: assignTexture(draft, face, orientation, tileId) });
   };
 
   /** Apply a new tile ID to the selected face. */
   const applyTile = (tileId: number) => {
     assignTileToFace(pickerFace!, tileId);
     setPickerFace(null);
+    setHighlightFace(-1);
   };
 
   return (
@@ -137,7 +100,7 @@ export function FaceSelector() {
 
       {pickerFace !== null && (
         <AtlasPicker
-          selectedTileId={tileIds[pickerFace]}
+          selectedTileId={selectedTexture(draft, pickerFace, orientation)}
           onSelect={applyTile}
           onClose={() => { setPickerFace(null); setHighlightFace(-1); }}
         />

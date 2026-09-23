@@ -46,6 +46,8 @@ import { create } from 'zustand';
  * per-field documentation and source references.
  */
 export interface BlockDef {
+  /** Catalogue revision returned by the server; absent on unsaved local fixtures. */
+  revision?: string;
   /** Numeric block ID (from BlockTypes.properties). */
   id:               number;
   /** Display name (from the `@_name` XML attribute). */
@@ -85,7 +87,7 @@ export interface BlockDef {
   /** Whether the block is marked as obsolete. */
   isDeprecated:     boolean;
   /**
-   * Block mesh shape (0=Cube, 1=Wedge, 2=Corner, 3=Cross, 4=Tetra, 5=Penta, 6=Hepta).
+   * Block mesh shape (0=Cube, 1=Wedge, 2=Corner, 3=Cross, 4=Tetra, 5=Penta, 6=Normal24).
    */
   blockStyle:       number;
   /** Slab thickness (0=full, 1=3/4, 2=1/2, 3=1/4). */
@@ -129,7 +131,7 @@ export interface BlockDef {
   onlyDrawnInBuildMode: boolean;
   /** LOD mesh reference used at distance (0 = none). */
   lodShapeFromFar:  number;
-  /** Animated texture — cycles 4 tiles at ~0.5s intervals. */
+  /** Animated texture — frame selection and timing follow the native StarMade shader. */
   animated:         boolean;
   /**
    * All remaining BlockConfig.xml fields not mapped to named properties.
@@ -171,6 +173,16 @@ export interface BlockFilter {
  * Grouped into logical sections for clarity.
  */
 interface BlockStore {
+  /** Refresh all icon consumers after an image slot is imported or restored. */
+  iconRevision: number;
+  /** Distinguish continued typing from leaving and returning to the same block during a save. */
+  selectionVersion: number;
+  /** Native PNG export for the current draft, available after the renderer is ready. */
+  captureIcon: (() => Promise<Blob>) | null;
+  /** ETag of the currently loaded complete catalogue. */
+  catalogRevision: string | null;
+  /** A mutation is in flight; duplicate writes are ignored. */
+  saving: boolean;
 
   // ── Block list ─────────────────────────────────────────────────────────────
 
@@ -274,14 +286,20 @@ interface BlockStore {
 export const useBlockStore = create<BlockStore>((set, get) => ({
 
   // ── Block list ─────────────────────────────────────────────────────────────
+  catalogRevision: null,
+  saving: false,
+  iconRevision: 0,
+  captureIcon: null,
   blocks:    [],
   setBlocks: (blocks) => set({ blocks }),
 
   // ── Selection ──────────────────────────────────────────────────────────────
+  selectionVersion: 0,
   selectedBlock: null,
   selectBlock:   (block) => set({
+    selectionVersion: get().selectionVersion + 1,
     selectedBlock: block,
-    draft:         block ? { ...block } : null, // Clone to avoid aliasing.
+    draft:         block ? structuredClone(block) : null, // Clone to avoid aliasing.
     isDirty:       false,
     previewActive: true, // Always reset to active state on selection.
   }),

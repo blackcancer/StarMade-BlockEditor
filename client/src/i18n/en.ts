@@ -11,11 +11,82 @@
  */
 
 const en = {
+  mobile: {"navigation": "Editor panels", "blocks": "Blocks", "preview": "Preview", "properties": "Properties"},
+  extraLabel: {
+    MainCombinationController: "Main combination controller",
+    SupportCombinationController: "Support combination controller",
+    EffectCombinationController: "Effect combination controller",
+    Physical: "Physical collision",
+    CubeCubeCollision: "Cube-to-cube collision",
+    LodCollisionPhysical: "Physical LOD collision",
+    UseDetailedCollisionForAstronautMode: "Detailed astronaut collision",
+    Enterable: "Can be entered",
+    SensorInput: "Sensor input",
+    DrawLogicConnection: "Show logic connections",
+    LogicSignaledByRail: "Rail logic signal",
+    LogicBlockButton: "Momentary logic button",
+    Beacon: "Beacon",
+    StructureHPContribution: "Structure HP contribution",
+    SourceReference: "Source reference",
+    ReactorHp: "Reactor HP",
+    ReactorGeneralIconIndex: "Reactor icon",
+    LowHpSetting: "Low HP setting",
+    OldHitpoints: "Legacy hitpoints",
+    SystemBlock: "System block",
+    InventoryGroup: "Inventory group",
+    FullName: "Full name",
+    WildcardIds: "Alternative block IDs",
+  },
+  errors: {
+    textureTile: (value: string) => "Texture tile " + value + " is outside the native StarMade atlas.",
+    numberValue: (value: string) => "" + value + " must be a finite number.",
+    textValue: (value: string) => "" + value + " must be text.",
+    booleanValue: (value: string) => "" + value + " must be enabled or disabled.",
+    technicalDetails: "Technical details",
+    unknown: "The operation could not be completed. Retry or reload the editor.",
+    conflict: "The files changed outside this editor. Keep a copy of your draft, then Reload and Revert to load the current version before saving.",
+    reload: "Reload the block catalogue before saving.",
+    configuration: "Choose an existing StarMade installation in Settings.",
+    configRead: "The editor settings could not be read or saved.",
+    catalogue: "The block catalogue could not be read or saved. Check the installation files.",
+    network: "The server could not be reached. Check the connection and retry.",
+    permission: "This operation is not permitted in this editor session.",
+    invalidData: "Some values are invalid. Check the fields before saving.",
+    image: "The image could not be loaded. Check its format and dimensions.",
+    imageMissing: "The selected image or icon sheet is missing from this installation.",
+    iconBackup: "No original icon backup is available for this slot.",
+    nativeShaders: "The StarMade shader files are missing from this installation.",
+    nativeTextures: "No native textures are available for this pack and resolution.",
+    nativeLod: "The native model files are missing or invalid.",
+    shader: "The native shader could not compile. Reload the preview.",
+    context: "The graphics context was lost. Reload the preview.",
+    capture: "The icon could not be generated. Reload the preview and retry.",
+    notFound: "The selected block no longer exists. Reload the catalogue.",
+    vanillaDelete: "Original game blocks cannot be deleted. Only custom definitions can be removed.",
+    noIds: "No free block identifier remains for a new custom block.",
+    unsafePath: "The requested file is outside the permitted installation files.",
+    invalidValue: (value: string) => "Invalid value for " + value + ".",
+    imageDimensions: (value: string) => "Expected image dimensions: " + value + ".",
+    animationTile: (value: string) => "The animation at tile " + value + " exceeds its atlas page.",
+    missingLayer: (value: string) => "Texture layer " + value + " is missing from the selected installation.",
+    missingModel: (value: string) => "The native model " + value + " could not be loaded.",
+    http: (value: string) => "The server returned HTTP " + value + ". Retry or reload.",
+  },
+  warnings: {
+    missingLayer: (value: string) => "Texture layer " + value + " is missing.",
+    missingNormal: (value: string) => "Normal material layer " + value + " is missing.",
+    normalAlpha: (value: string) => "Normal layer " + value + " has no alpha channel; material alpha is set to zero.",
+    overlay: "The native overlay texture is missing.",
+    lod: "Native LOD model declarations are missing.",
+    unknown: "Some preview resources are unavailable.",
+  },
+
 
   // ── App shell ──────────────────────────────────────────────────────────────
   app: {
+    settings: "Settings",
     title:    '⚙ StarMade Block Editor',
-    subtitle: 'v1.0.0',
+    subtitle: 'v1.1.0',
     /** Shown in the header path indicator when the directory is valid. */
     dirValid: (name: string) => `✓ ${name}`,
     /** Shown in the header path indicator when no directory is configured. */
@@ -33,6 +104,7 @@ const en = {
 
   // ── Config dialog (first-run overlay) ──────────────────────────────────────
   config: {
+    directoryLabel: "StarMade directory",
     title:       '⚙ StarMade Block Editor',
     description: 'Set the path to your StarMade installation directory to get started.',
     placeholder: 'e.g. D:/Games/StarMade/StarMade',
@@ -41,6 +113,7 @@ const en = {
 
   // ── Sidebar ────────────────────────────────────────────────────────────────
   sidebar: {
+    discardConfirm: "Discard unsaved changes to this block?",
     searchPlaceholder: '🔍 Search block…',
     filterVanilla:   (n: number) => `Vanilla (${n})`,
     filterCustom:    (n: number) => `Custom (${n})`,
@@ -52,6 +125,11 @@ const en = {
 
   // ── Viewer column ──────────────────────────────────────────────────────────
   viewer: {
+    modelPreview: "Active model preview",
+    nativeLoading: "Loading StarMade renderer…",
+    nativeError: (detail: string) => "3D preview unavailable: " + detail,
+    webgl2Required: "This preview requires WebGL 2.",
+    nativeWarnings: (detail: string) => "Preview resources: " + detail,
     emptyHint: 'Select a block from the list to preview it.',
     /** "Cube (style 0)" badge */
     styleBadge: (name: string, index: number) => `${name} (style ${index})`,
@@ -70,7 +148,7 @@ const en = {
     toggleTooltip: (label: string, state: string) => `${label}: ${state}`,
     /** Tooltip on the active-state label */
     activePreviewTooltip:
-      'Shown only for LightSource or HasActivationTexture. CanActivate alone has no texture state.',
+      "Preview light, activation textures and active LOD models when the block defines them.",
   },
 
   // ── Face selector ──────────────────────────────────────────────────────────
@@ -79,14 +157,15 @@ const en = {
     manageatlas:    'Manage custom atlas…',
     hint:           'Click a face to change its texture tile.',
     hintAllSame:    ' (All faces share one tile)',
-    hintGrouped:    ' (3-group: front/back · top/bottom · sides)',
+    hintGrouped: " (Top, bottom and four shared sides)",
     hintIndependent:' (6 independent faces)',
     hintActivation: ' Inactive preview uses the tile immediately to the right (+1), like the engine active-state texture path.',
-    hintAnimated:   ' Animated preview cycles a 4-tile texture range every 0.5s.',
+    hintAnimated:   " Uses the same texture animation as StarMade.",
   },
 
   // ── Atlas picker ───────────────────────────────────────────────────────────
   atlasPicker: {
+    closeLabel: "Close",
     titlePick:    'Pick texture',
     titleManager: 'Custom atlas manager',
     close:        '✕',
@@ -108,6 +187,7 @@ const en = {
 
   // ── Icon picker ────────────────────────────────────────────────────────────
   iconPicker: {
+    closeLabel: "Close",
     title: 'Build Icons',
     close: '✕',
     hint:  'Click an icon to select · Escape to close',
@@ -115,6 +195,13 @@ const en = {
 
   // ── Properties panel — general ─────────────────────────────────────────────
   properties: {
+    generateIcon: "Generate from block",
+    generatingIcon: "Generating…",
+    applyGeneratedIcon: "Apply icon",
+    generatedIconPreview: "Generated icon preview",
+    cancelGeneratedIcon: "Cancel",
+    iconWriteNotice: "Import replaces the game icon. A backup is kept so you can restore it.",
+    restoreIcon: "Restore original icon",
     empty: 'Select a block to edit its properties.',
     /** "Custom block" / "Vanilla block" in the subtitle line */
     subtitleCustom:  'Custom block',
@@ -156,6 +243,9 @@ const en = {
 
   // ── Properties panel — field labels & tooltips ─────────────────────────────
   field: {
+    damageHeat: "Heat",
+    damageKinetic: "Kinetic",
+    damageEM: "EM",
     name:        { label: 'Name',        tooltip: 'Display name shown by StarMade in inventories, shop/build UI and block lists.' },
     icon:        { label: 'Build icon',  tooltip: 'Inventory/build-menu icon. StarMade stores these in build-icons sheets; this picker writes the correct sheet slot for custom icons.' },
     description: { label: 'Description', tooltip: 'Description text shown to players in StarMade UI/tooltips.' },
@@ -192,7 +282,7 @@ const en = {
     transparency:   { label: 'Transparency', tooltip: 'Enables transparent/blended rendering.' },
     door:           { label: 'Door',         tooltip: 'Door-type behaviour flag used by opening/closing systems.' },
     logicBlock:     { label: 'Logic block',  tooltip: 'Whether the block participates in the logic network.' },
-    animated:       { label: 'Animated',     tooltip: 'When true the block texture cycles through a range of 4 tiles at ~0.5s intervals.' },
+    animated:       { label: 'Animated',     tooltip: "Animates textures with the frame sequence and timing used by StarMade." },
   },
 
   // ── Variant selector ────────────────────────────────────────────────────────
@@ -205,7 +295,9 @@ const en = {
 
   // ── Advanced properties editor ─────────────────────────────────────────────
   advanced: {
-    searchPlaceholder: (n: number) => `Search ${n} properties…`,
+    value: "Value",
+    count: "Count",
+    searchPlaceholder: (n: number) => `Search ${n} ${n === 1 ? 'property' : 'properties'}…`,
     clear:       'Clear',
     noProperties:'No additional BlockConfig properties.',
     noMatch:     (q: string) => `No property matches "${q}".`,
@@ -273,7 +365,7 @@ const en = {
   options: {
     indSides: {
       allSame:  'All faces same tile',
-      grouped:  'Grouped faces: front/back · top/bottom · sides',
+      grouped:  "Grouped faces: top · bottom · four shared sides",
       independent: 'Each face independent',
     },
     slab: {
@@ -318,7 +410,7 @@ const en = {
     cross:  'Cross',
     tetra:  'Tetra',
     penta:  'Penta',
-    hepta:  'Hepta',
+    hepta:  "Cube (24 orientations)",
     style:  (n: number) => `Style ${n}`,
   },
 
@@ -364,7 +456,7 @@ const en = {
     LogicSignaledByRail:'Allows rail/activator rail signals to drive the logic state of this block.',
     LogicBlockButton: 'Treats this block as a momentary button input in the logic system.',
     Beacon:           'Marks this block as a beacon — visible on scanners and navigation overlays.',
-    ResourceInjection:'Resource injection mode for world generation. Off = no injection; 1 = ore/terrain; 2 = flora.',
+    ResourceInjection:'Resource injection mode for world generation. Off = no injection; 1 = ore/terrain; 17 = flora.',
     ExplosionAbsorbtion:'Explosion energy absorption factor used by the damage system (0.0–1.0+).',
     StructureHPContribution:'Additional structure hit points contributed by this block to the ship/station hull.',
     SourceReference:  'References another block or system entry as the source/parent of this block.',

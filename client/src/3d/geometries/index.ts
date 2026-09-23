@@ -1,84 +1,19 @@
-/**
- * @fileoverview Block geometry factory.
- *
- * Central dispatch: given a blockStyle (0–5) and texture IDs,
- * returns the appropriate THREE.BufferGeometry.
- *
- * BlockStyle mapping (from BlockConfig.xml + starmade_gl.js):
- *   0 = Cube    (most blocks)
- *   1 = Wedge   (sloped/roof)
- *   2 = Corner  (L-corner)
- *   3 = Cross   (flora, double-plane)
- *   4 = Tetra   (tetrahedron)
- *   5 = Penta   (pentagon prism)
- *   6 = Hepta   (treated as Cube for now — rare hull variant)
- *
- * @author InitSysRev
- * @version 1.0.0
- */
-
-import * as THREE from 'three';
-import { makeCubeGeometry }         from './CubeGeom.js';
-import { makeWedgeGeometry }        from './WedgeGeom.js';
-import { makeCornerGeometry }       from './CornerGeom.js';
-import { makeCrossGeometry }        from './CrossGeom.js';
-import { makeTetraGeometry, makePentaGeometry } from './TetraPentaGeom.js';
-
-export { ATLAS_COLS, ATLAS_ROWS, PAGE_COLS, PAGE_ROWS, PAGE_TILES, PAGE_GRID_COLS, PAGE_GRID_ROWS, tileUV, quadUVs } from './uvUtils.js';
-
-/**
- * Build the Three.js BufferGeometry for a StarMade block.
- *
- * @param {number} blockStyle    Block shape style (0–5 from BlockConfig).
- * @param {number[]} textureIds  6 atlas tile IDs [front, back, top, bottom, right, left].
- * @param {number} individualSides UV mapping mode (1=all same, 3=top/bottom diff, 6=all diff).
- * @returns {THREE.BufferGeometry} Geometry ready for use with a textured material.
- */
-export function makeBlockGeometry(
-  blockStyle:      number,
-  textureIds:      number[],
-  individualSides: number = 1,
-): THREE.BufferGeometry {
-  switch (blockStyle) {
-    case 1: return makeWedgeGeometry(textureIds);
-    case 2: return makeCornerGeometry(textureIds);
-    case 3: return makeCrossGeometry(textureIds);
-    case 4: return makeTetraGeometry(textureIds);
-    case 5: return makePentaGeometry(textureIds);
-    default:
-      // Cube (0) + Hepta (6) + unknown
-      return makeCubeGeometry(textureIds, individualSides);
-  }
-}
-
-/**
- * Whether a block style requires a DoubleSide material.
- *
- * @param {number} blockStyle Block style.
- * @returns {boolean} True for Cross (style 3).
- */
-export function needsDoubleSide(blockStyle: number): boolean {
-  return blockStyle === 3;
-}
-
-/**
- * Return a readable geometry-family name for a StarMade `BlockStyle` value.
- *
- * The label is used by tests, diagnostics, and preview controls where raw numeric IDs would be unclear. Unknown values intentionally fall back to `Cube`, matching the renderer fallback used by `makeBlockGeometry`.
- *
- * @param style Raw `BlockStyle` value from BlockConfig.
- * @returns Human-readable shape label.
- */
-
-export function blockStyleName(blockStyle: number): string {
-  switch (blockStyle) {
-    case 0: return 'Cube';
-    case 1: return 'Wedge';
-    case 2: return 'Corner';
-    case 3: return 'Cross';
-    case 4: return 'Tetra';
-    case 5: return 'Penta';
-    case 6: return 'Hepta';
-    default: return `Style ${blockStyle}`;
-  }
+/** @fileoverview Atlas picker coordinates and native style names; geometry is supplied by StarMade-3D. */
+/** Native texture page columns in the picker composite. */
+export const PAGE_GRID_COLS = 4;
+/** Native texture page rows in the picker composite. */
+export const PAGE_GRID_ROWS = 2;
+/** Tile columns in one native texture page. */
+export const PAGE_COLS = 16;
+/** Tile rows in one native texture page. */
+export const PAGE_ROWS = 16;
+/** Number of tiles in each native texture page. */
+export const PAGE_TILES = 256;
+/** Tile columns in the picker composite. */
+export const ATLAS_COLS = 64;
+/** Tile rows in the picker composite. */
+export const ATLAS_ROWS = 32;
+/** Return a diagnostic label for the native shape style. */
+export function blockStyleName(style: number): string {
+  return ['Cube', 'Wedge', 'Corner', 'Cross', 'Tetra', 'Penta', 'Normal24'][style] ?? `Style ${style}`;
 }

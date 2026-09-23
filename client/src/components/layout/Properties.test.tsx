@@ -1,6 +1,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useBlockStore, type BlockDef } from '../../store/blockStore.js';
+import { useI18nStore } from '../../i18n/index.js';
 import { Properties } from './Properties.js';
 
 const mocks = vi.hoisted(() => ({
@@ -12,14 +13,8 @@ vi.mock('../../hooks/useApi.js', () => ({
   useSaveBlock: () => ({ save: mocks.save }),
   useDeleteBlock: () => ({ deleteBlock: mocks.deleteBlock }),
 }));
-vi.mock('../editor/IconPicker.js', () => ({
-  IconPicker: ({ selectedIconId, onSelect, onClose }: { selectedIconId: number; onSelect: (id: number) => void; onClose: () => void }) => (
-    <div role="dialog" aria-label="icon-picker">
-      <span>icon:{selectedIconId}</span>
-      <button onClick={() => onSelect(77)}>pick-icon-77</button>
-      <button onClick={onClose}>close-icon-picker</button>
-    </div>
-  ),
+vi.mock('../editor/IconField.js', () => ({
+  IconField: ({ icon, onChange }: { icon: number; onChange: (icon: number) => void }) => <input type="number" value={icon} onChange={event => onChange(+event.target.value)} />,
 }));
 vi.mock('./advancedProperties.js', () => ({
   ExtraPropertiesEditor: ({ onChange }: { onChange: (value: Record<string, unknown>) => void }) => (
@@ -73,12 +68,13 @@ function seed(draft: BlockDef, blocks: BlockDef[] = [draft, block({ id: 2, name:
     selectedBlock: draft,
     draft: { ...draft },
     isDirty: false,
-    error: null,
+    error: null, saving: false,
   });
 }
 
 describe('Properties', () => {
   beforeEach(() => {
+    useI18nStore.getState().setLocale('en');
     vi.clearAllMocks();
     vi.stubGlobal('fetch', vi.fn());
     vi.stubGlobal('alert', vi.fn());
@@ -255,62 +251,6 @@ describe('Properties', () => {
     expect(useBlockStore.getState().draft?.lodShapeFromFar).toBe(9);
   });
 
-  it('opens the icon picker, imports icons and reports import failures', async () => {
-    seed(block({ isCustom: true }));
-    vi.mocked(fetch)
-      .mockResolvedValueOnce({ ok: true, text: async () => 'ok' } as Response)
-      .mockResolvedValueOnce({ ok: false, text: async () => 'bad image' } as Response);
-    render(<Properties />);
-
-    fireEvent.click(screen.getByTitle('Pick build icon'));
-    expect(screen.getByRole('dialog').textContent).toContain('icon:10');
-    fireEvent.click(screen.getByText('close-icon-picker'));
-    expect(screen.queryByRole('dialog')).toBeNull();
-
-    fireEvent.click(screen.getByText('Pick…'));
-    expect(screen.getByRole('dialog').textContent).toContain('icon:10');
-    fireEvent.click(screen.getByText('pick-icon-77'));
-    expect(useBlockStore.getState().draft?.icon).toBe(77);
-
-    const input = document.querySelector('input[type="file"]')!;
-    fireEvent.change(input, { target: { files: [] } });
-    expect(fetch).not.toHaveBeenCalled();
-    const file = new File(['icon'], 'icon.png', { type: 'image/png' });
-    fireEvent.change(input, { target: { files: [file] } });
-    await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/textures/icon/77', expect.objectContaining({ method: 'PUT', body: file })));
-
-    fireEvent.change(input, { target: { files: [file] } });
-    await waitFor(() => expect(alert).toHaveBeenCalledWith(expect.stringContaining('Icon import failed: Error: bad image')));
-  });
-
-  it('shows Importing… label while icon upload is in flight', async () => {
-    seed(block({ isCustom: true }));
-    let resolveImport!: (r: Response) => void;
-    vi.mocked(fetch).mockReturnValueOnce(new Promise(res => { resolveImport = res; }));
-    render(<Properties />);
-
-    // Click the Import… button — it triggers iconFileRef.current?.click() (covers ?. branch)
-    const clickSpy = vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(() => {});
-    fireEvent.click(screen.getByText('Import…'));
-    expect(clickSpy).toHaveBeenCalled();
-    clickSpy.mockRestore();
-
-    const input = document.querySelector('input[type="file"]')!;
-    // File without type → file.type = '' → 'application/octet-stream' branch (line 72)
-    const file = new File(['icon'], 'icon.bin', { type: '' });
-    await act(async () => {
-      fireEvent.change(input, { target: { files: [file] } });
-    });
-    // While fetch is pending the button should read 'Importing…'
-    expect(screen.getByText('Importing…')).toBeTruthy();
-    expect(screen.getByText('Importing…').closest('button')?.disabled).toBe(true);
-    // Resolve so the component can clean up
-    await act(async () => {
-      resolveImport({ ok: true, text: async () => 'ok' } as Response);
-    });
-    expect(screen.getByText('Import…')).toBeTruthy();
-  });
-
   it('saves, reverts and deletes custom blocks with confirmation', () => {
     const original = block({ isCustom: true, name: 'Custom Hull' });
     seed(original);
@@ -338,4 +278,28 @@ describe('Properties', () => {
     fireEvent.click(screen.getByText('🗑 Delete'));
     expect(mocks.deleteBlock).not.toHaveBeenCalled();
   });
+  it('updates and removes both variant lists through their controls', () => {
+    seed(block({ slabIds: [2], styleIds: [3] }), [block(), block({ id: 2, name: 'Second' }), block({ id: 3, name: 'Third' }), block({ id: 4, name: 'Fourth' })]);
+    render(<Properties />);
+    const selects = document.querySelectorAll('.variant-selector select');
+    fireEvent.change(selects[0], { target: { value: '4' } }); expect(useBlockStore.getState().draft?.slabIds).toEqual([2, 4]);
+    fireEvent.change(selects[1], { target: { value: '4' } }); expect(useBlockStore.getState().draft?.styleIds).toEqual([3, 4]);
+    fireEvent.click(screen.getByText('Third ×')); expect(useBlockStore.getState().draft?.styleIds).toEqual([4]);
+    fireEvent.click(screen.getByText('Second ×')); expect(useBlockStore.getState().draft?.slabIds).toEqual([4]);
+  });
+  it('disables write and revert controls while a save is in flight', () => {
+    seed(block({ isCustom: true })); useBlockStore.setState({ saving: true, isDirty: true }); render(<Properties />);
+    for (const selector of ['.btn-save', '.btn-delete', '.btn-revert']) expect((document.querySelector(selector) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('translates actionable errors and damage labels while keeping XML field keys unchanged', () => {
+    useI18nStore.getState().setLocale('fr'); seed(block());
+    useBlockStore.setState({ error: 'The file changed. Reload before saving.' }); render(<Properties />);
+    expect(screen.getByRole('alert').textContent).toContain('Les fichiers ont changé'); expect(document.querySelector('.properties-error details')).toBeNull();
+    const heat = screen.getByText('Chaleur').closest('label')!.querySelector('input')!;
+    fireEvent.change(heat, { target: { value: '0.45' } }); expect(useBlockStore.getState().draft?.effectArmor.Heat).toBe(0.45);
+    expect(screen.getByText('Cinétique')).toBeTruthy();
+    act(() => useI18nStore.getState().setLocale('en')); expect(screen.getByRole('alert').textContent).toContain('The files changed');
+  });
+
 });

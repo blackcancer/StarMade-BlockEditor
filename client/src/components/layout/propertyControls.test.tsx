@@ -52,6 +52,18 @@ describe('propertyControls', () => {
     expect(screen.getByText('Hitpoints').getAttribute('title')).toBe('HP tooltip');
     expect(screen.getByLabelText('HP tooltip')).toBeTruthy();
     expect(screen.getByLabelText('hp')).toBeTruthy();
+    const help = screen.getByRole('button', { name: 'HP tooltip' });
+    expect(help.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(help); expect(screen.getByRole('tooltip').textContent).toBe('HP tooltip');
+    fireEvent.keyDown(help, { key: 'Enter' }); expect(screen.getByRole('tooltip')).toBeTruthy();
+    fireEvent.keyDown(help, { key: 'Escape' }); expect(screen.queryByRole('tooltip')).toBeNull();
+    fireEvent.click(help); fireEvent.click(help); expect(help.getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('does not offer empty field guidance', () => {
+    render(<Field label="Name"><input aria-label="name" /></Field>);
+    expect(screen.queryByRole('button')).toBeNull();
+    expect(screen.queryByRole('tooltip', { hidden: true })).toBeNull();
   });
 
   it('adds and removes variant ids while preventing duplicates/empty values', () => {
@@ -74,7 +86,9 @@ describe('propertyControls', () => {
   });
 
   it('renders empty/unknown variant states', () => {
-    render(<VariantSelector ids={[99]} options={blocks} onChange={vi.fn()} />);
+    const { rerender } = render(<VariantSelector ids={[]} options={blocks} onChange={vi.fn()} />);
+    expect(screen.getByText('No variants')).toBeTruthy();
+    rerender(<VariantSelector ids={[99]} options={blocks} onChange={vi.fn()} />);
     expect(screen.getByText(/Unknown block ×/)).toBeTruthy();
   });
 

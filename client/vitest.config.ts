@@ -5,16 +5,17 @@ import { resolve } from 'path';
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    alias: { '@': resolve(__dirname, 'src') },
+    alias: { '@': resolve(import.meta.dirname, 'src') },
   },
   test: {
     environment: 'jsdom',
     include: ['src/**/*.test.{ts,tsx}'],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'html'],
+      reporter: ['text-summary', 'html', 'json', 'json-summary'],
+      thresholds: { perFile: true, lines: 100, branches: 100 },
       include: ['src/**/*.{ts,tsx}'],
-      exclude: ['src/**/*.test.{ts,tsx}', 'src/main.tsx'],
+      exclude: ['src/**/*.test.{ts,tsx}'],
     },
   },
 });

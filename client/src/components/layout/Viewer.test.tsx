@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useBlockStore, type BlockDef } from '../../store/blockStore.js';
 import { ViewerColumn } from './Viewer.js';
 
-vi.mock('../../3d/BlockViewer.js', () => ({ BlockViewer: () => <div data-testid="block-viewer" /> }));
+vi.mock('../../3d/BlockViewer.js', () => ({ BlockViewer: ({ visible }: { visible: boolean }) => <div data-testid="block-viewer" data-visible={String(visible)} /> }));
 vi.mock('../editor/FaceSelector.js', () => ({ FaceSelector: () => <div data-testid="face-selector" /> }));
 
 const block = (patch: Partial<BlockDef> = {}): BlockDef => ({
@@ -57,6 +57,12 @@ describe('ViewerColumn', () => {
     expect(screen.getByTestId('block-viewer')).toBeTruthy();
     expect(screen.getByText('Select a block from the list to preview it.')).toBeTruthy();
     expect(screen.queryByTestId('face-selector')).toBeNull();
+  });
+  it('passes mobile visibility to the native viewport', () => {
+    const view = render(<ViewerColumn visible={false} />);
+    expect(screen.getByTestId('block-viewer').dataset.visible).toBe('false');
+    view.rerender(<ViewerColumn />);
+    expect(screen.getByTestId('block-viewer').dataset.visible).toBe('true');
   });
 
   it('renders style, face selector and orientation controls for a draft', () => {
@@ -112,5 +118,19 @@ describe('ViewerColumn', () => {
     expect(lightBtn.textContent).toContain('OFF');
     fireEvent.click(lightBtn);
     expect(useBlockStore.getState().previewActive).toBe(true);
+  });
+
+  it.each([[3, 6], [4, 8], [5, 8], [6, 24]])('provides every native orientation for style %i', (blockStyle, count) => {
+    useBlockStore.setState({ draft: block({ blockStyle }), orientation: 0 });
+    render(<ViewerColumn />);
+    expect(screen.getAllByRole('option')).toHaveLength(count);
+  });
+
+  it('labels the active LOD switch as a model preview', () => {
+    useBlockStore.setState({ draft: block({ extraProperties: { LodShapeSwitchStyleActive: 'activation' } }) });
+    render(<ViewerColumn />);
+    const toggle = screen.getByRole('button', { name: /Active model preview/ });
+    fireEvent.click(toggle);
+    expect(useBlockStore.getState().previewActive).toBe(false);
   });
 });

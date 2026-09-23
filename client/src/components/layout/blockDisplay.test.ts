@@ -9,6 +9,17 @@ const block = (partial: Partial<Parameters<typeof displayBlockName>[0]>): Parame
 });
 
 describe('block display helpers', () => {
+  beforeEach(() => invalidateDisplayNameCache());
+
+  it('keeps a readable fallback when a human label is absent after the separator', () => {
+    expect(displayBlockName(block({ name: 'POWER_CELL --', xmlTypeName: 'POWER_CELL' }))).toBe('Power Cell');
+    expect(displayBlockName(block({ id: 7, name: '--', xmlTypeName: '' }))).toBe('7');
+  });
+
+  it('handles missing optional source names and keeps unrelated labels verbatim', () => {
+    expect(displayBlockName(block({ id: 8, name: undefined, xmlTypeName: undefined }))).toBe('8');
+    expect(displayBlockName(block({ name: ' My label ', xmlTypeName: 'TYPE' }))).toBe('My label');
+  });
   it('hides XML prefixes from block display names', () => {
     expect(displayBlockName(block({ xmlTypeName: 'METAL_MESH', name: 'METAL_MESH -- Metal mesh' }))).toBe('Metal mesh');
     expect(displayBlockName(block({ xmlTypeName: 'HULL_COLOR_GREY', name: 'HULL_COLOR_GREY: Grey Hull' }))).toBe('Grey Hull');

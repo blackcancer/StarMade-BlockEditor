@@ -7,6 +7,17 @@ Ce projet suit le [Versionnage Sémantique](https://semver.org/lang/fr/).
 
 ---
 
+## [1.1.0] — 2026-09-23
+
+- Intégration de StarMade-Decoder 2.0.0 et StarMade-3D 1.0.0, archives locales vérifiées et verrouillées.
+- Rendu natif des sept styles, orientations, slabs, animations, lumières, transparence et modèles LOD activables.
+- Génération d’icônes PNG64×64 orthographiques, cadrées sur les cubes existants, avec aperçu avant application et restauration du slot original.
+- Interface mobile et tablette à trois onglets, commandes tactiles, dialogues accessibles et brouillons conservés lors de la navigation.
+- Traductions complétées dans les six langues, y compris les messages d’erreur, les avertissements du rendu et les propriétés avancées.
+- Conservation des attributs/XML inconnus, sauvegardes atomiques avec backups, ETag obligatoire et refus des écritures concurrentes obsolètes.
+- Protection des brouillons et des réponses asynchrones, erreurs explicites et restrictions de l’aperçu distant à une copie de jeu.
+- Node.js22.16+, dépendances actualisées, couverture bloquante100% lignes et branches par fichier, recette navigateur sur copie isolée.
+
 ## [1.0.0] — 2026-05-11
 
 Première version stable du StarMade Block Editor.

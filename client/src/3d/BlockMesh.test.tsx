@@ -1,170 +1,55 @@
-import { act, cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, render, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import * as THREE from 'three';
-import type { BlockDef } from '../store/blockStore.js';
+import { Group, PerspectiveCamera } from 'three';
+import type { BlockDefinition } from 'starmade-3d';
+import type { RenderAssets } from './renderAssets.js';
+const state = vi.hoisted(() => ({ frame: null as null | ((state: { camera: PerspectiveCamera }, delta: number) => void), create: vi.fn() }));
+vi.mock('@react-three/fiber', () => ({ useFrame: (callback: typeof state.frame) => { state.frame = callback; } }));
+vi.mock('./nativePreview.js', () => ({ createNativePreview: state.create }));
+import { BlockMesh } from './BlockMesh.js';
+const block = { id: 1 } as BlockDefinition;
+const assets = {} as RenderAssets;
+const preview = () => ({ object: new Group(), update: vi.fn(), dispose: vi.fn() });
+beforeEach(() => { state.create.mockReset(); vi.spyOn(console, 'error').mockImplementation(() => {}); });
+afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
-const frameState = vi.hoisted(() => ({ callbacks: [] as Array<(state: { clock: { elapsedTime: number } }) => void> }));
-
-vi.mock('@react-three/fiber', () => ({
-  useFrame: (callback: (state: { clock: { elapsedTime: number } }) => void) => {
-    frameState.callbacks.push(callback);
-  },
-}));
-
-import {
-  BlockMesh,
-  getEffectiveTextureIds,
-  getEmissiveStrength,
-  getLightColor,
-  getLightIntensity,
-  getOrientationQuaternion,
-  getSlabTransform,
-  ORIENTATIONS,
-} from './BlockMesh.js';
-
-const block = (patch: Partial<BlockDef> = {}): BlockDef => ({
-  id: 1,
-  name: 'Hull',
-  icon: 1,
-  textureId: [1, 2, 3, 4, 5, 6],
-  xmlTypeName: 'HULL',
-  hp: 10,
-  mass: 1,
-  volume: 1,
-  price: 100,
-  description: '',
-  armor: 0,
-  isPlacable: true,
-  inShop: true,
-  hasOrientation: false,
-  canActivate: false,
-  isDeprecated: false,
-  blockStyle: 0,
-  slab: 0,
-  slabIds: [],
-  styleIds: [],
-  effectArmor: {},
-  computerReference: 0,
-  lightSource: false,
-  lightSourceColor: [1, 1, 1, 1],
-  transparency: false,
-  door: false,
-  logicBlock: false,
-  individualSides: 6,
-  sideTexturesPointToOrientation: false,
-  hasActivationTexture: false,
-  extendedTexture4x4: false,
-  onlyDrawnInBuildMode: false,
-  lodShapeFromFar: 0,
-  animated: false,
-  extraProperties: {},
-  isCustom: false,
-  ...patch,
-});
-
-describe('BlockMesh pure helpers', () => {
-  it('computes active/inactive and animated texture ids with individualSides=3 exception', () => {
-    const base = { textureId: [10, 20, 30, 40, 50, 60], hasActivationTexture: true, animated: true, individualSides: 6 };
-    expect(getEffectiveTextureIds(base, true, 2)).toEqual([12, 22, 32, 42, 52, 62]);
-    expect(getEffectiveTextureIds(base, false, 2)).toEqual([13, 23, 33, 43, 53, 63]);
-    expect(getEffectiveTextureIds({ ...base, individualSides: 3 }, false, 2)).toEqual([13, 23, 31, 41, 53, 63]);
-    expect(getEffectiveTextureIds({ ...base, hasActivationTexture: false, animated: false }, false, 2)).toEqual([10, 20, 30, 40, 50, 60]);
+describe('native scene lifecycle in React', () => {
+  it('updates the current object and disposes it on block change and unmount', async () => {
+    const first = preview(), second = preview(); state.create.mockResolvedValueOnce(first).mockResolvedValueOnce(second);
+    const onError = vi.fn(), onReady = vi.fn();
+    const { rerender, unmount } = render(<BlockMesh block={block} assets={assets} orientation={0} isActive highlightFace={-1} onError={onError} onReady={onReady} />);
+    state.frame!({ camera: new PerspectiveCamera() }, 0.1);
+    await waitFor(() => expect(onReady).toHaveBeenCalledOnce());
+    expect(onReady).toHaveBeenCalledWith(first);
+    const camera = new PerspectiveCamera(); state.frame!({ camera }, 0.2);
+    expect(first.update).toHaveBeenCalledWith(0.2, camera);
+    rerender(<BlockMesh block={block} assets={assets} orientation={1} isActive={false} highlightFace={2} onError={onError} onReady={onReady} />);
+    await waitFor(() => expect(onReady).toHaveBeenCalledTimes(2));
+    expect(first.dispose).toHaveBeenCalledOnce(); unmount(); expect(second.dispose).toHaveBeenCalledOnce();
+    expect(onError).not.toHaveBeenCalled();
   });
-
-  it('maps vertical slab values to thickness and z offsets', () => {
-    expect(getSlabTransform(0)).toEqual({ thickness: 1, offsetZ: 0 });
-    expect(getSlabTransform(1)).toEqual({ thickness: 0.75, offsetZ: -0.125 });
-    expect(getSlabTransform(2)).toEqual({ thickness: 0.5, offsetZ: -0.25 });
-    expect(getSlabTransform(3)).toEqual({ thickness: 0.25, offsetZ: -0.375 });
-    expect(getSlabTransform(99)).toEqual({ thickness: 1, offsetZ: 0 });
-    // Opt 4: same slab value returns the exact same frozen object (LUT reference)
-    expect(getSlabTransform(2)).toBe(getSlabTransform(2));
+  it('destroys a late LOD result after unmount and suppresses obsolete errors', async () => {
+    let resolve!: (value: ReturnType<typeof preview>) => void;
+    state.create.mockImplementationOnce(() => new Promise(done => { resolve = done; }));
+    const onError = vi.fn(), onReady = vi.fn();
+    const view = render(<BlockMesh block={block} assets={assets} orientation={0} isActive highlightFace={-1} onError={onError} onReady={onReady} />);
+    view.unmount(); const late = preview(); await act(async () => resolve(late));
+    expect(late.dispose).toHaveBeenCalledOnce(); expect(onReady).not.toHaveBeenCalled();
+    let reject!: (reason: unknown) => void;
+    state.create.mockImplementationOnce(() => new Promise((_done, fail) => { reject = fail; }));
+    const again = render(<BlockMesh block={block} assets={assets} orientation={0} isActive highlightFace={-1} onError={onError} onReady={onReady} />);
+    again.unmount(); await act(async () => reject(new Error('Old installation')));
+    expect(onError).not.toHaveBeenCalled();
   });
-
-  it('clamps light color/intensity and emissive strength to preview-safe ranges', () => {
-    const color = getLightColor([2, -1, 0.5, 9]);
-    expect(color.r).toBe(1);
-    expect(color.g).toBe(0);
-    expect(color.b).toBe(0.5);
-    expect(getLightColor(undefined).equals(new THREE.Color(1, 1, 1))).toBe(true);
-    expect(getLightIntensity([1, 1, 1, -2])).toBe(0);
-    expect(getLightIntensity(undefined)).toBe(1);
-    expect(getEmissiveStrength(0)).toBe(0.18);
-    expect(getEmissiveStrength(99)).toBe(0.85);
+  it('reports a current native construction failure through its parent', async () => {
+    state.create.mockRejectedValue(new Error('Missing native material'));
+    const onError = vi.fn();
+    render(<BlockMesh block={block} assets={assets} orientation={0} isActive highlightFace={-1} onError={onError} onReady={vi.fn()} />);
+    await waitFor(() => expect(onError).toHaveBeenCalledWith('Missing native material'));
   });
-
-  it('builds StarOS-compatible orientation quaternions and wraps indices safely', () => {
-    expect(ORIENTATIONS).toHaveLength(12);
-    const q0 = getOrientationQuaternion(0);
-    const q12 = getOrientationQuaternion(12);
-    expect(q0.angleTo(q12)).toBeCloseTo(0);
-
-    const q1 = getOrientationQuaternion(1);
-    const expected = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, Math.PI, 0));
-    expect(q1.angleTo(expected)).toBeCloseTo(0);
-
-    const qNeg = getOrientationQuaternion(-1);
-    const qLast = getOrientationQuaternion(11);
-    expect(qNeg.angleTo(qLast)).toBeCloseTo(0);
-
-    // Opt 1: same index returns same pre-computed object (not a new allocation)
-    expect(getOrientationQuaternion(3)).toBe(getOrientationQuaternion(3));
-    expect(getOrientationQuaternion(0)).toBe(getOrientationQuaternion(12)); // wrap
-  });
-});
-
-describe('BlockMesh component', () => {
-  beforeEach(() => {
-    frameState.callbacks = [];
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    vi.spyOn(console, 'warn').mockImplementation(() => {});
-  });
-
-  afterEach(() => {
-    cleanup();
-    vi.restoreAllMocks();
-  });
-
-  it('renders default inactive mesh props and skips animation updates for static blocks', () => {
-    const texture = new THREE.Texture();
-    render(<BlockMesh block={block({ slab: 2 })} atlasTexture={texture} />);
-
-    expect(frameState.callbacks).toHaveLength(1);
-    act(() => frameState.callbacks[0]({ clock: { elapsedTime: 2 } }));
-    expect(screen.queryByText('', { selector: 'pointlight' })).toBeNull();
-    const mesh = document.querySelector('mesh')!;
-    expect(mesh).toBeTruthy();
-  });
-
-  it('renders active emissive light blocks and updates animated texture frames', () => {
-    const texture = new THREE.Texture();
-    const normal = new THREE.Texture();
-    const { rerender } = render(
-      <BlockMesh
-        block={block({ animated: true, blockStyle: 3, lightSource: true, transparency: true, slab: 3, lightSourceColor: [0.2, 0.4, 0.6, 2] })}
-        atlasTexture={texture}
-        normalTexture={normal}
-        orientation={5}
-        isActive
-        highlightFace={2}
-      />,
-    );
-
-    expect(document.querySelector('pointlight')).toBeTruthy();
-    expect(frameState.callbacks).toHaveLength(1);
-    // First call: frame changes 0 → 2 (covers false branch prev !== nextFrame)
-    act(() => frameState.callbacks[0]({ clock: { elapsedTime: 1.1 } }));
-    // Second call with same elapsedTime: frame stays 2 (covers true branch prev === nextFrame)
-    act(() => frameState.callbacks[0]({ clock: { elapsedTime: 1.1 } }));
-    rerender(
-      <BlockMesh
-        block={block({ animated: true, blockStyle: 3, lightSource: true, transparency: true, slab: 3, lightSourceColor: [0.2, 0.4, 0.6, 2] })}
-        atlasTexture={texture}
-        normalTexture={normal}
-        orientation={6}
-        isActive={false}
-      />,
-    );
-    expect(document.querySelector('pointlight')).toBeNull();
+  it('normalizes a non-Error rejection from an external loader', async () => {
+    state.create.mockRejectedValue('Loader rejected'); const onError = vi.fn();
+    render(<BlockMesh block={block} assets={assets} orientation={0} isActive highlightFace={-1} onError={onError} onReady={vi.fn()} />);
+    await waitFor(() => expect(onError).toHaveBeenCalledWith('Loader rejected'));
   });
 });

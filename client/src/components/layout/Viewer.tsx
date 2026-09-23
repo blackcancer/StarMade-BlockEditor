@@ -13,11 +13,7 @@ import { FaceSelector } from '../editor/FaceSelector.js';
 import { useBlockStore } from '../../store/blockStore.js';
 import { useT } from '../../i18n/index.js';
 import { getBlockStyleName } from './propertyOptions.js';
-
-/** Maximum orientation count per block style (from starmade_gl.js). */
-const ORIENTATION_COUNT: Record<number, number> = {
-  0: 6, 1: 12, 2: 24, 3: 4, 4: 6, 5: 6, 6: 6,
-};
+import { orientationCount, toRenderBlock } from '../../3d/renderBlock.js';
 
 /**
  * Compose the centre-column block preview workflow.
@@ -27,7 +23,7 @@ const ORIENTATION_COUNT: Record<number, number> = {
  * @returns Viewer controls, 3D preview, and face selector.
  */
 
-export function ViewerColumn() {
+export function ViewerColumn({ visible = true }: { visible?: boolean }) {
   const t              = useT();
   const draft          = useBlockStore(s => s.draft);
   const orientation    = useBlockStore(s => s.orientation);
@@ -35,9 +31,9 @@ export function ViewerColumn() {
   const previewActive  = useBlockStore(s => s.previewActive);
   const setPreviewActive = useBlockStore(s => s.setPreviewActive);
 
-  const maxOrient = draft ? (ORIENTATION_COUNT[draft.blockStyle] ?? 6) : 6;
+  const maxOrient = draft ? orientationCount(draft.blockStyle) : 6;
   const showActiveStatePreview =
-    draft?.lightSource === true || draft?.hasActivationTexture === true;
+    draft?.lightSource === true || draft?.hasActivationTexture === true || !!(draft && toRenderBlock(draft).lodShapeActive);
 
   // Reset orientation when switching to a style with fewer orientations
   useEffect(() => {
@@ -48,7 +44,7 @@ export function ViewerColumn() {
     <div className="viewer-column">
       {/* 3D viewport */}
       <div className="viewer-3d">
-        <BlockViewer />
+        <BlockViewer visible={visible} />
         {!draft && (
           <div className="viewer-empty">
             {t.viewer.emptyHint}
@@ -88,7 +84,7 @@ export function ViewerColumn() {
           </div>
 
           {/* Active state preview toggle — single button replacing checkbox+button duo.
-              Shown only for blocks with lightSource or hasActivationTexture.
+              Shown for lights, activation textures, or an active LOD model.
               canActivate alone does NOT have a texture state change. */}
           {showActiveStatePreview && (
             <div className="orientation-row active-preview-row">
@@ -100,7 +96,7 @@ export function ViewerColumn() {
               >
                 {draft.hasActivationTexture
                   ? t.viewer.activationTexturePreview
-                  : t.viewer.lightPreview
+                  : draft.lightSource ? t.viewer.lightPreview : t.viewer.modelPreview
                 }
                 {': '}
                 <strong>{previewActive ? t.viewer.previewOn : t.viewer.previewOff}</strong>

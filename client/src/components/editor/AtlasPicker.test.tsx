@@ -1,11 +1,11 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PAGE_TILES } from '../../3d/geometries/index.js';
 import { useConfigStore } from '../../store/configStore.js';
 import { AtlasPicker } from './AtlasPicker.js';
+import { useI18nStore } from '../../i18n/index.js';
+import fr from '../../i18n/fr.js';
 
-const { invalidateAtlasCache } = vi.hoisted(() => ({ invalidateAtlasCache: vi.fn() }));
-vi.mock('../../3d/AtlasTexture.js', () => ({ invalidateAtlasCache }));
 
 function installCanvasMocks() {
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
@@ -44,7 +44,10 @@ const badResponse = (body = 'bad') => ({ ok: false, text: async () => body }) as
 describe('AtlasPicker', () => {
   beforeEach(() => {
     installCanvasMocks();
-    invalidateAtlasCache.mockClear();
+    Object.defineProperties(HTMLDialogElement.prototype, {
+      showModal: { configurable: true, value: vi.fn(function (this: HTMLDialogElement) { this.open = true; }) },
+      close: { configurable: true, value: vi.fn(function (this: HTMLDialogElement) { this.open = false; }) },
+    });
     vi.stubGlobal('fetch', vi.fn());
     useConfigStore.setState({ atlasSize: 64, texturePack: 'Default', starmadeDir: '', worldDir: 'world0', isValid: true });
   });
@@ -52,6 +55,17 @@ describe('AtlasPicker', () => {
     cleanup();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+    useI18nStore.getState().setLocale('en');
+  });
+
+  it('keeps recognized import failures in a translated accessible dialog message', async () => {
+    useI18nStore.getState().setLocale('fr');
+    vi.mocked(fetch).mockResolvedValueOnce(badResponse('{"error":"Expected a PNG"}'));
+    render(<AtlasPicker selectedTileId={0} onClose={vi.fn()} />);
+    fireEvent.change(document.querySelector('input[type="file"]')!, { target: { files: [new File(['bad'], 'bad.png')] } });
+    expect(await screen.findByText(fr.errors.image)).toBeTruthy();
+    expect(screen.getByRole('alert').closest('dialog')).toBeTruthy();
+    expect(screen.queryByText(fr.errors.technicalDetails)).toBeNull();
   });
 
   it('selects atlas tiles from the 4x2 page grid and closes', () => {
@@ -137,8 +151,7 @@ describe('AtlasPicker', () => {
     fireEvent.change(fileInputs[0], { target: { files: [fullAtlas] } });
 
     await waitFor(() => expect(fetch).toHaveBeenCalledWith('/api/textures/custom-atlas?size=64&map=diffuse', expect.objectContaining({ method: 'PUT', body: fullAtlas })));
-    expect(invalidateAtlasCache).toHaveBeenCalled();
-    expect(onImported).toHaveBeenCalled();
+    expect(onImported).toHaveBeenCalledOnce();
     window.removeEventListener('atlas-imported', onImported);
   });
 
@@ -171,11 +184,12 @@ describe('AtlasPicker', () => {
     await waitFor(() => expect(fetch).toHaveBeenCalledWith(`/api/textures/custom-tile/${PAGE_TILES * 7 + 0}?size=64&map=normal`, expect.objectContaining({ method: 'PUT', body: tile })));
 
     fireEvent.change(fileInputs[1], { target: { files: [tile] } });
-    await waitFor(() => expect(alert).toHaveBeenCalledWith(expect.stringContaining('Tile import failed: Error: nope')));
+    expect(await screen.findByText('nope')).toBeTruthy();
+    expect(screen.getByRole('alert').querySelector('details')).toBeTruthy();
 
     const fullAtlas = new File(['atlas'], 'atlas.png', { type: 'image/png' });
     fireEvent.change(fileInputs[0], { target: { files: [fullAtlas] } });
-    await waitFor(() => expect(alert).toHaveBeenCalledWith(expect.stringContaining('Custom atlas import failed: Error: full nope')));
+    expect(await screen.findByText('full nope')).toBeTruthy();
   });
 
   it('selects custom slots in manager mode and closes with Escape/outside click', () => {
@@ -187,8 +201,18 @@ describe('AtlasPicker', () => {
     fireEvent.click(canvas, { clientX: 48 * 48 + 1, clientY: 48 * 16 + 1 });
     expect((screen.getByLabelText('Slot') as HTMLInputElement).value).toBe('0');
 
-    fireEvent.keyDown(window, { key: 'Escape' });
+    fireEvent.keyDown(window, { key: 'Enter' });
+    fireEvent(screen.getByRole('dialog'), new Event('cancel', { cancelable: true }));
     fireEvent.click(screen.getByText('Custom atlas manager').closest('.atlas-picker-overlay')!);
     expect(onClose).toHaveBeenCalledTimes(2);
   });
+  it.each([0, 1])('finishes pending import %s after the modal closes', async index => {
+    let resolve!: (res: Response) => void; vi.mocked(fetch).mockReturnValue(new Promise(r => { resolve = r; }));
+    const onImported = vi.fn(); window.addEventListener('atlas-imported', onImported);
+    const view = render(<AtlasPicker selectedTileId={0} onClose={vi.fn()} />);
+    fireEvent.change(document.querySelectorAll('input[type=file]')[index], { target: { files: [new File(['png'], 'test.png', { type: 'image/png' })] } });
+    view.unmount(); await act(async () => resolve(okResponse()));
+    expect(onImported).toHaveBeenCalledOnce(); window.removeEventListener('atlas-imported', onImported);
+  });
+
 });

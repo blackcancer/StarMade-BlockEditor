@@ -10,14 +10,85 @@
 import type { Translations } from './en.js';
 
 const de: Translations = {
+  mobile: {"navigation": "Editorbereiche", "blocks": "Blöcke", "preview": "Vorschau", "properties": "Eigenschaften"},
+  extraLabel: {
+    MainCombinationController: "Haupt-Kombinationssteuerung",
+    SupportCombinationController: "Unterstützungs-Kombinationssteuerung",
+    EffectCombinationController: "Effekt-Kombinationssteuerung",
+    Physical: "Physische Kollision",
+    CubeCubeCollision: "Würfel-zu-Würfel-Kollision",
+    LodCollisionPhysical: "Physische LOD-Kollision",
+    UseDetailedCollisionForAstronautMode: "Detaillierte Astronautenkollision",
+    Enterable: "Betretbar",
+    SensorInput: "Sensoreingang",
+    DrawLogicConnection: "Logikverbindungen anzeigen",
+    LogicSignaledByRail: "Logiksignal durch Schiene",
+    LogicBlockButton: "Logiktaster",
+    Beacon: "Signalgeber",
+    StructureHPContribution: "Beitrag zu Strukturtrefferpunkten",
+    SourceReference: "Quellverweis",
+    ReactorHp: "Reaktortrefferpunkte",
+    ReactorGeneralIconIndex: "Reaktorsymbol",
+    LowHpSetting: "Einstellung für niedrige Trefferpunkte",
+    OldHitpoints: "Frühere Trefferpunkte",
+    SystemBlock: "Systemblock",
+    InventoryGroup: "Inventargruppe",
+    FullName: "Vollständiger Name",
+    WildcardIds: "Alternative Block-IDs",
+  },
+  errors: {
+    textureTile: (value: string) => "Texturkachel " + value + " liegt außerhalb des nativen StarMade-Atlas.",
+    numberValue: (value: string) => "" + value + " muss eine endliche Zahl sein.",
+    textValue: (value: string) => "" + value + " muss Text enthalten.",
+    booleanValue: (value: string) => "" + value + " muss aktiviert oder deaktiviert sein.",
+    technicalDetails: "Technische Details",
+    unknown: "Der Vorgang konnte nicht abgeschlossen werden. Wiederholen Sie ihn oder laden Sie den Editor neu.",
+    conflict: "Die Dateien wurden außerhalb des Editors geändert. Sichern Sie Ihren Entwurf und verwenden Sie dann „Neu laden“ und „Zurücksetzen“, um vor dem Speichern die aktuelle Version zu laden.",
+    reload: "Laden Sie den Blockkatalog vor dem Speichern neu.",
+    configuration: "Wählen Sie in den Einstellungen eine vorhandene StarMade-Installation.",
+    configRead: "Die Editoreinstellungen konnten nicht gelesen oder gespeichert werden.",
+    catalogue: "Der Blockkatalog konnte nicht gelesen oder gespeichert werden. Prüfen Sie die Installationsdateien.",
+    network: "Der Server ist nicht erreichbar. Prüfen Sie die Verbindung und versuchen Sie es erneut.",
+    permission: "Dieser Vorgang ist in dieser Editorsitzung nicht erlaubt.",
+    invalidData: "Einige Werte sind ungültig. Prüfen Sie die Felder vor dem Speichern.",
+    image: "Das Bild konnte nicht geladen werden. Prüfen Sie Format und Abmessungen.",
+    imageMissing: "Das gewählte Bild oder Symbolblatt fehlt in dieser Installation.",
+    iconBackup: "Für diesen Platz ist keine Sicherung des ursprünglichen Symbols vorhanden.",
+    nativeShaders: "Die StarMade-Shaderdateien fehlen in dieser Installation.",
+    nativeTextures: "Für dieses Paket und diese Auflösung sind keine nativen Texturen vorhanden.",
+    nativeLod: "Die nativen Modelldateien fehlen oder sind ungültig.",
+    shader: "Der native Shader konnte nicht kompiliert werden. Laden Sie die Vorschau neu.",
+    context: "Der Grafikkontext wurde verloren. Laden Sie die Vorschau neu.",
+    capture: "Das Symbol konnte nicht erstellt werden. Laden Sie die Vorschau neu und versuchen Sie es erneut.",
+    notFound: "Der gewählte Block existiert nicht mehr. Laden Sie den Katalog neu.",
+    vanillaDelete: "Originalblöcke des Spiels können nicht gelöscht werden. Nur eigene Definitionen können entfernt werden.",
+    noIds: "Für einen neuen eigenen Block ist keine freie Kennung mehr verfügbar.",
+    unsafePath: "Die angeforderte Datei liegt außerhalb der erlaubten Installationsdateien.",
+    invalidValue: (value: string) => "Ungültiger Wert für " + value + ".",
+    imageDimensions: (value: string) => "Erwartete Bildabmessungen: " + value + ".",
+    animationTile: (value: string) => "Die Animation bei Kachel " + value + " überschreitet ihre Atlasseite.",
+    missingLayer: (value: string) => "Texturebene " + value + " fehlt in der gewählten Installation.",
+    missingModel: (value: string) => "Das native Modell " + value + " konnte nicht geladen werden.",
+    http: (value: string) => "Der Server meldet HTTP " + value + ". Wiederholen Sie den Vorgang oder laden Sie neu.",
+  },
+  warnings: {
+    missingLayer: (value: string) => "Texturebene " + value + " fehlt.",
+    missingNormal: (value: string) => "Material-Normalenebene " + value + " fehlt.",
+    normalAlpha: (value: string) => "Normalenebene " + value + " hat keinen Alphakanal; Material-Alpha wird auf null gesetzt.",
+    overlay: "Die native Überlagerungstextur fehlt.",
+    lod: "Die nativen LOD-Modelldeklarationen fehlen.",
+    unknown: "Einige Vorschauressourcen sind nicht verfügbar.",
+  },
+
 
   // ── App shell ──────────────────────────────────────────────────────────────
   app: {
+    settings: "Einstellungen",
     title:    '⚙ StarMade Block Editor',
-    subtitle: 'v1.0.0',
+    subtitle: 'v1.1.0',
     dirValid:   (name: string) => `✓ ${name}`,
     dirInvalid: '⚠ Kein StarMade-Verzeichnis konfiguriert',
-    blockCount: (n: number) => `${n} Block${n === 1 ? '' : 's'}`,
+    blockCount: (n: number) => `${n} ${n === 1 ? 'Block' : 'Blöcke'}`,
     reloadTooltip:   'Blöcke vom Datenträger neu laden',
     newBlockTooltip: 'Neuen benutzerdefinierten Block erstellen',
     reload:   '↺ Neu laden',
@@ -29,6 +100,7 @@ const de: Translations = {
 
   // ── Config dialog ──────────────────────────────────────────────────────────
   config: {
+    directoryLabel: "StarMade-Verzeichnis",
     title:       '⚙ StarMade Block Editor',
     description: 'Legen Sie den Pfad zu Ihrem StarMade-Installationsverzeichnis fest, um zu beginnen.',
     placeholder: 'z. B. D:/Games/StarMade/StarMade',
@@ -37,6 +109,7 @@ const de: Translations = {
 
   // ── Sidebar ────────────────────────────────────────────────────────────────
   sidebar: {
+    discardConfirm: "Nicht gespeicherte Änderungen an diesem Block verwerfen?",
     searchPlaceholder: '🔍 Block suchen…',
     filterVanilla:    (n: number) => `Vanilla (${n})`,
     filterCustom:     (n: number) => `Benutzerdefiniert (${n})`,
@@ -48,6 +121,11 @@ const de: Translations = {
 
   // ── Viewer column ──────────────────────────────────────────────────────────
   viewer: {
+    modelPreview: "Aktive Modellvorschau",
+    nativeLoading: "StarMade-Darstellung wird geladen…",
+    nativeError: (detail: string) => "3D-Vorschau nicht verfügbar: " + detail,
+    webgl2Required: "Diese Vorschau benötigt WebGL 2.",
+    nativeWarnings: (detail: string) => "Vorschau-Ressourcen: " + detail,
     emptyHint: 'Wählen Sie einen Block aus der Liste aus, um ihn anzuzeigen.',
     styleBadge: (name: string, index: number) => `${name} (Stil ${index})`,
     orientation: 'Ausrichtung',
@@ -61,7 +139,7 @@ const de: Translations = {
     toggle: 'Umschalten',
     toggleTooltip: (label, state) => `${label}: ${state}`,
     activePreviewTooltip:
-      'Nur für LightSource oder HasActivationTexture angezeigt. CanActivate allein hat keinen Texturzustand.',
+      "Zeigt Licht, Aktivierungstexturen und aktive LOD-Modelle, sofern der Block sie definiert.",
   },
 
   // ── Face selector ──────────────────────────────────────────────────────────
@@ -70,14 +148,15 @@ const de: Translations = {
     manageatlas:     'Benutzerdefinierten Atlas verwalten…',
     hint:            'Klicken Sie auf eine Fläche, um ihre Texturkachel zu ändern.',
     hintAllSame:     ' (Alle Flächen teilen dieselbe Kachel)',
-    hintGrouped:     ' (3 Gruppen: vorne/hinten · oben/unten · Seiten)',
+    hintGrouped: " (Oben, unten und vier gemeinsame Seiten)",
     hintIndependent: ' (6 unabhängige Flächen)',
     hintActivation:  ' Die inaktive Vorschau verwendet die Kachel direkt rechts (+1), wie der Texturpfad des aktiven Zustands im Engine.',
-    hintAnimated:    ' Die animierte Vorschau durchläuft alle 0,5 s eine Reihe von 4 Kacheln.',
+    hintAnimated:    " Verwendet dieselbe Texturanimation wie StarMade.",
   },
 
   // ── Atlas picker ───────────────────────────────────────────────────────────
   atlasPicker: {
+    closeLabel: "Schließen",
     titlePick:    'Textur auswählen',
     titleManager: 'Benutzerdefinierter Atlas-Manager',
     close:        '✕',
@@ -89,7 +168,7 @@ const de: Translations = {
     importFull: 'Vollständigen benutzerdefinierten Atlas importieren…',
     importing:  'Importiere…',
     advancedSummary: 'Erweitert: eine Kachel ersetzen',
-    slotLabel:  'Slot',
+    slotLabel:  'Position',
     replaceTile: 'Ausgewählte Kachel ersetzen…',
     reload:      'Texturen neu laden',
     errorImportAtlas: (e: unknown) => `Import des benutzerdefinierten Atlas fehlgeschlagen: ${e}`,
@@ -98,6 +177,7 @@ const de: Translations = {
 
   // ── Icon picker ────────────────────────────────────────────────────────────
   iconPicker: {
+    closeLabel: "Schließen",
     title: 'Bau-Icons',
     close: '✕',
     hint:  'Klicken Sie auf ein Icon zum Auswählen · Escape zum Schließen',
@@ -105,6 +185,13 @@ const de: Translations = {
 
   // ── Properties panel — general ─────────────────────────────────────────────
   properties: {
+    generateIcon: "Aus Block erzeugen",
+    generatingIcon: "Wird erzeugt…",
+    applyGeneratedIcon: "Symbol übernehmen",
+    generatedIconPreview: "Vorschau des erzeugten Symbols",
+    cancelGeneratedIcon: "Abbrechen",
+    iconWriteNotice: "Der Import ersetzt das Spielsymbol. Eine Sicherung ermöglicht die Wiederherstellung.",
+    restoreIcon: "Originalsymbol wiederherstellen",
     empty: 'Wählen Sie einen Block aus, um seine Eigenschaften zu bearbeiten.',
     subtitleCustom:  'Benutzerdefinierter Block',
     subtitleVanilla: 'Vanilla-Block',
@@ -134,13 +221,16 @@ const de: Translations = {
     shape:      'Form',
     rendering:  'Rendering / Textur',
     extra:      'Zusätzliche BlockConfig-Eigenschaften',
-    flags:      'Flags',
+    flags:      'Merkmale',
     lightColor: 'Lichtfarbe',
     variants:   'Varianten',
   },
 
   // ── Properties panel — field labels & tooltips ─────────────────────────────
   field: {
+    damageHeat: "Hitze",
+    damageKinetic: "Kinetisch",
+    damageEM: "EM",
     name:        { label: 'Name',             tooltip: 'Anzeigename in StarMade-Inventaren, Shop-/Bau-UI und Blocklisten.' },
     icon:        { label: 'Bau-Icon',         tooltip: 'Icon im Bau-Menü. StarMade speichert diese in Icon-Sheets; dieser Picker schreibt den korrekten Sheet-Slot für benutzerdefinierte Icons.' },
     description: { label: 'Beschreibung',     tooltip: 'Beschreibungstext, der Spielern in StarMade-UI/Tooltips angezeigt wird.' },
@@ -177,7 +267,7 @@ const de: Translations = {
     transparency:   { label: 'Transparenz',      tooltip: 'Aktiviert transparentes/gemischtes Rendering.' },
     door:           { label: 'Tür',              tooltip: 'Tür-Verhaltens-Flag für Öffnungs-/Schließsysteme.' },
     logicBlock:     { label: 'Logikblock',       tooltip: 'Ob der Block am Logiknetzwerk teilnimmt.' },
-    animated:       { label: 'Animiert',         tooltip: 'Wenn wahr, durchläuft die Blocktextur alle ~0,5 s einen Bereich von 4 Kacheln.' },
+    animated:       { label: 'Animiert',         tooltip: "Animiert Texturen mit der Bildfolge und dem Zeitablauf von StarMade." },
   },
 
   // ── Variant selector ────────────────────────────────────────────────────────
@@ -190,6 +280,8 @@ const de: Translations = {
 
   // ── Advanced properties editor ─────────────────────────────────────────────
   advanced: {
+    value: "Wert",
+    count: "Anzahl",
     searchPlaceholder: (n: number) => `${n} Eigenschaft${n === 1 ? '' : 'en'} durchsuchen…`,
     clear:        'Löschen',
     noProperties: 'Keine zusätzlichen BlockConfig-Eigenschaften.',
@@ -251,7 +343,7 @@ const de: Translations = {
   options: {
     indSides: {
       allSame:     'Alle Flächen — gleiche Kachel',
-      grouped:     'Gruppierte Flächen: vorne/hinten · oben/unten · Seiten',
+      grouped:     "Gruppierte Flächen: oben · unten · vier gemeinsame Seiten",
       independent: 'Jede Fläche unabhängig',
     },
     slab: {
@@ -296,7 +388,7 @@ const de: Translations = {
     cross:  'Kreuz',
     tetra:  'Tetra',
     penta:  'Penta',
-    hepta:  'Hepta',
+    hepta:  "Würfel (24 Ausrichtungen)",
     style:  (n: number) => `Stil ${n}`,
   },
 
@@ -342,7 +434,7 @@ const de: Translations = {
     LogicSignaledByRail:'Erlaubt Schienen-/Aktivierungsschienensignalen, den Logikzustand dieses Blocks zu steuern.',
     LogicBlockButton: 'Behandelt diesen Block als Momenttaster-Eingang im Logiksystem.',
     Beacon:          'Markiert diesen Block als Leuchtfeuer — sichtbar auf Scannern und Navigationsüberlagerungen.',
-    ResourceInjection:'Ressourceninjektionsmodus für die Weltgenerierung. Aus = keine Injektion; 1 = Erz/Terrain; 2 = Flora.',
+    ResourceInjection:'Ressourceninjektionsmodus für die Weltgenerierung. Aus = keine Injektion; 1 = Erz/Terrain; 17 = Flora.',
     ExplosionAbsorbtion:'Explosionsenergie-Absorptionsfaktor im Schadenssystem (0,0–1,0+).',
     StructureHPContribution:'Zusätzliche Struktur-Trefferpunkte, die dieser Block zum Schiffs-/Stationsrumpf beiträgt.',
     SourceReference:  'Verweist auf einen anderen Block oder Systemeintrag als Quelle/Elternteil dieses Blocks.',

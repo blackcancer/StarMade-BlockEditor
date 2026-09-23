@@ -21,10 +21,8 @@
  * regex, `.toLowerCase`). These are cheap individually but add up when called
  * hundreds of times per render cycle.
  *
- * A module-level `Map<number, string>` keyed by `block.id` caches the computed
- * display name the first time a block is seen. Since block definitions are
- * immutable within a session (only names/fields change via the draft system,
- * and the draft has a different ID-based lookup), the cache is safe.
+ * A module-level map keyed by ID, name and XML type caches computed display
+ * names. Draft renames and catalogue reloads naturally produce distinct keys.
  *
  * Cache invalidation: exposed via `invalidateDisplayNameCache()` — called
  * automatically when a block is saved so the updated name is re-computed.
@@ -100,7 +98,8 @@ function computeDisplayName(block: Pick<BlockDef, 'id' | 'name' | 'xmlTypeName'>
   const name       = block.name?.trim() || '';
   const typePrefix = block.xmlTypeName?.trim();
 
-  if (name.includes('--')) return name.split('--').pop()!.trim();
+  if (name.includes('--')) return name.split('--').pop()!.trim()
+    || prettifyTypeName(typePrefix || String(block.id));
 
   if (typePrefix && name.toLowerCase().startsWith(typePrefix.toLowerCase())) {
     return name.slice(typePrefix.length).replace(/^\s*[-–—:]\s*/, '').trim()
@@ -115,12 +114,8 @@ function computeDisplayName(block: Pick<BlockDef, 'id' | 'name' | 'xmlTypeName'>
 /**
  * Derive a human-readable display name from a block definition.
  *
- * Results are cached by `block.id`. Subsequent calls with the same ID return
- * the cached string immediately (O(1) Map lookup).
- *
- * The cache assumes block names are stable within a session. After saving a
- * block, call `invalidateDisplayNameCache(block.id)` so the next render
- * re-computes the updated name.
+ * Results are cached by ID, name and XML type. Repeated calls with unchanged
+ * display fields return the cached string immediately.
  *
  * @param {Pick<BlockDef, 'id' | 'name' | 'xmlTypeName'>} block Block to name.
  * @returns {string} Non-empty human-readable display name.

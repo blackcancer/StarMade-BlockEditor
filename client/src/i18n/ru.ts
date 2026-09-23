@@ -10,11 +10,82 @@
 import type { Translations } from './en.js';
 
 const ru: Translations = {
+  mobile: {"navigation": "Разделы редактора", "blocks": "Блоки", "preview": "Просмотр", "properties": "Свойства"},
+  extraLabel: {
+    MainCombinationController: "Основной контроллер комбинации",
+    SupportCombinationController: "Вспомогательный контроллер комбинации",
+    EffectCombinationController: "Контроллер эффекта комбинации",
+    Physical: "Физическое столкновение",
+    CubeCubeCollision: "Столкновение кубов",
+    LodCollisionPhysical: "Физическое столкновение LOD",
+    UseDetailedCollisionForAstronautMode: "Подробные столкновения в режиме астронавта",
+    Enterable: "Можно войти",
+    SensorInput: "Вход датчика",
+    DrawLogicConnection: "Показывать логические связи",
+    LogicSignaledByRail: "Логический сигнал рельса",
+    LogicBlockButton: "Логическая кнопка",
+    Beacon: "Маяк",
+    StructureHPContribution: "Вклад в прочность конструкции",
+    SourceReference: "Ссылка на источник",
+    ReactorHp: "Прочность реактора",
+    ReactorGeneralIconIndex: "Значок реактора",
+    LowHpSetting: "Настройка низкой прочности",
+    OldHitpoints: "Прежние очки прочности",
+    SystemBlock: "Системный блок",
+    InventoryGroup: "Группа инвентаря",
+    FullName: "Полное имя",
+    WildcardIds: "Альтернативные ID блоков",
+  },
+  errors: {
+    textureTile: (value: string) => "Текстура " + value + " находится вне исходного атласа StarMade.",
+    numberValue: (value: string) => "" + value + " должно быть конечным числом.",
+    textValue: (value: string) => "" + value + " должно содержать текст.",
+    booleanValue: (value: string) => "" + value + " должно быть включено или выключено.",
+    technicalDetails: "Технические сведения",
+    unknown: "Не удалось выполнить операцию. Повторите попытку или перезагрузите редактор.",
+    conflict: "Файлы изменены вне редактора. Сохраните копию черновика, затем нажмите «Перезагрузить» и «Отменить», чтобы загрузить актуальную версию перед сохранением.",
+    reload: "Обновите каталог блоков перед сохранением.",
+    configuration: "Выберите существующую установку StarMade в настройках.",
+    configRead: "Не удалось прочитать или сохранить настройки редактора.",
+    catalogue: "Не удалось прочитать или сохранить каталог блоков. Проверьте файлы установки.",
+    network: "Сервер недоступен. Проверьте соединение и повторите попытку.",
+    permission: "Эта операция не разрешена в текущем сеансе редактора.",
+    invalidData: "Некоторые значения недопустимы. Проверьте поля перед сохранением.",
+    image: "Не удалось загрузить изображение. Проверьте его формат и размеры.",
+    imageMissing: "В этой установке отсутствует выбранное изображение или лист значков.",
+    iconBackup: "Для этой ячейки нет резервной копии исходного значка.",
+    nativeShaders: "В этой установке отсутствуют файлы шейдеров StarMade.",
+    nativeTextures: "Для этого набора и разрешения нет исходных текстур.",
+    nativeLod: "Файлы исходных моделей отсутствуют или повреждены.",
+    shader: "Не удалось скомпилировать исходный шейдер. Перезагрузите просмотр.",
+    context: "Графический контекст потерян. Перезагрузите просмотр.",
+    capture: "Не удалось создать значок. Перезагрузите просмотр и повторите попытку.",
+    notFound: "Выбранный блок больше не существует. Обновите каталог.",
+    vanillaDelete: "Нельзя удалить исходные блоки игры. Удалять можно только пользовательские определения.",
+    noIds: "Нет свободных идентификаторов для нового пользовательского блока.",
+    unsafePath: "Запрошенный файл находится вне разрешённых файлов установки.",
+    invalidValue: (value: string) => "Недопустимое значение: " + value + ".",
+    imageDimensions: (value: string) => "Ожидаемый размер изображения: " + value + ".",
+    animationTile: (value: string) => "Анимация текстуры " + value + " выходит за пределы страницы атласа.",
+    missingLayer: (value: string) => "В выбранной установке отсутствует слой текстур " + value + ".",
+    missingModel: (value: string) => "Не удалось загрузить исходную модель " + value + ".",
+    http: (value: string) => "Сервер вернул HTTP " + value + ". Повторите попытку или перезагрузите.",
+  },
+  warnings: {
+    missingLayer: (value: string) => "Отсутствует слой текстур " + value + ".",
+    missingNormal: (value: string) => "Отсутствует слой нормалей материала " + value + ".",
+    normalAlpha: (value: string) => "У слоя нормалей " + value + " нет альфа-канала; альфа материала установлена в ноль.",
+    overlay: "Отсутствует исходная текстура наложения.",
+    lod: "Отсутствуют объявления исходных моделей LOD.",
+    unknown: "Некоторые ресурсы просмотра недоступны.",
+  },
+
 
   // ── App shell ──────────────────────────────────────────────────────────────
   app: {
+    settings: "Настройки",
     title:    '⚙ StarMade Block Editor',
-    subtitle: 'v1.0.0',
+    subtitle: 'v1.1.0',
     dirValid:   (name: string) => `✓ ${name}`,
     dirInvalid: '⚠ Директория StarMade не настроена',
     blockCount: (n: number) => {
@@ -35,6 +106,7 @@ const ru: Translations = {
 
   // ── Config dialog ──────────────────────────────────────────────────────────
   config: {
+    directoryLabel: "Папка StarMade",
     title:       '⚙ StarMade Block Editor',
     description: 'Укажите путь к директории установки StarMade, чтобы начать.',
     placeholder: 'напр. D:/Games/StarMade/StarMade',
@@ -43,6 +115,7 @@ const ru: Translations = {
 
   // ── Sidebar ────────────────────────────────────────────────────────────────
   sidebar: {
+    discardConfirm: "Отменить несохранённые изменения этого блока?",
     searchPlaceholder: '🔍 Поиск блока…',
     filterVanilla:    (n: number) => `Стандартные (${n})`,
     filterCustom:     (n: number) => `Пользовательские (${n})`,
@@ -54,6 +127,11 @@ const ru: Translations = {
 
   // ── Viewer column ──────────────────────────────────────────────────────────
   viewer: {
+    modelPreview: "Предпросмотр активной модели",
+    nativeLoading: "Загрузка визуализации StarMade…",
+    nativeError: (detail: string) => "Предпросмотр 3D недоступен: " + detail,
+    webgl2Required: "Для предпросмотра требуется WebGL 2.",
+    nativeWarnings: (detail: string) => "Ресурсы предпросмотра: " + detail,
     emptyHint: 'Выберите блок из списка для предварительного просмотра.',
     styleBadge: (name: string, index: number) => `${name} (стиль ${index})`,
     orientation: 'Ориентация',
@@ -67,7 +145,7 @@ const ru: Translations = {
     toggle: 'Переключить',
     toggleTooltip: (label, state) => `${label}: ${state}`,
     activePreviewTooltip:
-      'Отображается только для LightSource или HasActivationTexture. Только CanActivate не изменяет текстуру.',
+      "Показывает свет, текстуры активации и активные модели LOD, заданные для блока.",
   },
 
   // ── Face selector ──────────────────────────────────────────────────────────
@@ -76,14 +154,15 @@ const ru: Translations = {
     manageatlas:     'Управление пользовательским атласом…',
     hint:            'Нажмите на грань, чтобы изменить её текстурный тайл.',
     hintAllSame:     ' (Все грани используют один тайл)',
-    hintGrouped:     ' (3 группы: перед/зад · верх/низ · стороны)',
+    hintGrouped: " (Верх, низ и четыре общие боковые грани)",
     hintIndependent: ' (6 независимых граней)',
     hintActivation:  ' Неактивный предпросмотр использует тайл справа (+1), как путь текстуры активного состояния в движке.',
-    hintAnimated:    ' Анимированный предпросмотр циклически перебирает 4 тайла каждые 0,5 с.',
+    hintAnimated:    " Анимация текстур соответствует StarMade.",
   },
 
   // ── Atlas picker ───────────────────────────────────────────────────────────
   atlasPicker: {
+    closeLabel: "Закрыть",
     titlePick:    'Выбор текстуры',
     titleManager: 'Менеджер пользовательского атласа',
     close:        '✕',
@@ -104,6 +183,7 @@ const ru: Translations = {
 
   // ── Icon picker ────────────────────────────────────────────────────────────
   iconPicker: {
+    closeLabel: "Закрыть",
     title: 'Иконки строительства',
     close: '✕',
     hint:  'Нажмите на иконку для выбора · Escape для закрытия',
@@ -111,6 +191,13 @@ const ru: Translations = {
 
   // ── Properties panel — general ─────────────────────────────────────────────
   properties: {
+    generateIcon: "Создать из блока",
+    generatingIcon: "Создание…",
+    applyGeneratedIcon: "Применить значок",
+    generatedIconPreview: "Предпросмотр созданного значка",
+    cancelGeneratedIcon: "Отмена",
+    iconWriteNotice: "Импорт заменит значок игры. Резервная копия позволит восстановить его.",
+    restoreIcon: "Восстановить исходный значок",
     empty: 'Выберите блок для редактирования его свойств.',
     subtitleCustom:  'Пользовательский блок',
     subtitleVanilla: 'Стандартный блок',
@@ -147,6 +234,9 @@ const ru: Translations = {
 
   // ── Properties panel — field labels & tooltips ─────────────────────────────
   field: {
+    damageHeat: "Тепловой",
+    damageKinetic: "Кинетический",
+    damageEM: "ЭМ",
     name:        { label: 'Название',        tooltip: 'Отображаемое имя в инвентарях StarMade, интерфейсе магазина/строительства и списках блоков.' },
     icon:        { label: 'Иконка',          tooltip: 'Иконка в меню строительства. StarMade хранит их в листах иконок; этот выбор записывает правильный слот листа для пользовательских иконок.' },
     description: { label: 'Описание',        tooltip: 'Текст описания, отображаемый игрокам в подсказках интерфейса StarMade.' },
@@ -183,7 +273,7 @@ const ru: Translations = {
     transparency:   { label: 'Прозрачность',          tooltip: 'Включает прозрачный/смешанный рендеринг.' },
     door:           { label: 'Дверь',                 tooltip: 'Флаг поведения типа "дверь" для систем открытия/закрытия.' },
     logicBlock:     { label: 'Логический блок',       tooltip: 'Участвует ли блок в логической сети.' },
-    animated:       { label: 'Анимированный',         tooltip: 'Если истина, текстура блока циклически перебирает 4 тайла каждые ~0,5 с.' },
+    animated:       { label: 'Анимированный',         tooltip: "Анимирует текстуры с последовательностью кадров и интервалами StarMade." },
   },
 
   // ── Variant selector ────────────────────────────────────────────────────────
@@ -196,6 +286,8 @@ const ru: Translations = {
 
   // ── Advanced properties editor ─────────────────────────────────────────────
   advanced: {
+    value: "Значение",
+    count: "Количество",
     searchPlaceholder: (n: number) => {
       const mod10 = n % 10;
       const mod100 = n % 100;
@@ -265,7 +357,7 @@ const ru: Translations = {
   options: {
     indSides: {
       allSame:     'Все грани — один тайл',
-      grouped:     'Сгруппированные грани: перед/зад · верх/низ · стороны',
+      grouped:     "Группы граней: верх · низ · четыре общие боковые грани",
       independent: 'Каждая грань независима',
     },
     slab: {
@@ -310,7 +402,7 @@ const ru: Translations = {
     cross:  'Крест',
     tetra:  'Тетра',
     penta:  'Пента',
-    hepta:  'Гепта',
+    hepta:  "Куб (24 ориентации)",
     style:  (n: number) => `Стиль ${n}`,
   },
 
@@ -356,7 +448,7 @@ const ru: Translations = {
     LogicSignaledByRail:'Позволяет сигналам рельсов/активирующих рельсов управлять логическим состоянием этого блока.',
     LogicBlockButton: 'Рассматривает этот блок как кратковременный кнопочный вход в логической системе.',
     Beacon:          'Помечает этот блок как маяк — виден на сканерах и навигационных наложениях.',
-    ResourceInjection:'Режим инъекции ресурсов для генерации мира. Выкл = нет инъекции; 1 = руда/местность; 2 = флора.',
+    ResourceInjection:'Режим инъекции ресурсов для генерации мира. Выкл = нет инъекции; 1 = руда/местность; 17 = флора.',
     ExplosionAbsorbtion:'Коэффициент поглощения энергии взрыва в системе урона (0,0–1,0+).',
     StructureHPContribution:'Дополнительные структурные очки здоровья, вносимые этим блоком в корпус корабля/станции.',
     SourceReference:  'Ссылается на другой блок или системную запись как источник/родитель этого блока.',

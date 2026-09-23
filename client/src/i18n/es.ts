@@ -10,11 +10,82 @@
 import type { Translations } from './en.js';
 
 const es: Translations = {
+  mobile: {"navigation": "Paneles del editor", "blocks": "Bloques", "preview": "Vista previa", "properties": "Propiedades"},
+  extraLabel: {
+    MainCombinationController: "Controlador principal de combinación",
+    SupportCombinationController: "Controlador de apoyo de combinación",
+    EffectCombinationController: "Controlador de efecto de combinación",
+    Physical: "Colisión física",
+    CubeCubeCollision: "Colisión entre cubos",
+    LodCollisionPhysical: "Colisión física del LOD",
+    UseDetailedCollisionForAstronautMode: "Colisión detallada en modo astronauta",
+    Enterable: "Se puede atravesar",
+    SensorInput: "Entrada del sensor",
+    DrawLogicConnection: "Mostrar conexiones lógicas",
+    LogicSignaledByRail: "Señal lógica del raíl",
+    LogicBlockButton: "Botón lógico momentáneo",
+    Beacon: "Baliza",
+    StructureHPContribution: "Aporte a los puntos de estructura",
+    SourceReference: "Referencia de origen",
+    ReactorHp: "Puntos de reactor",
+    ReactorGeneralIconIndex: "Icono del reactor",
+    LowHpSetting: "Ajuste de pocos puntos de vida",
+    OldHitpoints: "Puntos de vida anteriores",
+    SystemBlock: "Bloque del sistema",
+    InventoryGroup: "Grupo de inventario",
+    FullName: "Nombre completo",
+    WildcardIds: "Identificadores de bloques alternativos",
+  },
+  errors: {
+    textureTile: (value: string) => "El mosaico de textura " + value + " está fuera del atlas nativo de StarMade.",
+    numberValue: (value: string) => "" + value + " debe ser un número finito.",
+    textValue: (value: string) => "" + value + " debe contener texto.",
+    booleanValue: (value: string) => "" + value + " debe estar activado o desactivado.",
+    technicalDetails: "Detalles técnicos",
+    unknown: "No se pudo completar la operación. Inténtalo de nuevo o recarga el editor.",
+    conflict: "Los archivos cambiaron fuera del editor. Guarda una copia del borrador y usa Recargar y Revertir para cargar la versión actual antes de guardar.",
+    reload: "Recarga el catálogo de bloques antes de guardar.",
+    configuration: "Elige una instalación existente de StarMade en Ajustes.",
+    configRead: "No se pudieron leer o guardar los ajustes del editor.",
+    catalogue: "No se pudo leer o guardar el catálogo de bloques. Revisa los archivos de instalación.",
+    network: "No se pudo conectar con el servidor. Comprueba la conexión e inténtalo de nuevo.",
+    permission: "Esta operación no está permitida en esta sesión del editor.",
+    invalidData: "Algunos valores no son válidos. Revisa los campos antes de guardar.",
+    image: "No se pudo cargar la imagen. Comprueba su formato y dimensiones.",
+    imageMissing: "La imagen o la hoja de iconos seleccionada no existe en esta instalación.",
+    iconBackup: "No hay copia del icono original para esta posición.",
+    nativeShaders: "Faltan los archivos de sombreado de StarMade en esta instalación.",
+    nativeTextures: "No hay texturas nativas para este paquete y resolución.",
+    nativeLod: "Faltan archivos de modelos nativos o no son válidos.",
+    shader: "No se pudo compilar el sombreador nativo. Recarga la vista previa.",
+    context: "Se perdió el contexto gráfico. Recarga la vista previa.",
+    capture: "No se pudo generar el icono. Recarga la vista previa e inténtalo de nuevo.",
+    notFound: "El bloque seleccionado ya no existe. Recarga el catálogo.",
+    vanillaDelete: "No se pueden eliminar bloques originales del juego, solo definiciones personalizadas.",
+    noIds: "No quedan identificadores libres para crear un bloque personalizado.",
+    unsafePath: "El archivo solicitado está fuera de los archivos de instalación permitidos.",
+    invalidValue: (value: string) => "Valor no válido para " + value + ".",
+    imageDimensions: (value: string) => "Dimensiones de imagen esperadas: " + value + ".",
+    animationTile: (value: string) => "La animación del mosaico " + value + " excede su página de atlas.",
+    missingLayer: (value: string) => "Falta la capa de texturas " + value + " en la instalación seleccionada.",
+    missingModel: (value: string) => "No se pudo cargar el modelo nativo " + value + ".",
+    http: (value: string) => "El servidor devolvió HTTP " + value + ". Inténtalo de nuevo o recarga.",
+  },
+  warnings: {
+    missingLayer: (value: string) => "Falta la capa de texturas " + value + ".",
+    missingNormal: (value: string) => "Falta la capa de normales de material " + value + ".",
+    normalAlpha: (value: string) => "La capa de normales " + value + " no tiene canal alfa; el alfa del material se fija en cero.",
+    overlay: "Falta la textura nativa de superposición.",
+    lod: "Faltan las declaraciones de modelos LOD nativos.",
+    unknown: "Algunos recursos de la vista previa no están disponibles.",
+  },
+
 
   // ── App shell ──────────────────────────────────────────────────────────────
   app: {
+    settings: "Ajustes",
     title:    '⚙ StarMade Block Editor',
-    subtitle: 'v1.0.0',
+    subtitle: 'v1.1.0',
     dirValid:   (name: string) => `✓ ${name}`,
     dirInvalid: '⚠ No hay directorio StarMade configurado',
     blockCount: (n: number) => `${n} bloque${n === 1 ? '' : 's'}`,
@@ -29,6 +100,7 @@ const es: Translations = {
 
   // ── Config dialog ──────────────────────────────────────────────────────────
   config: {
+    directoryLabel: "Carpeta de StarMade",
     title:       '⚙ StarMade Block Editor',
     description: 'Establezca la ruta a su directorio de instalación de StarMade para comenzar.',
     placeholder: 'ej. D:/Games/StarMade/StarMade',
@@ -37,6 +109,7 @@ const es: Translations = {
 
   // ── Sidebar ────────────────────────────────────────────────────────────────
   sidebar: {
+    discardConfirm: "¿Descartar los cambios sin guardar de este bloque?",
     searchPlaceholder: '🔍 Buscar bloque…',
     filterVanilla:    (n: number) => `Vanilla (${n})`,
     filterCustom:     (n: number) => `Personalizado (${n})`,
@@ -48,6 +121,11 @@ const es: Translations = {
 
   // ── Viewer column ──────────────────────────────────────────────────────────
   viewer: {
+    modelPreview: "Vista previa del modelo activo",
+    nativeLoading: "Cargando renderizado de StarMade…",
+    nativeError: (detail: string) => "Vista 3D no disponible: " + detail,
+    webgl2Required: "Esta vista requiere WebGL 2.",
+    nativeWarnings: (detail: string) => "Recursos de la vista: " + detail,
     emptyHint: 'Selecciona un bloque de la lista para previsualizarlo.',
     styleBadge: (name: string, index: number) => `${name} (estilo ${index})`,
     orientation: 'Orientación',
@@ -56,12 +134,12 @@ const es: Translations = {
     nextOrientation: 'Orientación siguiente',
     activationTexturePreview: 'Vista previa de textura de activación',
     lightPreview:  'Vista previa de luz',
-    previewOn:  'ON',
-    previewOff: 'OFF',
+    previewOn:  'ACTIVO',
+    previewOff: 'INACTIVO',
     toggle: 'Alternar',
     toggleTooltip: (label, state) => `${label}: ${state}`,
     activePreviewTooltip:
-      'Solo se muestra para LightSource o HasActivationTexture. CanActivate solo no tiene estado de textura.',
+      "Muestra la luz, las texturas de activación y los modelos LOD activos definidos para el bloque.",
   },
 
   // ── Face selector ──────────────────────────────────────────────────────────
@@ -70,14 +148,15 @@ const es: Translations = {
     manageatlas:     'Gestionar atlas personalizado…',
     hint:            'Haz clic en una cara para cambiar su mosaico de textura.',
     hintAllSame:     ' (Todas las caras comparten el mismo mosaico)',
-    hintGrouped:     ' (3 grupos: front/back · top/bottom · lados)',
+    hintGrouped: " (Arriba, abajo y cuatro lados compartidos)",
     hintIndependent: ' (6 caras independientes)',
     hintActivation:  ' La vista previa inactiva usa el mosaico inmediatamente a la derecha (+1), como la ruta de textura del estado activo del motor.',
-    hintAnimated:    ' La vista previa animada cicla a través de 4 mosaicos cada 0,5 s.',
+    hintAnimated:    " Usa la misma animación de texturas que StarMade.",
   },
 
   // ── Atlas picker ───────────────────────────────────────────────────────────
   atlasPicker: {
+    closeLabel: "Cerrar",
     titlePick:    'Seleccionar textura',
     titleManager: 'Gestor de atlas personalizado',
     close:        '✕',
@@ -98,6 +177,7 @@ const es: Translations = {
 
   // ── Icon picker ────────────────────────────────────────────────────────────
   iconPicker: {
+    closeLabel: "Cerrar",
     title: 'Iconos de construcción',
     close: '✕',
     hint:  'Haz clic en un icono para seleccionarlo · Escape para cerrar',
@@ -105,6 +185,13 @@ const es: Translations = {
 
   // ── Properties panel — general ─────────────────────────────────────────────
   properties: {
+    generateIcon: "Generar desde el bloque",
+    generatingIcon: "Generando…",
+    applyGeneratedIcon: "Aplicar icono",
+    generatedIconPreview: "Vista previa del icono generado",
+    cancelGeneratedIcon: "Cancelar",
+    iconWriteNotice: "La importación reemplaza el icono del juego. Se guarda una copia para restaurarlo.",
+    restoreIcon: "Restaurar icono original",
     empty: 'Selecciona un bloque para editar sus propiedades.',
     subtitleCustom:  'Bloque personalizado',
     subtitleVanilla: 'Bloque vanilla',
@@ -141,6 +228,9 @@ const es: Translations = {
 
   // ── Properties panel — field labels & tooltips ─────────────────────────────
   field: {
+    damageHeat: "Calor",
+    damageKinetic: "Cinético",
+    damageEM: "EM",
     name:        { label: 'Nombre',          tooltip: 'Nombre mostrado por StarMade en inventarios, interfaz de tienda/construcción y listas de bloques.' },
     icon:        { label: 'Icono',           tooltip: 'Icono del menú de construcción. StarMade los almacena en hojas de iconos; este selector escribe la ranura correcta para iconos personalizados.' },
     description: { label: 'Descripción',     tooltip: 'Texto de descripción mostrado a los jugadores en la interfaz/tooltips de StarMade.' },
@@ -177,7 +267,7 @@ const es: Translations = {
     transparency:   { label: 'Transparencia',    tooltip: 'Habilita el renderizado transparente/mezclado.' },
     door:           { label: 'Puerta',           tooltip: 'Indicador de comportamiento tipo puerta para sistemas de apertura/cierre.' },
     logicBlock:     { label: 'Bloque lógico',    tooltip: 'Si el bloque participa en la red lógica.' },
-    animated:       { label: 'Animado',          tooltip: 'Si es verdadero, la textura del bloque cicla cada ~0,5 s a través de 4 mosaicos.' },
+    animated:       { label: 'Animado',          tooltip: "Anima las texturas con la secuencia y el ritmo de StarMade." },
   },
 
   // ── Variant selector ────────────────────────────────────────────────────────
@@ -190,6 +280,8 @@ const es: Translations = {
 
   // ── Advanced properties editor ─────────────────────────────────────────────
   advanced: {
+    value: "Valor",
+    count: "Cantidad",
     searchPlaceholder: (n: number) => `Buscar entre ${n} propiedad${n === 1 ? '' : 'es'}…`,
     clear:        'Borrar',
     noProperties: 'No hay propiedades adicionales de BlockConfig.',
@@ -251,7 +343,7 @@ const es: Translations = {
   options: {
     indSides: {
       allSame:     'Todas las caras — mismo mosaico',
-      grouped:     'Caras agrupadas: front/back · top/bottom · lados',
+      grouped:     "Caras agrupadas: arriba · abajo · cuatro lados compartidos",
       independent: 'Cada cara independiente',
     },
     slab: {
@@ -296,7 +388,7 @@ const es: Translations = {
     cross:  'Cruz',
     tetra:  'Tetra',
     penta:  'Penta',
-    hepta:  'Hepta',
+    hepta:  "Cubo (24 orientaciones)",
     style:  (n: number) => `Estilo ${n}`,
   },
 
@@ -342,7 +434,7 @@ const es: Translations = {
     LogicSignaledByRail:'Permite que las señales de vía/activador de vía controlen el estado lógico de este bloque.',
     LogicBlockButton: 'Trata este bloque como entrada de botón momentáneo en el sistema lógico.',
     Beacon:          'Marca este bloque como baliza — visible en escáneres y superposiciones de navegación.',
-    ResourceInjection:'Modo de inyección de recursos para la generación del mundo. Desactivado = sin inyección; 1 = mineral/terreno; 2 = flora.',
+    ResourceInjection:'Modo de inyección de recursos para la generación del mundo. Desactivado = sin inyección; 1 = mineral/terreno; 17 = flora.',
     ExplosionAbsorbtion:'Factor de absorción de energía de explosión en el sistema de daño (0,0–1,0+).',
     StructureHPContribution:'Puntos de salud de estructura adicionales que este bloque aporta al casco de la nave/estación.',
     SourceReference:  'Referencia a otro bloque o entrada del sistema como fuente/padre de este bloque.',

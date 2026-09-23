@@ -1,0 +1,25 @@
+{
+  "node": "v22.23.2",
+  "packages": [
+    {
+      "name": "starmade-decoder",
+      "version": "2.0.0",
+      "source": "https://github.com/blackcancer/StarMade-Decoder",
+      "commit": "4cb21bd72258c87eb8115f90449a8334c34658a6",
+      "file": "starmade-decoder-2.0.0.tgz",
+      "sha256": "75e11e7cace263ea19cfbba159dbbb407a2963cd30b50dfe48b2cbb1a62a2ab5",
+      "integrity": "sha512-qJu+1sRBk/NRPWuavOZPflt0S4Nz3JMAimCBVNvuqE41H7QLblmAtoJK3GyfDS2+aU8wXFs1a52YM3a8SWSTjw==",
+      "files": 255
+    },
+    {
+      "name": "starmade-3d",
+      "version": "1.0.0",
+      "source": "https://github.com/blackcancer/StarMade-3D",
+      "commit": "bb80c2ebaccf262e944925a807671e67e4e15ac5",
+      "file": "starmade-3d-1.0.0.tgz",
+      "sha256": "cde613e54da464d2b523b9e9e995c17c9d07269a0d865336d56fff45e3ca56e4",
+      "integrity": "sha512-UUuybW1WDSzXLeshCaZS4F36OA1mwT1ZVG77zOVOkezrNfpKFJoRmOLChFp8a1hDcBctcR1330wV3iDr+VFc+w==",
+      "files": 195
+    }
+  ]
+}

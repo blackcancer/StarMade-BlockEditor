@@ -23,8 +23,14 @@ if not "%~1"=="" if /I not "%~1"=="--rebuild" if /I not "%~1"=="--build" goto :u
 where node >nul 2>nul
 if errorlevel 1 (
   echo [BlockEditor] Node.js is required but was not found in PATH.
-  echo Install Node.js 20+ and retry.
+  echo Install Node.js 22.16+ and retry.
   pause
+  exit /b 1
+)
+
+node -e "const [a,b]=process.versions.node.split('.').map(Number);process.exit(a*1000+b>=22016?0:1)"
+if errorlevel 1 (
+  echo [BlockEditor] Node.js 22.16+ is required.
   exit /b 1
 )
 
@@ -36,8 +42,8 @@ if errorlevel 1 (
 )
 
 if not exist "node_modules" (
-  echo [BlockEditor] Dependencies not found; running npm install...
-  call npm install
+  echo [BlockEditor] Dependencies not found; running npm ci...
+  call npm ci
   if errorlevel 1 goto :fail
 )
 

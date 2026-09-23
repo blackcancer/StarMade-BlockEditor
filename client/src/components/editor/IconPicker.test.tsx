@@ -3,6 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { IconPicker } from './IconPicker.js';
 
 function installCanvasMocks() {
+  vi.stubGlobal('matchMedia', vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
+  Object.defineProperties(HTMLDialogElement.prototype, {
+    showModal: { configurable: true, value: vi.fn(function (this: HTMLDialogElement) { this.open = true; }) },
+    close: { configurable: true, value: vi.fn(function (this: HTMLDialogElement) { this.open = false; }) },
+  });
   vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
     clearRect: vi.fn(),
     drawImage: vi.fn(),
@@ -81,7 +86,11 @@ describe('IconPicker', () => {
     fireEvent.click(canvas, { clientX: 1, clientY: -1 });
     expect(onSelect).not.toHaveBeenCalled();
 
-    fireEvent.keyDown(window, { key: 'Escape' });
+    fireEvent.click(canvas, { clientX: 1, clientY: 36 * 33 });
+    expect(onSelect).not.toHaveBeenCalled();
+    fireEvent.keyDown(window, { key: 'Enter' });
+    expect(onClose).not.toHaveBeenCalled();
+    fireEvent(screen.getByRole('dialog'), new Event('cancel', { cancelable: true }));
     expect(onClose).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByText('Build Icons').closest('.atlas-picker-overlay')!);
     expect(onClose).toHaveBeenCalledTimes(2);
@@ -96,6 +105,17 @@ describe('IconPicker', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it('uses touch-sized 44px cells with matching coordinates and selection overlays', () => {
+    vi.mocked(window.matchMedia).mockReturnValue({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() } as unknown as MediaQueryList);
+    const select = vi.fn(); render(<IconPicker selectedIconId={1} onSelect={select} onClose={vi.fn()} />);
+    const canvas = document.querySelector('canvas')!;
+    expect(canvas.width).toBe(48 * 44);
+    const selected = document.querySelector('.atlas-picker-selected') as HTMLElement;
+    expect(selected.style.left).toBe('44px'); expect(selected.style.width).toBe('44px');
+    fireEvent.click(canvas, { clientX: 45, clientY: 1 }); expect(select).toHaveBeenCalledWith(1);
+    expect(screen.getByRole('button', { name: 'Close' })).toBeTruthy();
+  });
+
   it('handles null canvas context gracefully (early return guard)', () => {
     // Override getContext to return null — covers the !ctx early return branch
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
@@ -106,9 +126,9 @@ describe('IconPicker', () => {
     const { act } = await import('@testing-library/react');
     render(<IconPicker selectedIconId={0} onSelect={vi.fn()} onClose={vi.fn()} />);
     await act(async () => { await new Promise(r => setTimeout(r, 0)); });
-    // drawImage should have been called for each icon cell in each sheet
-    const ctx = vi.mocked(HTMLCanvasElement.prototype.getContext)(null as any) as any;
-    // just assert the component didn’t throw — onload coverage handled by mock
-    expect(true).toBe(true);
+    const ctx = vi.mocked(HTMLCanvasElement.prototype.getContext).mock.results[0].value as CanvasRenderingContext2D;
+    expect(ctx.drawImage).toHaveBeenCalledTimes(6 * 256);
+    expect(ctx.drawImage).toHaveBeenCalledWith(expect.anything(), 0, 0, 64, 64, 0, 0, 36, 36);
+
   });
 });

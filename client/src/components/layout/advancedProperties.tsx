@@ -36,13 +36,13 @@
  */
 
 import React, { useState } from 'react';
-import { blockStyleName } from '../../3d/geometries/index.js';
 import type { BlockDef } from '../../store/blockStore.js';
 import { BlockIdSelect, BlockTypeSelect, Field } from './propertyControls.js';
 import {
   BLOCK_STYLES,
   EXTRA_PROPERTY_GROUPS,
   formatPropertyLabel,
+  labelForExtraPropertyL10n,
   getBlockStyleName,
   getFactoryOptions,
   getLodAnimationOptions,
@@ -104,6 +104,7 @@ export function ExtraPropertiesEditor({ value, blocks, onChange }: {
     return (
       key.toLowerCase().includes(normalizedFilter) ||
       formatPropertyLabel(key).toLowerCase().includes(normalizedFilter) ||
+      labelForExtraPropertyL10n(key, t).toLowerCase().includes(normalizedFilter) ||
       JSON.stringify(value[key] ?? '').toLowerCase().includes(normalizedFilter)
     );
   };
@@ -183,7 +184,7 @@ export function ExtraPropertiesEditor({ value, blocks, onChange }: {
             ) : (
               // Generic editor for all "Other" keys
               group.keys.map(key => (
-                <Field key={key} label={formatPropertyLabel(key)} tooltip={tooltipForExtraPropertyL10n(key, t)}>
+                <Field key={key} label={labelForExtraPropertyL10n(key, t)} tooltip={tooltipForExtraPropertyL10n(key, t)}>
                   <ExtraValueEditor value={value[key]} onChange={next => updateKey(key, next)} />
                 </Field>
               ))
@@ -660,7 +661,7 @@ function ControllersEditor({ value, blocks, onChange }: {
         value={normalizeElementList(value.ControlledBy)}
         blocks={blocks}
         onChange={items => updateKey('ControlledBy', serializeElementList(items))}
-        addLabelOverride={t.advanced.addControlledBy}
+        addLabel={t.advanced.addControlledBy}
       />
 
       {/* Controlling — which blocks this controller drives */}
@@ -669,7 +670,7 @@ function ControllersEditor({ value, blocks, onChange }: {
         value={normalizeElementList(value.Controlling)}
         blocks={blocks}
         onChange={items => updateKey('Controlling', serializeElementList(items))}
-        addLabelOverride={t.advanced.addControls}
+        addLabel={t.advanced.addControls}
       />
 
       {/* Combination controller role flags */}
@@ -681,7 +682,7 @@ function ControllersEditor({ value, blocks, onChange }: {
               checked={Boolean(value[key])}
               onChange={e => updateKey(key, e.target.checked)}
             />
-            {formatPropertyLabel(key)}{' '}
+            {labelForExtraPropertyL10n(key, t)}{' '}
             <span className="field-help" aria-label={tooltipForExtraPropertyL10n(key, t)}>ⓘ</span>
           </label>
         ))}
@@ -696,18 +697,17 @@ function ControllersEditor({ value, blocks, onChange }: {
  * @component
  * @private
  */
-function ControllerListEditor({ title, value, blocks, onChange, addLabelOverride }: {
+function ControllerListEditor({ title, value, blocks, onChange, addLabel }: {
   title: string;
   value: string[];
   blocks: BlockDef[];
   onChange: (value: string[]) => void;
-  addLabelOverride?: string;
+  addLabel: string;
 }) {
   const t = useT();
   const tooltip = title === t.advanced.controlledBy
     ? tooltipForExtraPropertyL10n('ControlledBy', t)
     : tooltipForExtraPropertyL10n('Controlling', t);
-  const addLabel = addLabelOverride ?? `+ Add ${title.toLowerCase()}`;
 
   return (
     <Field label={title} tooltip={tooltip}>
@@ -758,7 +758,7 @@ function CollisionPhysicalEditor({ value, onChange }: {
             checked={Boolean(value[key])}
             onChange={e => updateKey(key, e.target.checked)}
           />
-          {formatPropertyLabel(key)}{' '}
+          {labelForExtraPropertyL10n(key, t)}{' '}
           <span className="field-help" aria-label={tooltipForExtraPropertyL10n(key, t)}>ⓘ</span>
         </label>
       ))}
@@ -937,6 +937,8 @@ function LogicGameplayEditor({ value, onChange }: {
 }) {
   const t = useT();
   const updateKey = (key: string, next: unknown) => onChange({ ...value, [key]: next });
+  const resourceInjection = Number(value.ResourceInjection ?? 0);
+  const injectionOptions = getResourceInjectionOptions(t);
 
   /** Boolean flag keys rendered as toggles. */
   const flags = [
@@ -958,7 +960,7 @@ function LogicGameplayEditor({ value, onChange }: {
               checked={Boolean(value[key])}
               onChange={e => updateKey(key, e.target.checked)}
             />
-            {formatPropertyLabel(key)}{' '}
+            {labelForExtraPropertyL10n(key, t)}{' '}
             <span className="field-help" aria-label={tooltipForExtraPropertyL10n(key, t)}>ⓘ</span>
           </label>
         ))}
@@ -967,10 +969,13 @@ function LogicGameplayEditor({ value, onChange }: {
       {/* ResourceInjection — terrain/flora injection mode */}
       <Field label={t.advanced.resourceInjection} tooltip={tooltipForExtraPropertyL10n('ResourceInjection', t)}>
         <select
-          value={Number(value.ResourceInjection ?? 0)}
+          value={resourceInjection}
           onChange={e => updateKey('ResourceInjection', +e.target.value)}
         >
-          {getResourceInjectionOptions(t).map(option => (
+          {!injectionOptions.some(option => option.value === resourceInjection) && (
+            <option value={resourceInjection}>{resourceInjection}</option>
+          )}
+          {injectionOptions.map(option => (
             <option key={option.value} value={option.value}>{option.label}</option>
           ))}
         </select>
@@ -1057,6 +1062,7 @@ function ExtraValueEditor({ value, onChange }: {
   value: unknown;
   onChange: (value: unknown) => void;
 }) {
+  const t = useT();
   if (typeof value === 'boolean') {
     return (
       <input
@@ -1118,7 +1124,7 @@ function ExtraValueEditor({ value, onChange }: {
       <div className="extra-object-editor">
         {Object.entries(objectValue).map(([key, nestedValue]) => (
           <div key={key} className="extra-object-row">
-            <label>{formatPropertyLabel(key)}</label>
+            <label>{labelForExtraPropertyL10n(key, t)}</label>
             <ExtraValueEditor
               value={nestedValue}
               onChange={next => onChange({ ...objectValue, [key]: next })}

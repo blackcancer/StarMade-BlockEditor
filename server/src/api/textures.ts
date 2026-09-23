@@ -60,6 +60,10 @@ import sharp from 'sharp';
 import { getBlockIconIds } from './blocks.js';
 import { loadConfig } from './config.js';
 import { resolveStarmadeRoot } from '../utils/path.js';
+import { AssetError, assetStamp, confinedPath } from '../assets/assetPaths.js';
+import { atlasSources } from '../assets/textureSources.js';
+import { findNativeImage, readNativePng, replacePixels, resizeNormalPng, type NativeImage } from '../assets/nativeImage.js';
+import { atomicWriteFile, fileRevision, FileConflictError } from '../services/atomicFile.js';
 
 // =============================================================================
 // Constants
@@ -105,16 +109,17 @@ const TOTAL_TILES = PAGE_TILES * PAGE_COUNT;
 
 /**
  * In-memory cache for composite atlas PNG buffers.
- * Key: `"<pack>:<size>:<mapKind>"`. Cleared on every custom atlas import.
+ * Key includes installation, pack, resolution, map and filesystem revision. Imports invalidate it.
  * Each entry is a Promise<Buffer> for deduplication of concurrent requests.
  */
 const atlasBufferCache = new Map<string, Promise<Buffer>>();
 
 /**
  * In-memory cache for extracted icon PNG buffers.
- * Key: numeric icon ID. Cleared on every icon import.
+ * Key includes the canonical sheet and icon ID; entries track the sheet filesystem revision.
  */
-const iconBufferCache = new Map<number, Promise<Buffer>>();
+const iconBufferCache = new Map<string, { stamp: string; pending: Promise<Buffer> }>();
+let iconInstallation = '';
 
 // =============================================================================
 // Config file helpers
@@ -128,10 +133,10 @@ const iconBufferCache = new Map<number, Promise<Buffer>>();
  */
 function getStarmadeDir(): string {
   const p = path.resolve(process.cwd(), 'SMToolConfig.json');
-  if (!fs.existsSync(p)) throw new Error('SMToolConfig.json missing.');
-  return resolveStarmadeRoot(
-    (JSON.parse(fs.readFileSync(p, 'utf8')) as { starmadeDir: string }).starmadeDir,
-  );
+  if (!fs.existsSync(p) && !process.env.EDITOR_FIXED_STARMADE_DIR) throw new Error('SMToolConfig.json missing.');
+  const configured = loadConfig().starmadeDir;
+  if (!configured) throw new AssetError('Configure a StarMade installation first.', 503);
+  return resolveStarmadeRoot(configured);
 }
 
 // =============================================================================
@@ -185,14 +190,14 @@ export function parseMapKind(raw: unknown): TextureMapKind {
  * @returns {string} Absolute directory path.
  */
 function getTexturePackDir(pack: string, size: TileSize): string {
-  return path.join(getStarmadeDir(), 'data', 'textures', 'block', pack, String(size));
+  return confinedPath(getStarmadeDir(), `data/textures/block/${pack}/${size}`);
 }
 
 /**
- * Build the ordered list of source PNG paths for the composite atlas.
+ * Build the ordered list of native PNG/TGA/archive paths for the composite atlas.
  *
  * Returns exactly 8 paths (one per page slot), using `''` for empty/reserved slots.
- * Only existing files contribute composite overlays; missing slots are transparent.
+ * Only existing files contribute pixels; missing slots keep the neutral background.
  *
  * @param {TileSize}         size    Tile resolution in pixels.
  * @param {string}           pack    Texture pack name.
@@ -200,22 +205,7 @@ function getTexturePackDir(pack: string, size: TileSize): string {
  * @returns {string[]} 8-element array of source file paths.
  */
 function getAtlasPagePaths(size: TileSize, pack: string, mapKind: TextureMapKind): string[] {
-  const dir      = getStarmadeDir();
-  const packBase = getTexturePackDir(pack, size);
-  const suffix   = mapKind === 'normal' ? '_NRM' : '';
-  const customName = mapKind === 'normal' ? 'custom_NRM.png' : 'custom.png';
-  const customPath = path.join(dir, 'customBlockTextures', String(size), customName);
-
-  return [
-    path.join(packBase, `t000${suffix}.png`), // Page 0 — tile IDs   0–255
-    path.join(packBase, `t001${suffix}.png`), // Page 1 — tile IDs 256–511
-    path.join(packBase, `t002${suffix}.png`), // Page 2 — tile IDs 512–767
-    path.join(packBase, `t003${suffix}.png`), // Page 3 — tile IDs 768–1023
-    '',                                        // Page 4 — reserved
-    '',                                        // Page 5 — reserved
-    '',                                        // Page 6 — reserved
-    customPath,                                // Page 7 — tile IDs 1792–2047 (custom.png)
-  ];
+  return atlasSources(getStarmadeDir(), size, pack, mapKind).map(source => source?.path ?? '');
 }
 
 // =============================================================================
@@ -234,18 +224,13 @@ function getAtlasPagePaths(size: TileSize, pack: string, mapKind: TextureMapKind
  *          supported resolutions.
  */
 function listTexturePacks(size?: TileSize): Array<{ name: string; sizes: number[] }> {
-  const base = path.join(getStarmadeDir(), 'data', 'textures', 'block');
+  const root = getStarmadeDir();
+  if (!fs.existsSync(root)) return [];
+  const base = confinedPath(root, 'data/textures/block');
   if (!fs.existsSync(base)) return [];
-
   return fs.readdirSync(base, { withFileTypes: true })
     .filter(entry => entry.isDirectory())
-    .map(entry => {
-      const packDir = path.join(base, entry.name);
-      const sizes = VALID_SIZES.filter(s =>
-        fs.existsSync(path.join(packDir, String(s), 't000.png')),
-      );
-      return { name: entry.name, sizes: [...sizes] };
-    })
+    .map(entry => ({ name: entry.name, sizes: VALID_SIZES.filter(s => findNativeImage(getTexturePackDir(entry.name, s), 't000.png') !== null) }))
     .filter(pack => pack.sizes.length > 0)
     .filter(pack => size === undefined || pack.sizes.includes(size));
 }
@@ -255,8 +240,8 @@ function listTexturePacks(size?: TileSize): Array<{ name: string; sizes: number[
 // =============================================================================
 
 /**
- * Build the composite atlas PNG by overlaying available texture pages onto a blank
- * canvas of the correct dimensions using Sharp.
+ * Build the composite atlas PNG by copying exact RGBA pixels into their page slots.
+ * Alpha is material data for normal maps, so source-over blending is never used.
  *
  * Page positions are computed from their index in the 4×2 grid:
  *   `left = (pageIndex % PAGE_GRID_COLS) * pageSizePx`
@@ -272,47 +257,26 @@ function listTexturePacks(size?: TileSize): Array<{ name: string; sizes: number[
  * @throws {Error} If no pages exist for the given pack/size/map combination.
  */
 async function buildCompositeAtlas(
-  size: TileSize,
-  pack: string,
-  mapKind: TextureMapKind,
+  size: TileSize, pack: string, mapKind: TextureMapKind, sources: Array<NativeImage | null>,
 ): Promise<Buffer> {
-  const pageSizePx = PAGE_TILE_COLS * size; // Width/height of one page in px.
-  const width  = ATLAS_COLS * size;
+  const pageSize = PAGE_TILE_COLS * size;
+  const width = ATLAS_COLS * size;
   const height = ATLAS_ROWS * size;
-
-  const pagePaths = getAtlasPagePaths(size, pack, mapKind);
-  const composites: sharp.OverlayOptions[] = [];
-
-  for (let pageIndex = 0; pageIndex < pagePaths.length; pageIndex++) {
-    const pagePath = pagePaths[pageIndex];
-    if (!fs.existsSync(pagePath)) continue;
-
-    const pageCol = pageIndex % PAGE_GRID_COLS;
-    const pageRow = Math.floor(pageIndex / PAGE_GRID_COLS);
-    composites.push({
-      input: pagePath,
-      left:  pageCol * pageSizePx,
-      top:   pageRow * pageSizePx,
-    });
+  if (!sources.some(Boolean)) throw new Error(`No ${mapKind} texture pages found for pack "${pack}" at size ${size}.`);
+  const pixels = Buffer.alloc(width * height * 4);
+  if (mapKind === 'normal') pixels.fill(Buffer.from([128, 128, 255, 0]));
+  for (let layer = 0; layer < sources.length; layer++) {
+    const source = sources[layer];
+    if (!source) continue;
+    const decoded = await sharp(await readNativePng(source)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    if (decoded.info.width !== pageSize || decoded.info.height !== pageSize) throw new AssetError(`Invalid atlas page dimensions: expected ${pageSize}×${pageSize}px.`);
+    const left = (layer % PAGE_GRID_COLS) * pageSize;
+    const top = Math.floor(layer / PAGE_GRID_COLS) * pageSize;
+    for (let row = 0; row < pageSize; row++) {
+      decoded.data.copy(pixels, ((top + row) * width + left) * 4, row * pageSize * 4, (row + 1) * pageSize * 4);
+    }
   }
-
-  if (composites.length === 0) {
-    throw new Error(
-      `No ${mapKind} texture pages found for pack "${pack}" at size ${size}.`,
-    );
-  }
-
-  // Background:
-  //  - diffuse: transparent black (blocks with no texture show nothing)
-  //  - normal:  flat-normal grey (128, 128, 255) — pointing straight up in tangent space
-  const background = mapKind === 'normal'
-    ? { r: 128, g: 128, b: 255, alpha: 1 }
-    : { r: 0,   g: 0,   b: 0,   alpha: 0 };
-
-  return sharp({ create: { width, height, channels: 4, background } })
-    .composite(composites)
-    .png()
-    .toBuffer();
+  return sharp(pixels, { raw: { width, height, channels: 4 } }).png().toBuffer();
 }
 
 /**
@@ -326,15 +290,15 @@ async function buildCompositeAtlas(
  * @param {TextureMapKind} mapKind Map type.
  * @returns {Promise<Buffer>} Cached or freshly built atlas PNG buffer.
  */
-function getCompositeAtlasBuffer(
-  size: TileSize,
-  pack: string,
-  mapKind: TextureMapKind,
-): Promise<Buffer> {
-  const key = `${pack}:${size}:${mapKind}`;
+function getCompositeAtlasBuffer(size: TileSize, pack: string, mapKind: TextureMapKind): Promise<Buffer> {
+  const root = getStarmadeDir();
+  const sources = atlasSources(root, size, pack, mapKind);
+  const key = `${root}:${pack}:${size}:${mapKind}:` + sources.map(source => source ? assetStamp(source.path) : 'missing').join('|');
   let pending = atlasBufferCache.get(key);
   if (!pending) {
-    pending = buildCompositeAtlas(size, pack, mapKind);
+    // Keep at most the current diffuse/normal pair, rather than every historical revision.
+    if (atlasBufferCache.size >= 2) atlasBufferCache.clear();
+    pending = buildCompositeAtlas(size, pack, mapKind, sources).catch(error => { atlasBufferCache.delete(key); throw error; });
     atlasBufferCache.set(key, pending);
   }
   return pending;
@@ -423,13 +387,7 @@ export async function warmIconCache(): Promise<{
  * @returns {string} Absolute path to the icon sheet file.
  */
 function buildIconPath(iconId: number): string {
-  const layer = Math.floor(iconId / 256);
-  return path.join(
-    getStarmadeDir(),
-    'data',
-    'image-resource',
-    `build-icons-${String(layer).padStart(2, '0')}-16x16-gui-.png`,
-  );
+  return confinedPath(getStarmadeDir(), `data/image-resource/build-icons-${String(Math.floor(iconId / 256)).padStart(2, '0')}-16x16-gui-.png`);
 }
 
 /**
@@ -442,36 +400,26 @@ function buildIconPath(iconId: number): string {
  *  - `row = Math.floor(local / 16)` → row in the sprite grid
  *  - Extract region: `left=col*64, top=row*64, width=64, height=64`
  *
- * Results are cached by iconId and cleared on each icon import.
+ * Results are cached by installation, sheet revision and icon ID; imports invalidate them.
  *
  * @param {number} iconId Block icon ID.
  * @returns {Promise<Buffer>} PNG buffer of the extracted 64×64 icon.
  * @throws {Error} If the icon sheet file does not exist.
  */
 async function getBuildIcon(iconId: number): Promise<Buffer> {
-  let pending = iconBufferCache.get(iconId);
-  if (!pending) {
-    pending = (async () => {
-      const iconPath = buildIconPath(iconId);
-      if (!fs.existsSync(iconPath)) {
-        throw new Error(`Build icon sheet not found for icon ${iconId}.`);
-      }
-
-      const local    = iconId % 256;  // Slot index within this sheet.
-      const iconSize = 64;            // Each sprite slot is 64×64 px.
-      const col      = local % 16;    // Grid column.
-      const row      = Math.floor(local / 16); // Grid row.
-
-      return sharp(iconPath)
-        .extract({ left: col * iconSize, top: row * iconSize, width: iconSize, height: iconSize })
-        .png()
-        .toBuffer();
-    })().catch((error) => {
-      iconBufferCache.delete(iconId);
-      throw error;
-    });
-    iconBufferCache.set(iconId, pending);
-  }
+  const root = getStarmadeDir();
+  if (iconInstallation !== root) { iconBufferCache.clear(); iconInstallation = root; }
+  const iconPath = buildIconPath(iconId);
+  const stamp = assetStamp(iconPath);
+  const key = `${iconPath}:${iconId}`;
+  const cached = iconBufferCache.get(key);
+  if (cached?.stamp === stamp) return cached.pending;
+  const pending = (async () => {
+    if (!fs.existsSync(iconPath)) throw new Error(`Build icon sheet not found for icon ${iconId}.`);
+    const local = iconId % 256;
+    return sharp(iconPath).extract({ left: (local % 16) * 64, top: Math.floor(local / 16) * 64, width: 64, height: 64 }).png().toBuffer();
+  })().catch(error => { iconBufferCache.delete(key); throw error; });
+  iconBufferCache.set(key, { stamp, pending });
   return pending;
 }
 
@@ -485,31 +433,20 @@ async function getBuildIcon(iconId: number): Promise<Buffer> {
  *
  * The blank canvas is:
  *  - diffuse: transparent black (`{ r:0, g:0, b:0, alpha:0 }`)
- *  - normal:  flat-normal grey (`{ r:128, g:128, b:255, alpha:1 }`)
+ *  - normal:  flat-normal grey with no emission (`{ r:128, g:128, b:255, alpha:0 }`)
  *
  * @param {TileSize}       size    Tile resolution in pixels.
  * @param {TextureMapKind} mapKind `'diffuse'` or `'normal'`.
  * @returns {Promise<string>} Absolute path to the custom atlas file.
  */
 async function ensureCustomAtlas(size: TileSize, mapKind: TextureMapKind): Promise<string> {
-  const customName = mapKind === 'normal' ? 'custom_NRM.png' : 'custom.png';
-  const customPath = path.join(getStarmadeDir(), 'customBlockTextures', String(size), customName);
-
+  const customPath = confinedPath(getStarmadeDir(), `customBlockTextures/${size}/${mapKind === 'normal' ? 'custom_NRM.png' : 'custom.png'}`);
   if (!fs.existsSync(customPath)) {
+    const background = mapKind === 'normal' ? { r: 128, g: 128, b: 255, alpha: 0 } : { r: 0, g: 0, b: 0, alpha: 0 };
+    const bytes = await sharp({ create: { width: PAGE_TILE_COLS * size, height: PAGE_TILE_ROWS * size, channels: 4, background } }).png().toBuffer();
     fs.mkdirSync(path.dirname(customPath), { recursive: true });
-    const background = mapKind === 'normal'
-      ? { r: 128, g: 128, b: 255, alpha: 1 }
-      : { r: 0,   g: 0,   b: 0,   alpha: 0 };
-    await sharp({
-      create: {
-        width:    PAGE_TILE_COLS * size,
-        height:   PAGE_TILE_ROWS * size,
-        channels: 4,
-        background,
-      },
-    }).png().toFile(customPath);
+    atomicWriteFile(customPath, bytes, { expectedRevision: null });
   }
-
   return customPath;
 }
 
@@ -527,20 +464,14 @@ async function ensureCustomAtlas(size: TileSize, mapKind: TextureMapKind): Promi
  * @throws {Error} If the image dimensions do not match the expected atlas page size.
  */
 async function writeCustomAtlas(size: TileSize, mapKind: TextureMapKind, input: Buffer): Promise<void> {
+  const customPath = confinedPath(getStarmadeDir(), `customBlockTextures/${size}/${mapKind === 'normal' ? 'custom_NRM.png' : 'custom.png'}`);
+  const expectedRevision = fileRevision(customPath);
   const expected = PAGE_TILE_COLS * size;
   const metadata = await sharp(input).metadata();
-
-  if (metadata.width !== expected || metadata.height !== expected) {
-    throw new Error(
-      `Invalid custom atlas size. Expected ${expected}×${expected}px ` +
-      `(${PAGE_TILE_COLS}×${PAGE_TILE_ROWS} tiles at ${size}px), ` +
-      `got ${metadata.width ?? '?'}×${metadata.height ?? '?'}px.`,
-    );
-  }
-
-  const customPath = await ensureCustomAtlas(size, mapKind);
+  if (metadata.width !== expected || metadata.height !== expected) throw new AssetError(`Invalid custom atlas size. Expected ${expected}×${expected}px.`);
   const normalized = await sharp(input).png().toBuffer();
-  fs.writeFileSync(customPath, normalized);
+  fs.mkdirSync(path.dirname(customPath), { recursive: true });
+  atomicWriteFile(customPath, normalized, { expectedRevision });
   atlasBufferCache.clear();
 }
 
@@ -552,7 +483,7 @@ async function writeCustomAtlas(size: TileSize, mapKind: TextureMapKind, input: 
  *  - A local slot index (0–255) which is treated as-is.
  *
  * The input image is scaled to `size × size` pixels with `cover` fit before
- * being composited into the correct cell of the custom atlas.
+ * replacing the correct cell of the custom atlas without alpha blending.
  *
  * Clears the atlas buffer cache after writing.
  *
@@ -562,39 +493,14 @@ async function writeCustomAtlas(size: TileSize, mapKind: TextureMapKind, input: 
  * @param {Buffer}         input   Source image buffer.
  * @throws {Error} If `tileId` is out of range.
  */
-async function writeCustomTile(
-  tileId:  number,
-  size:    TileSize,
-  mapKind: TextureMapKind,
-  input:   Buffer,
-): Promise<void> {
-  // Normalise to a local slot index (0–255).
+async function writeCustomTile(tileId: number, size: TileSize, mapKind: TextureMapKind, input: Buffer): Promise<void> {
   const local = tileId >= PAGE_TILES * 7 ? tileId - PAGE_TILES * 7 : tileId;
-  if (local < 0 || local >= PAGE_TILES) {
-    throw new Error(
-      `Custom tile target must be 0–255 or 1792–2047. Received: ${tileId}`,
-    );
-  }
-
+  if (local < 0 || local >= PAGE_TILES) throw new AssetError(`Custom tile target must be 0–255 or 1792–2047. Received: ${tileId}`);
+  const tile = mapKind === 'normal' ? await resizeNormalPng(input, size) : await sharp(input).resize(size, size, { fit: 'cover' }).png().toBuffer();
   const customPath = await ensureCustomAtlas(size, mapKind);
-
-  // Scale the source image to exactly one tile.
-  const tile = await sharp(input)
-    .resize(size, size, { fit: 'cover' })
-    .png()
-    .toBuffer();
-
-  // Compute tile position within the custom page.
-  const col = local % PAGE_TILE_COLS;
-  const row = Math.floor(local / PAGE_TILE_COLS);
-
-  // Composite the tile over the existing custom atlas.
-  const updated = await sharp(customPath)
-    .composite([{ input: tile, left: col * size, top: row * size }])
-    .png()
-    .toBuffer();
-
-  fs.writeFileSync(customPath, updated);
+  const expectedRevision = fileRevision(customPath);
+  const updated = await replacePixels(fs.readFileSync(customPath), tile, (local % PAGE_TILE_COLS) * size, Math.floor(local / PAGE_TILE_COLS) * size);
+  atomicWriteFile(customPath, updated, { expectedRevision });
   atlasBufferCache.clear();
 }
 
@@ -602,7 +508,7 @@ async function writeCustomTile(
  * Replace a single icon slot in the build-icons sprite sheet.
  *
  * The input image is scaled to 64×64 px (with transparent padding if needed)
- * before being composited into the correct cell of the sheet.
+ * before replacing the correct cell, including transparent source pixels.
  *
  * Clears the icon buffer cache after writing.
  *
@@ -612,27 +518,27 @@ async function writeCustomTile(
  */
 async function writeBuildIcon(iconId: number, input: Buffer): Promise<void> {
   const iconPath = buildIconPath(iconId);
-  if (!fs.existsSync(iconPath)) {
-    throw new Error(`Build icon sheet not found for icon ${iconId}.`);
-  }
-
-  // Scale to 64×64 with transparent padding to preserve aspect ratio.
-  const icon = await sharp(input)
-    .resize(64, 64, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
-    .png()
-    .toBuffer();
-
+  if (!fs.existsSync(iconPath)) throw new Error(`Build icon sheet not found for icon ${iconId}.`);
+  const expectedRevision = fileRevision(iconPath);
+  const original = fs.readFileSync(iconPath);
+  const icon = await sharp(input).resize(64, 64, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } }).png().toBuffer();
   const local = iconId % 256;
-  const col   = local % 16;
-  const row   = Math.floor(local / 16);
-
-  const updated = await sharp(iconPath)
-    .composite([{ input: icon, left: col * 64, top: row * 64 }])
-    .png()
-    .toBuffer();
-
-  fs.writeFileSync(iconPath, updated);
+  const updated = await replacePixels(original, icon, (local % 16) * 64, Math.floor(local / 16) * 64);
+  const backup = iconBackupPath(iconId);
+  if (!fs.existsSync(backup)) {
+    fs.mkdirSync(path.dirname(backup), { recursive: true });
+    atomicWriteFile(backup, original, { expectedRevision: null });
+  }
+  atomicWriteFile(iconPath, updated, { expectedRevision });
   iconBufferCache.clear();
+}
+
+function iconBackupPath(iconId: number): string {
+  return confinedPath(getStarmadeDir(), `customBlockTextures/.blockeditor-icon-backups/${path.basename(buildIconPath(iconId))}`);
+}
+
+function errorStatus(error: unknown, fallback: number): number {
+  return error instanceof FileConflictError ? 409 : error instanceof AssetError ? error.status : fallback;
 }
 
 // =============================================================================
@@ -666,6 +572,7 @@ function tilePosition(tileId: number): { col: number; row: number } {
  */
 
 export const texturesRouter = Router();
+texturesRouter.use((_req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); });
 
 /**
  * GET /api/textures/packs?size=<size>
@@ -677,7 +584,7 @@ texturesRouter.get('/packs', (req: Request, res: Response) => {
     const size = req.query.size === undefined ? undefined : parseSize(req.query.size);
     res.json({ packs: listTexturePacks(size) });
   } catch (e) {
-    res.status(500).json({ error: (e as Error).message });
+    res.status(errorStatus(e, 500)).json({ error: (e as Error).message });
   }
 });
 
@@ -714,7 +621,7 @@ texturesRouter.get('/info', async (req: Request, res: Response) => {
       pages:   pagePaths.length,
     });
   } catch (e) {
-    res.status(500).json({ error: (e as Error).message });
+    res.status(errorStatus(e, 500)).json({ error: (e as Error).message });
   }
 });
 
@@ -734,7 +641,7 @@ texturesRouter.get('/atlas', async (req: Request, res: Response) => {
     res.setHeader('Cache-Control', 'no-store');
     res.send(atlas);
   } catch (e) {
-    res.status(500).json({ error: (e as Error).message });
+    res.status(errorStatus(e, 500)).json({ error: (e as Error).message });
   }
 });
 
@@ -745,17 +652,12 @@ texturesRouter.get('/atlas', async (req: Request, res: Response) => {
  */
 texturesRouter.get('/icons/sheet/:layer', async (req: Request, res: Response) => {
   try {
-    const layer = parseInt(req.params.layer, 10);
-    if (isNaN(layer) || layer < 0) {
+    const layer = Number(req.params.layer);
+    if (!Number.isInteger(layer) || layer < 0) {
       return void res.status(400).json({ error: `Invalid icon sheet layer: ${req.params.layer}` });
     }
 
-    const sheetPath = path.join(
-      getStarmadeDir(),
-      'data',
-      'image-resource',
-      `build-icons-${String(layer).padStart(2, '0')}-16x16-gui-.png`,
-    );
+    const sheetPath = buildIconPath(layer * 256);
 
     if (!fs.existsSync(sheetPath)) {
       return void res.status(404).json({ error: `Build icon sheet not found: ${layer}` });
@@ -765,7 +667,7 @@ texturesRouter.get('/icons/sheet/:layer', async (req: Request, res: Response) =>
     res.setHeader('Cache-Control', 'no-store');
     res.sendFile(sheetPath);
   } catch (e) {
-    res.status(500).json({ error: (e as Error).message });
+    res.status(errorStatus(e, 500)).json({ error: (e as Error).message });
   }
 });
 
@@ -791,7 +693,7 @@ texturesRouter.put('/custom-atlas', rawImage, async (req: Request, res: Response
     await writeCustomAtlas(size, mapKind, req.body);
     res.json({ ok: true, size, map: mapKind });
   } catch (e) {
-    res.status(400).json({ error: (e as Error).message });
+    res.status(errorStatus(e, 400)).json({ error: (e as Error).message });
   }
 });
 
@@ -806,11 +708,11 @@ texturesRouter.put('/custom-tile/:id', rawImage, async (req: Request, res: Respo
     if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
       return void res.status(400).json({ error: 'Missing image payload.' });
     }
-    const tileId  = parseInt(req.params.id, 10);
+    const tileId  = Number(req.params.id);
     const size    = parseSize(req.query.size);
     const mapKind = parseMapKind(req.query.map);
 
-    if (isNaN(tileId)) {
+    if (!Number.isInteger(tileId)) {
       return void res.status(400).json({ error: `Invalid tile ID: ${req.params.id}` });
     }
 
@@ -820,7 +722,7 @@ texturesRouter.put('/custom-tile/:id', rawImage, async (req: Request, res: Respo
     const customTileId = tileId >= PAGE_TILES * 7 ? tileId : PAGE_TILES * 7 + tileId;
     res.json({ ok: true, tileId: customTileId, size, map: mapKind });
   } catch (e) {
-    res.status(500).json({ error: (e as Error).message });
+    res.status(errorStatus(e, 500)).json({ error: (e as Error).message });
   }
 });
 
@@ -835,14 +737,14 @@ texturesRouter.put('/icon/:id', rawImage, async (req: Request, res: Response) =>
     if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
       return void res.status(400).json({ error: 'Missing image payload.' });
     }
-    const iconId = parseInt(req.params.id, 10);
-    if (isNaN(iconId) || iconId < 0) {
+    const iconId = Number(req.params.id);
+    if (!Number.isInteger(iconId) || iconId < 0) {
       return void res.status(400).json({ error: `Invalid icon ID: ${req.params.id}` });
     }
     await writeBuildIcon(iconId, req.body);
     res.json({ ok: true, iconId });
   } catch (e) {
-    res.status(500).json({ error: (e as Error).message });
+    res.status(errorStatus(e, 500)).json({ error: (e as Error).message });
   }
 });
 
@@ -853,8 +755,8 @@ texturesRouter.put('/icon/:id', rawImage, async (req: Request, res: Response) =>
  */
 texturesRouter.get('/icon/:id', async (req: Request, res: Response) => {
   try {
-    const iconId = parseInt(req.params.id, 10);
-    if (isNaN(iconId) || iconId < 0) {
+    const iconId = Number(req.params.id);
+    if (!Number.isInteger(iconId) || iconId < 0) {
       return void res.status(400).json({ error: `Invalid icon ID: ${req.params.id}` });
     }
     const icon = await getBuildIcon(iconId);
@@ -862,7 +764,7 @@ texturesRouter.get('/icon/:id', async (req: Request, res: Response) => {
     res.setHeader('Cache-Control', 'no-store');
     res.send(icon);
   } catch (e) {
-    res.status(404).json({ error: (e as Error).message });
+    res.status(errorStatus(e, 404)).json({ error: (e as Error).message });
   }
 });
 
@@ -877,9 +779,9 @@ texturesRouter.get('/tile/:id', async (req: Request, res: Response) => {
     const size    = parseSize(req.query.size);
     const pack    = parsePack(req.query.pack);
     const mapKind = parseMapKind(req.query.map);
-    const tileId  = parseInt(req.params.id, 10);
+    const tileId  = Number(req.params.id);
 
-    if (isNaN(tileId) || tileId < 0 || tileId >= TOTAL_TILES) {
+    if (!Number.isInteger(tileId) || tileId < 0 || tileId >= TOTAL_TILES) {
       return void res.status(400).json({
         error: `Invalid tile ID: ${tileId}. Must be 0–${TOTAL_TILES - 1}.`,
       });
@@ -897,7 +799,7 @@ texturesRouter.get('/tile/:id', async (req: Request, res: Response) => {
     res.setHeader('Cache-Control', 'no-store');
     res.send(tile);
   } catch (e) {
-    res.status(500).json({ error: (e as Error).message });
+    res.status(errorStatus(e, 500)).json({ error: (e as Error).message });
   }
 });
 
@@ -919,6 +821,36 @@ texturesRouter.get('/atlas-base64', async (req: Request, res: Response) => {
       map: mapKind,
     });
   } catch (e) {
-    res.status(500).json({ error: (e as Error).message });
+    res.status(errorStatus(e, 500)).json({ error: (e as Error).message });
   }
+});
+
+
+/** GET /api/textures/icon/:id/status reports whether the initial icon can be restored. */
+texturesRouter.get('/icon/:id/status', (req, res) => {
+  try {
+    const iconId = Number(req.params.id);
+    if (!Number.isInteger(iconId) || iconId < 0) throw new AssetError('Invalid icon ID.');
+    res.json({ canRestore: fs.existsSync(iconBackupPath(iconId)), writesGameFile: true });
+  } catch (e) { res.status(errorStatus(e, 500)).json({ error: (e as Error).message }); }
+});
+
+/** POST /api/textures/icon/:id/restore restores a single original slot from the retained backup. */
+texturesRouter.post('/icon/:id/restore', async (req, res) => {
+  try {
+    const iconId = Number(req.params.id);
+    if (!Number.isInteger(iconId) || iconId < 0) throw new AssetError('Invalid icon ID.');
+    const backup = iconBackupPath(iconId);
+    if (!fs.existsSync(backup)) throw new AssetError('No original icon backup exists.', 404);
+    const iconPath = buildIconPath(iconId);
+    const expectedRevision = fileRevision(iconPath);
+    const local = iconId % 256;
+    const left = (local % 16) * 64;
+    const top = Math.floor(local / 16) * 64;
+    const original = await sharp(backup).extract({ left, top, width: 64, height: 64 }).png().toBuffer();
+    const restored = await replacePixels(fs.readFileSync(iconPath), original, left, top);
+    atomicWriteFile(iconPath, restored, { expectedRevision });
+    iconBufferCache.clear();
+    res.json({ ok: true, iconId });
+  } catch (e) { res.status(errorStatus(e, 500)).json({ error: (e as Error).message }); }
 });

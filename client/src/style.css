@@ -976,3 +976,167 @@ button:disabled { opacity: 0.4; cursor: default; }
   font-weight: 700;
   font-size:   0.85rem;
 }
+
+/* Keep native loading, warnings and errors readable above the canvas. */
+.viewer-render-message { position: absolute; z-index: 2; top: 12px; left: 12px; right: 12px; padding: 10px 12px; border-radius: 6px; background: rgba(14, 18, 26, .94); color: #e4e8f0; border: 1px solid #465064; font-size: 12px; overflow-wrap: anywhere; }
+.viewer-render-message[role="alert"] { border-color: #b56b55; color: #ffcab8; }
+
+.field-notice { color: #aeb9cd; font-size: 11px; line-height: 1.5; margin: 8px 0; }
+.generated-icon-preview { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.generated-icon-preview img { image-rendering: pixelated; background-color: #253044; border: 1px solid #52617a; border-radius: 4px; }
+
+/* Workspace panels keep their component state across mobile navigation. */
+.app-body { min-height: 0; min-width: 0; position: relative; }
+.workspace-panel { display: flex; min-width: 0; min-height: 0; }
+.workspace-panel[hidden] { display: none; }
+.panel-preview { flex: 1; }
+.header-settings, .header-controls { display: contents; }
+.header-settings > summary { display: none; }
+.block-card { width: 100%; color: var(--text-primary); background: transparent; border-radius: 0; text-align: left; font-weight: inherit; }
+.block-card-body { display: block; min-width: 0; }
+.block-card-name { display: block; }
+button:focus-visible, summary:focus-visible, select:focus-visible, input:focus-visible,
+textarea:focus-visible, [role="tabpanel"]:focus-visible {
+  outline: 2px solid var(--border-focus); outline-offset: -2px;
+}
+
+/* Native modal dialogs own focus and make the underlying workspace inert. */
+dialog.atlas-picker-overlay, dialog.config-overlay {
+  margin: 0; padding: 0; border: 0; width: 100%; height: 100%;
+  max-width: none; max-height: none; color: var(--text-primary);
+}
+dialog:not([open]) { display: none; }
+dialog::backdrop { background: transparent; }
+.config-dialog { max-width: calc(100vw - 32px); max-height: calc(100dvh - 32px); overflow: auto; }
+.atlas-picker-header, .atlas-picker-footer { flex-shrink: 0; }
+.atlas-picker-canvas-wrap { min-width: 0; min-height: 0; overscroll-behavior: contain; touch-action: pan-x pan-y; }
+.atlas-picker-canvas-wrap canvas { max-width: none; }
+.properties-error { overflow-wrap: anywhere; }
+
+@media (max-width: 1024px) {
+  body, .app-root { height: 100dvh; }
+  .app-root { padding-top: env(safe-area-inset-top); }
+  .app-header {
+    position: relative; height: auto; min-height: 56px; padding: 6px max(12px, env(safe-area-inset-right)) 6px max(12px, env(safe-area-inset-left));
+    gap: 8px; z-index: 20;
+  }
+  .app-brand { min-width: 0; }
+  .app-title { font-size: 0.95rem; }
+  .app-subtitle, .app-path { display: none; }
+  .header-settings { display: block; }
+  .header-settings > summary {
+    display: flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 12px;
+    list-style: none; border: 1px solid var(--border-muted); border-radius: var(--radius);
+    background: var(--bg-raised); color: var(--text-primary); cursor: pointer;
+  }
+  .header-settings > summary::-webkit-details-marker { display: none; }
+  .header-settings:not([open]) .header-controls { display: none; }
+  .header-controls {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;
+    position: absolute; top: 100%; left: 0; right: 0; padding: 12px;
+    background: var(--bg-surface); border-bottom: 1px solid var(--border-muted);
+    box-shadow: 0 8px 20px #0008; max-height: calc(100dvh - 120px); overflow: auto;
+  }
+  .header-controls > * { min-width: 0; }
+  .app-stats { grid-column: 1 / -1; }
+  .app-body { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
+  .workspace-panel { flex: 1; width: 100%; }
+  .workspace-panel > .sidebar, .workspace-panel > .properties, .workspace-panel > .viewer-column {
+    width: 100%; min-width: 0; border-right: 0; flex: 1;
+  }
+  .mobile-navigation {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); flex-shrink: 0;
+    background: var(--bg-surface); border-top: 1px solid var(--border-muted); gap: 4px;
+    padding: 6px max(6px, env(safe-area-inset-right)) max(6px, env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-left));
+  }
+  .mobile-navigation button { min-height: 48px; padding: 8px 4px; color: var(--text-secondary); background: transparent; overflow-wrap: anywhere; }
+  .mobile-navigation button[aria-selected="true"] { color: var(--accent-bright); background: var(--bg-active); border-color: var(--accent); }
+  button, summary, select { min-height: 44px; }
+  summary { min-width: 44px; }
+  button { min-width: 44px; }
+  input:not([type="checkbox"]):not([type="file"]), select, textarea { font-size: 16px !important; min-height: 44px; min-width: 0; }
+  .sidebar-search { flex-shrink: 0; }
+  .sidebar-search input { padding: 12px; }
+  .sidebar-filters { flex-shrink: 0; gap: 4px 10px; padding: 4px 12px; }
+  .sidebar-filters label, .inline-check, .flag-toggle { min-height: 44px; }
+  input[type="checkbox"] { width: 20px; height: 20px; flex-shrink: 0; }
+  .sidebar-list, .properties-body { min-height: 0; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+  .block-card { min-height: 58px; padding: 8px 12px; }
+  .block-card-icon { width: 36px; height: 36px; }
+  .block-card-icon img { width: 32px; height: 32px; }
+  .block-card-name { max-width: none; white-space: normal; overflow-wrap: anywhere; font-size: 0.9rem; }
+  .block-card-meta { flex-wrap: wrap; }
+  .viewer-column { overflow-y: auto; overscroll-behavior: contain; }
+  .viewer-3d { flex: 1 0 220px; min-height: 220px; }
+  .viewer-empty { padding: 20px; text-align: center; }
+  .face-selector-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .face-selector { padding: 8px; }
+  .face-btn { min-width: 0; min-height: 70px; }
+  .face-btn-label { font-size: 0.68rem; overflow-wrap: anywhere; }
+  .orientation-row { flex-wrap: wrap; padding: 6px 10px; }
+  .orientation-row label { min-width: 0; overflow-wrap: anywhere; }
+  .orientation-row select { width: 0; flex: 1 1 80px; }
+  .properties-header { padding: 10px 12px; }
+  .properties-title { overflow-wrap: anywhere; }
+  .properties-body { padding: 8px; }
+  .properties-body section { padding: 8px; }
+  .properties-footer { flex-wrap: wrap; padding: 8px; gap: 6px; }
+  .properties-footer button { flex: 1 1 auto; white-space: normal; }
+  .field-input, .extra-property-fields { min-width: 0; }
+  .field-label, .flag-toggle { overflow-wrap: anywhere; }
+  .flags-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .icon-field { grid-template-columns: 44px minmax(64px, 1fr) minmax(0, 1fr); }
+  .icon-field > button { white-space: normal; }
+  .icon-preview { width: 44px; height: 44px; }
+  .icon-field > button:nth-child(n + 4) { grid-column: 1 / -1; }
+  .palette-swatch { width: 44px; height: 44px; }
+  .color-editor { grid-template-columns: 44px minmax(88px, 1fr) minmax(0, 1fr); }
+  .color-editor input[type="color"] { height: 44px; }
+  .effect-armor-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .extra-object-row, .extra-array-item { grid-template-columns: minmax(0, 1fr); }
+  .resource-row { grid-template-columns: 56px minmax(0, 1fr) 44px; }
+  .element-row { grid-template-columns: minmax(0, 1fr) 44px; }
+  .resource-summary-card, .resource-list-header { grid-template-columns: minmax(0, 1fr); }
+  .resource-list-editor, .extra-property-fields { padding: 6px; }
+  .extra-properties-toolbar { grid-template-columns: minmax(0, 1fr) auto; }
+  .extra-properties-toolbar input { width: 100%; }
+  .atlas-picker-overlay, .config-overlay { padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left)) !important; }
+  .atlas-picker-modal, .icon-picker-modal { width: 100%; max-width: 100%; max-height: 100%; border-radius: 8px; }
+  .atlas-picker-header { padding: 4px 8px; gap: 8px; min-width: 0; }
+  .atlas-picker-header span { overflow-wrap: anywhere; }
+  .atlas-picker-header button { flex-shrink: 0; }
+  .atlas-picker-footer { padding: 8px; max-height: 44dvh; overflow: auto; overflow-wrap: anywhere; }
+  .atlas-manager-footer { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .atlas-manager-footer > span, .atlas-manager-footer > p { grid-column: 1 / -1; }
+  .atlas-manager-footer button { white-space: normal; }
+  .atlas-manager-footer label, .atlas-tile-import-details[open] { flex-wrap: wrap; }
+  .atlas-tile-import-details { min-width: 0; }
+  .config-dialog { width: 100%; max-width: 480px; max-height: 100%; padding: 20px; }
+  .config-dialog button { align-self: stretch; }
+  .app-root > .properties-error { max-height: 20dvh; overflow-y: auto; flex-shrink: 0; }
+  /* A measurable, inert viewport lets icon export work before the first Preview visit. */
+  .workspace-panel.panel-preview[hidden] {
+    display: flex; position: absolute; left: -10000px; top: 0; width: 1px; height: 1px;
+    overflow: hidden; visibility: hidden; pointer-events: none;
+  }
+  .panel-preview[hidden] > .viewer-column { width: 1px; height: 1px; overflow: hidden; }
+  .panel-preview[hidden] .viewer-3d { flex: 0 0 1px; min-height: 1px; height: 1px; }
+}
+
+@media (max-width: 1024px) and (max-height: 500px) {
+  .app-header { min-height: 48px; padding-top: 2px; padding-bottom: 2px; }
+  .mobile-navigation { padding-top: 2px; padding-bottom: max(2px, env(safe-area-inset-bottom)); }
+  .mobile-navigation button { min-height: 44px; }
+  .properties-header, .properties-notice { padding-top: 4px; padding-bottom: 4px; }
+  .atlas-picker-footer { max-height: 38dvh; }
+}
+
+/* Field guidance is readable with touch and keyboard, without relying on hover. */
+.field-label { display: flex; align-items: center; gap: 4px; }
+.field-help-button { padding: 0 5px; color: var(--text-muted); background: transparent; border: 0; font-size: inherit; }
+.field-help-content { font-size: .8rem; line-height: 1.45; color: var(--text-muted); padding: 6px 0; overflow-wrap: anywhere; }
+.field-help-content[hidden] { display: none; }
+
+.orientation-row > button { background: var(--bg-raised); color: var(--text-primary); border: 1px solid var(--border-subtle); }
+.field-help-button { color: var(--text-secondary); border: 1px solid var(--border-subtle); border-radius: var(--radius); flex-shrink: 0; }
+.field-help-content { color: var(--text-secondary); }

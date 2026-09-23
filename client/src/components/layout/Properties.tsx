@@ -1,8 +1,7 @@
 /**
  * @fileoverview Properties panel — block field editor.
  *
- * All changes go through the draft system (`updateDraft`) and are only
- * persisted when the user clicks "Save to Custom".
+ * Block definitions use drafts; icon image writes are immediate and backed up.
  *
  * ## Improvements
  * - **Override vanilla**: vanilla blocks now have an explicit "Override"
@@ -17,10 +16,10 @@
  * @version 1.0.0
  */
 
-import React, { useRef, useState } from 'react';
+import React from 'react';
 import { useBlockStore, type BlockDef } from '../../store/blockStore.js';
 import { useSaveBlock, useDeleteBlock } from '../../hooks/useApi.js';
-import { IconPicker } from '../editor/IconPicker.js';
+import { IconField } from '../editor/IconField.js';
 import { displayBlockName } from './blockDisplay.js';
 import { BlockIdSelect, Field, VariantSelector } from './propertyControls.js';
 import { ExtraPropertiesEditor } from './advancedProperties.js';
@@ -33,6 +32,7 @@ import {
   getBlockStyleName,
 } from './propertyOptions.js';
 import { useT } from '../../i18n/index.js';
+import { localizeMessage, technicalDetail } from '../../i18n/messages.js';
 
 /**
  * Main properties panel for the selected block draft.
@@ -53,9 +53,7 @@ export function Properties() {
   const { save }      = useSaveBlock();
   const { deleteBlock } = useDeleteBlock();
   const error         = useBlockStore(s => s.error);
-  const [iconPickerOpen, setIconPickerOpen] = useState(false);
-  const [importingIcon, setImportingIcon]   = useState(false);
-  const iconFileRef = useRef<HTMLInputElement>(null);
+  const saving = useBlockStore(s => s.saving);
 
   if (!draft) {
     return (
@@ -67,11 +65,13 @@ export function Properties() {
     );
   }
 
+  const errorDetail = error ? technicalDetail(error, t) : null;
+  const damageLabels: Record<string, string> = { Heat: t.field.damageHeat, Kinetic: t.field.damageKinetic, EM: t.field.damageEM };
   const isVanilla    = !draft.isCustom;
   const blockOptions = blocks.filter(b => b.id !== draft.id).sort((a, b) => a.id - b.id);
   const lightHex     = rgbaToHex(draft.lightSourceColor);
-  // c8 ignore next
-  const displayName  = displayBlockName(draft) || 'Unnamed block';
+
+  const displayName  = displayBlockName(draft);
 
   // ── Conditional visibility ──────────────────────────────────────────────
   /** Show Light Color section only when the block is a light source. */
@@ -80,36 +80,11 @@ export function Properties() {
   /** Show Variants section only when there is at least one variant ID. */
   const hasVariants = draft.slabIds.length > 0 || draft.styleIds.length > 0;
 
-  /** Show Effect Armor only when at least one type has a non-zero value. */
-  const hasEffectArmor =
-    draft.effectArmor &&
-    EFFECT_ARMOR_TYPES.some(type => (draft.effectArmor?.[type] ?? 0) !== 0);
-
   // ── Handlers ─────────────────────────────────────────────────────────────
 
   /** Generic text/number field change handler. */
   const onChange = (field: string, value: string | number | boolean) => {
     updateDraft({ [field]: value } as Record<string, unknown>);
-  };
-
-  const importIcon = async (file: File | null) => {
-    if (!file) return;
-    setImportingIcon(true);
-    try {
-      const res = await fetch(`/api/textures/icon/${draft.icon}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': file.type || 'application/octet-stream' },
-        body: file,
-      });
-      if (!res.ok) throw new Error(await res.text());
-      updateDraft({ icon: draft.icon }); // force img refresh
-    } catch (e) {
-      alert(t.properties.errorImportIcon(e));
-    } finally {
-      setImportingIcon(false);
-      /* c8 ignore next 2 */
-      if (iconFileRef.current) iconFileRef.current.value = '';
-    }
   };
 
   // ── Flag rows ─────────────────────────────────────────────────────────────
@@ -143,9 +118,9 @@ export function Properties() {
       <div className="properties-header">
         <div className="properties-title">
           {displayName}
-          {/* c8 ignore next */}
+
           {draft.isCustom    && <span className="badge badge-custom">{t.properties.badgeCustom}</span>}
-          {/* c8 ignore next */}
+
           {draft.isDeprecated && <span className="badge badge-deprecated">{t.properties.badgeDeprecated}</span>}
         </div>
         <div className="properties-id">
@@ -170,25 +145,7 @@ export function Properties() {
             <input value={draft.name} onChange={e => onChange('name', e.target.value)} />
           </Field>
           <Field label={t.field.icon.label} tooltip={t.field.icon.tooltip}>
-            <div className="icon-field">
-              <button type="button" className="icon-preview" onClick={() => setIconPickerOpen(true)} title={t.properties.pickIconTooltip}>
-                <img src={`/api/textures/icon/${draft.icon}`} alt="" />
-              </button>
-              <input type="number" min={0} value={draft.icon} onChange={e => onChange('icon', +e.target.value)} />
-              <button type="button" className="btn-secondary" onClick={() => setIconPickerOpen(true)}>
-                {t.properties.pickIcon}
-              </button>
-              <button type="button" className="btn-secondary" disabled={importingIcon} onClick={() => iconFileRef.current?.click()}>
-                {importingIcon ? t.properties.importingIcon : t.properties.importIcon}
-              </button>
-              <input
-                ref={iconFileRef}
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                style={{ display: 'none' }}
-                onChange={e => importIcon(e.target.files?.[0] ?? null)}
-              />
-            </div>
+            <IconField icon={draft.icon} onChange={icon => updateDraft({ icon })} />
           </Field>
           <Field label={t.field.description.label} tooltip={t.field.description.tooltip}>
             <textarea value={draft.description} rows={3} onChange={e => onChange('description', e.target.value)} />
@@ -213,13 +170,12 @@ export function Properties() {
           <Field label={t.field.armor.label} tooltip={t.field.armor.tooltip}>
             <input type="number" value={draft.armor}  step={0.01} min={0} max={1} onChange={e => onChange('armor', +e.target.value)} />
           </Field>
-          {/* Effect Armor — only shown when at least one value is non-zero */}
-          {hasEffectArmor && (
+          {/* All armor types remain editable, including zero values. */}
             <Field label={t.field.effectArmor.label} tooltip={t.field.effectArmor.tooltip}>
               <div className="effect-armor-grid">
                 {EFFECT_ARMOR_TYPES.map(type => (
                   <label key={type}>
-                    <span>{type}</span>
+                    <span>{damageLabels[type]}</span>
                     <input
                       type="number"
                       step={0.01}
@@ -233,28 +189,6 @@ export function Properties() {
                 ))}
               </div>
             </Field>
-          )}
-          {/* Always show Effect Armor when all zeros so user can set values */}
-          {!hasEffectArmor && (
-            <Field label={t.field.effectArmor.label} tooltip={t.field.effectArmor.tooltip}>
-              <div className="effect-armor-grid">
-                {EFFECT_ARMOR_TYPES.map(type => (
-                  <label key={type}>
-                    <span>{type}</span>
-                    <input
-                      type="number"
-                      step={0.01}
-                      min={0}
-                      value={draft.effectArmor?.[type] ?? 0}
-                      onChange={e => updateDraft({
-                        effectArmor: { ...(draft.effectArmor ?? {}), [type]: +e.target.value },
-                      })}
-                    />
-                  </label>
-                ))}
-              </div>
-            </Field>
-          )}
         </section>
 
         {/* Shape */}
@@ -430,7 +364,10 @@ export function Properties() {
       </div>
 
       {/* Error */}
-      {error && <div className="properties-error">{error}</div>}
+      {error && <div className="properties-error" role="alert">
+        {localizeMessage(error, t)}
+        {errorDetail && <details><summary>{t.errors.technicalDetails}</summary>{errorDetail}</details>}
+      </div>}
 
       {/* ── Footer actions ──────────────────────────────────────────────── */}
       <div className="properties-footer">
@@ -438,6 +375,7 @@ export function Properties() {
         {isVanilla && (
           <button
             className="btn-secondary btn-override"
+            disabled={saving}
             title={t.properties.overrideVanillaTooltip}
             onClick={save}
           >
@@ -448,6 +386,7 @@ export function Properties() {
         {draft.isCustom && (
           <button
             className="btn-delete"
+            disabled={saving}
             title={t.properties.deleteTooltip(draft.name)}
             onClick={() => {
               if (window.confirm(t.properties.deleteConfirm(draft.name))) deleteBlock(draft);
@@ -458,27 +397,20 @@ export function Properties() {
         )}
         <button
           className="btn-revert"
-          disabled={!isDirty}
+          disabled={!isDirty || saving}
           onClick={() => selectBlock(selectedBlock)}
         >
           {t.properties.revert}
         </button>
         <button
           className="btn-save"
-          disabled={!isDirty}
+          disabled={!isDirty || saving}
           onClick={save}
         >
           {t.properties.save}
         </button>
       </div>
 
-      {iconPickerOpen && (
-        <IconPicker
-          selectedIconId={draft.icon}
-          onSelect={icon => updateDraft({ icon })}
-          onClose={() => setIconPickerOpen(false)}
-        />
-      )}
     </aside>
   );
 }

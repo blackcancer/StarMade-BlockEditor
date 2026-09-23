@@ -7,9 +7,10 @@ export default defineConfig({
     exclude: ['dist/**', 'node_modules/**'],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'html'],
+      reporter: ['text-summary', 'html', 'json', 'json-summary'],
+      thresholds: { perFile: true, lines: 100, branches: 100 },
       include: ['src/**/*.ts'],
-      exclude: ['src/**/*.test.ts', 'src/index.ts'],
+      exclude: ['src/**/*.test.ts'],
     },
   },
 });

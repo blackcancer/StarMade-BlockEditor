@@ -18,6 +18,7 @@
  */
 
 import type React from 'react';
+import { useId, useState } from 'react';
 import type { BlockDef } from '../../store/blockStore.js';
 import { displayBlockName } from './blockDisplay.js';
 import { useT } from '../../i18n/index.js';
@@ -42,13 +43,18 @@ import { useT } from '../../i18n/index.js';
  * </Field>
  */
 export function Field({ label, tooltip, children }: { label: string; tooltip?: string; children: React.ReactNode }) {
+  const helpId = useId();
+  const [helpOpen, setHelpOpen] = useState(false);
   return (
     <div className="field">
-      <label className="field-label" title={tooltip}>
+      <div className="field-label" title={tooltip}>
         {label}
         {/* ⓘ indicator: only shown when a tooltip is provided; screen readers read aria-label */}
-        {tooltip && <span className="field-help" aria-label={tooltip}>ⓘ</span>}
-      </label>
+        {tooltip && <button type="button" className="field-help-button" aria-label={tooltip} aria-expanded={helpOpen}
+          aria-controls={helpId} onClick={() => setHelpOpen(value => !value)}
+          onKeyDown={event => { if (event.key === 'Escape') setHelpOpen(false); }}>ⓘ</button>}
+      </div>
+      {tooltip && <div id={helpId} role="tooltip" className="field-help-content" hidden={!helpOpen}>{tooltip}</div>}
       <div className="field-input">{children}</div>
     </div>
   );

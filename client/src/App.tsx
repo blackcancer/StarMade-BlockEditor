@@ -26,33 +26,48 @@ import { Sidebar }      from './components/sidebar/BlockList.js';
 import { ViewerColumn } from './components/layout/Viewer.js';
 import { Properties }   from './components/layout/Properties.js';
 import { useConfig, useBlocks, useCreateBlock } from './hooks/useApi.js';
-import { invalidateAtlasCache } from './3d/AtlasTexture.js';
 import { useConfigStore } from './store/configStore.js';
 import { useBlockStore }  from './store/blockStore.js';
 import { useT, useLocale, LOCALES } from './i18n/index.js';
+import { MobileNavigation, useCompactLayout, type WorkspacePanel } from './components/layout/MobileNavigation.js';
+import { useModal } from './hooks/useModal.js';
+import { localizeMessage, technicalDetail } from './i18n/messages.js';
+
+/** Keep diagnostics available while the primary message follows the current language. */
+function ErrorMessage({ error }: { error: string }) {
+  const t = useT();
+  const detail = technicalDetail(error, t);
+  return <div className="properties-error" role="alert">{localizeMessage(error, t)}
+    {detail && <details><summary>{t.errors.technicalDetails}</summary><div>{detail}</div></details>}
+  </div>;
+}
 
 /**
  * Config dialog shown when starmadeDir is not set.
  *
  * @component
  */
-function ConfigDialog({ onSave }: { onSave: (dir: string) => void }) {
+function ConfigDialog({ onSave, error }: { onSave: (dir: string) => void; error: string | null }) {
   const t = useT();
   const [dir, setDir] = React.useState('');
+  const modal = useModal();
   return (
-    <div className="config-overlay">
-      <div className="config-dialog">
-        <h2>{t.config.title}</h2>
+    <dialog ref={modal} className="config-overlay" aria-labelledby="config-title" onCancel={event => event.preventDefault()}>
+      <form className="config-dialog" onSubmit={event => { event.preventDefault(); if (dir.trim()) onSave(dir.trim()); }}>
+        <h2 id="config-title">{t.config.title}</h2>
         <p>{t.config.description}</p>
+        {error && <ErrorMessage error={error} />}
         <input
           type="text"
+          aria-label={t.config.directoryLabel}
+          autoFocus
           placeholder={t.config.placeholder}
           value={dir}
           onChange={e => setDir(e.target.value)}
         />
-        <button onClick={() => dir && onSave(dir)}>{t.config.save}</button>
-      </div>
-    </div>
+        <button type="submit">{t.config.save}</button>
+      </form>
+    </dialog>
   );
 }
 
@@ -61,7 +76,7 @@ function ConfigDialog({ onSave }: { onSave: (dir: string) => void }) {
  *
  * @component
  */
-function Header() {
+function Header({ compact }: { compact: boolean }) {
   const t = useT();
   const { locale, setLocale } = useLocale();
 
@@ -69,35 +84,26 @@ function Header() {
   const isValid     = useConfigStore(s => s.isValid);
   const atlasSize   = useConfigStore(s => s.atlasSize);
   const texturePack = useConfigStore(s => s.texturePack);
-  const setConfig   = useConfigStore(s => s.setConfig);
+  const { saveConfig } = useConfig(false);
+  const setError = useBlockStore(s => s.setError);
   const blocks      = useBlockStore(s => s.blocks);
+  const isDirty = useBlockStore(s => s.isDirty);
   const { reload }  = useBlocks(false);
   const { createBlock } = useCreateBlock();
   const [packs, setPacks] = React.useState<Array<{ name: string; sizes: number[] }>>([]);
 
   useEffect(() => {
     if (!isValid) return;
+    let active = true;
     fetch(`/api/textures/packs?size=${atlasSize}`)
-      .then(r => r.json())
-      .then(data => setPacks(data.packs ?? []))
-      .catch(console.error);
-  }, [atlasSize, isValid]);
-
-  const saveTextureConfig = async (patch: { atlasSize?: number; texturePack?: string }) => {
-    const next = { atlasSize, texturePack, ...patch };
-    const res = await fetch('/api/config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(next),
-    });
-    const data = await res.json();
-    invalidateAtlasCache();
-    setConfig({
-      atlasSize: data.atlasSize ?? next.atlasSize,
-      texturePack: data.texturePack ?? next.texturePack,
-      isValid: data.isValid ?? isValid,
-    });
-  };
+      .then(r => {
+        if (!r.ok) throw new Error(`Texture packs: HTTP ${r.status}`);
+        return r.json();
+      })
+      .then(data => { if (active) setPacks(data.packs ?? []); })
+      .catch(error => { if (active) setError(error instanceof Error ? error.message : String(error)); });
+    return () => { active = false; };
+  }, [atlasSize, isValid, starmadeDir, setError]);
 
   return (
     <header className="app-header">
@@ -107,17 +113,20 @@ function Header() {
       </div>
       <div className="app-path" title={starmadeDir}>
         {isValid
-          ? <span className="valid">{t.app.dirValid(starmadeDir.split(/[/\\]/).at(-1) ?? '')}</span>
+          ? <span className="valid">{t.app.dirValid(starmadeDir.split(/[/\\]/).at(-1)!)}</span>
           : <span className="invalid">{t.app.dirInvalid}</span>
         }
       </div>
       <div className="spacer" />
+      <details className="header-settings" open={!compact}>
+      <summary>{t.app.settings}</summary>
+      <div className="header-controls">
       {isValid && (
         <>
           <select
             className="header-select"
             value={atlasSize}
-            onChange={e => saveTextureConfig({ atlasSize: +e.target.value, texturePack: 'Default' })}
+            onChange={e => saveConfig({ atlasSize: +e.target.value, texturePack: 'Default' })}
             title={t.app.textureResolution}
           >
             <option value={64}>64</option>
@@ -127,7 +136,7 @@ function Header() {
           <select
             className="header-select"
             value={texturePack}
-            onChange={e => saveTextureConfig({ texturePack: e.target.value })}
+            onChange={e => saveConfig({ texturePack: e.target.value })}
             title={t.app.texturePack}
           >
             {packs.map(pack => <option key={pack.name} value={pack.name}>{pack.name}</option>)}
@@ -152,7 +161,11 @@ function Header() {
       <button className="btn-secondary" onClick={reload} title={t.app.reloadTooltip}>
         {t.app.reload}
       </button>
-      <button className="btn-primary" onClick={createBlock} title={t.app.newBlockTooltip}>
+      </div>
+      </details>
+      <button className="btn-primary" onClick={() => {
+        if (!isDirty || window.confirm(t.sidebar.discardConfirm)) void createBlock();
+      }} title={t.app.newBlockTooltip}>
         {t.app.newBlock}
       </button>
     </header>
@@ -168,21 +181,50 @@ function Header() {
  */
 
 export function App() {
+  const t = useT();
   const { saveConfig } = useConfig();
   useBlocks();
 
   const isValid = useConfigStore(s => s.isValid);
+  const error = useBlockStore(s => s.error);
+  const isDirty = useBlockStore(s => s.isDirty);
+  const compact = useCompactLayout();
+  const [panel, setPanel] = React.useState<WorkspacePanel>('blocks');
+  const previewPanel = React.useRef<HTMLDivElement>(null);
+  const focusPreview = React.useRef(false);
+  const openBlock = () => { focusPreview.current = compact; setPanel('preview'); };
+  useEffect(() => {
+    if (focusPreview.current) { previewPanel.current!.focus(); focusPreview.current = false; }
+  }, [panel]);
+  const panelAttributes = (name: WorkspacePanel) => ({
+    id: `panel-${name}`, hidden: compact && panel !== name,
+    'aria-hidden': compact && panel !== name,
+    role: compact ? 'tabpanel' : undefined,
+    'aria-labelledby': compact ? `tab-${name}` : undefined,
+    tabIndex: compact ? 0 : undefined,
+  });
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ''; };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [isDirty]);
 
   return (
     <div className="app-root">
-      <Header />
+      <Header compact={compact} />
+      {isValid && error && <ErrorMessage error={error} />}
       <div className="app-body">
-        <Sidebar />
-        <ViewerColumn />
-        <Properties />
+        <div className="workspace-panel panel-blocks" {...panelAttributes('blocks')}><Sidebar onBlockOpen={openBlock} /></div>
+        <div ref={previewPanel} className="workspace-panel panel-preview" {...panelAttributes('preview')}><ViewerColumn visible={!compact || panel === 'preview'} /></div>
+        <div className="workspace-panel panel-properties" {...panelAttributes('properties')}><Properties /></div>
       </div>
+      {compact && <MobileNavigation panel={panel} onChange={setPanel} />}
       {!isValid && (
-        <ConfigDialog onSave={dir => saveConfig({ starmadeDir: dir })} />
+        <ConfigDialog error={error} onSave={dir => {
+          if (!isDirty || window.confirm(t.sidebar.discardConfirm)) void saveConfig({ starmadeDir: dir });
+        }} />
       )}
     </div>
   );
