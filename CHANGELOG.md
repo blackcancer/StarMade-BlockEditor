@@ -9,6 +9,7 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ## [1.1.1] — 2026-09-23
 
+- Made the custom atlas manager button span the viewer panel width, with wrapped labels and a 44-pixel minimum touch height on mobile.
 - Fixed icon action sizing: import, restore and generate buttons now each span the available panel width, with wrapping for long translations.
 
 - Updated the pinned StarMade-3D archive to 1.0.1.

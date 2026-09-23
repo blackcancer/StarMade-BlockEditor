@@ -634,9 +634,14 @@ button:disabled { opacity: 0.4; cursor: default; }
 }
 .face-import-row {
   display: grid;
-  grid-template-columns: 100px 1fr;
-  gap: 6px;
+  grid-template-columns: minmax(0, 1fr);
   margin-top: 6px;
+}
+.face-import-row > button {
+  min-width: 0;
+  min-height: 32px;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 .active-preview-row {
   justify-content: stretch;
@@ -1090,6 +1095,7 @@ dialog::backdrop { background: transparent; }
   .viewer-empty { padding: 20px; text-align: center; }
   .face-selector-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .face-selector { padding: 8px; }
+  .face-import-row > button { min-height: 44px; }
   .face-btn { min-width: 0; min-height: 70px; }
   .face-btn-label { font-size: 0.68rem; overflow-wrap: anywhere; }
   .orientation-row { flex-wrap: wrap; padding: 6px 10px; }
