@@ -1,0 +1,69 @@
+name: Admin integration runtime
+on:
+  push:
+    branches: [integration/starmade-admin-runtime-20260923]
+    paths: [.github/workflows/admin-runtime.yml]
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: blockeditor
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: blackcancer/StarMade-Decoder
+          ref: 8707f2293f8b389e044f68cfb9fb01b635db8886
+          path: decoder
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: blackcancer/THREE.OgreMaxLoader
+          ref: 963997bd6b75bf44ed31a0ab5d8d40ab4156e2a2
+          path: ogre
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: blackcancer/StarMade-NPCCreator
+          ref: v2.0.0
+          path: npc
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+      - name: Build pinned applications and SDK
+        run: |
+          set -eu
+          (cd decoder && npm ci --ignore-scripts && npm run build)
+          (cd blockeditor && npm ci && npm run build)
+          (cd npc && npm ci --ignore-scripts && npm run build)
+      - name: Package source and runtime dependencies without game assets
+        run: |
+          set -eu
+          mkdir -p delivery/decoder delivery/blockeditor delivery/ogre delivery/npc
+          cp -a decoder/dist decoder/src decoder/package.json decoder/package-lock.json decoder/LICENSE delivery/decoder/
+          (cd decoder && npm prune --omit=dev --ignore-scripts)
+          cp -a decoder/node_modules delivery/decoder/
+          cp -a blockeditor/client blockeditor/server blockeditor/vendor blockeditor/package.json blockeditor/package-lock.json delivery/blockeditor/
+          cp -a blockeditor/node_modules delivery/blockeditor/
+          find ogre -maxdepth 2 -type f ! -path '*/.git/*' -exec cp --parents '{}' delivery/ \;
+          cp -a npc/dist npc/ui npc/src npc/package.json npc/package-lock.json npc/LICENSE delivery/npc/
+          cp -a npc/node_modules/blockly delivery/npc/blockly
+          (cd decoder && git rev-parse HEAD) > delivery/decoder.commit
+          (cd blockeditor && git rev-parse HEAD) > delivery/blockeditor.commit
+          (cd ogre && git rev-parse HEAD) > delivery/ogre.commit
+          (cd npc && git rev-parse HEAD) > delivery/npc.commit
+          find delivery -type f \( -name '*.woff' -o -name '*.woff2' -o -name '*.ttf' -o -name '*.otf' \) -delete
+          tar -czf admin-integration-runtime.tgz delivery
+          sha256sum admin-integration-runtime.tgz > admin-integration-runtime.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: admin-integration-runtime
+          path: |
+            admin-integration-runtime.tgz
+            admin-integration-runtime.sha256
+          retention-days: 7
