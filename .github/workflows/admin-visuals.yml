@@ -1,0 +1,54 @@
+name: Package admin renderers
+on:
+  push:
+    branches: [feature/admin-workspace-package]
+    paths: [.github/workflows/admin-visuals.yml]
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+      - run: npm ci
+      - name: Build actual renderer libraries
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone https://github.com/blackcancer/THREE.OgreMaxLoader.git .ogre-source
+          git -C .ogre-source checkout 963997bd6b75bf44ed31a0ab5d8d40ab4156e2a2
+          mkdir -p .admin-visuals admin-visuals/tools admin-visuals/lib
+          cp .ogre-source/OgreMaxLoader.js .admin-visuals/OgreMaxLoader.js
+          sed -i "s|https://unpkg.com/three@0.160.0/build/three.module.js|three|" .admin-visuals/OgreMaxLoader.js
+          cat > .admin-visuals/entry.js <<'JS'
+          import * as THREE from 'three';
+          import * as StarMade3D from 'starmade-3d';
+          import {OgreMaxLoader} from './OgreMaxLoader.js';
+          import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls.js';
+          export {THREE,StarMade3D,OgreMaxLoader,OrbitControls};
+          JS
+          node --input-type=module - <<'JS'
+          import {build} from 'esbuild';
+          await build({entryPoints:['.admin-visuals/entry.js'],outfile:'admin-visuals/visuals.js',platform:'browser',bundle:true,format:'iife',globalName:'StarMadeVisuals',minify:true});
+          JS
+          cp .ogre-source/LICENSE admin-visuals/OgreMaxLoader.LICENSE
+          cp node_modules/three/LICENSE admin-visuals/three.LICENSE
+          cp node_modules/starmade-3d/package.json admin-visuals/starmade-3d.package.json
+          cp -R node_modules/starmade-3d/dist admin-visuals/starmade-3d-dist
+          cp -R node_modules/starmade-3d/docs admin-visuals/starmade-3d-docs
+          cp -R node_modules/esbuild admin-visuals/tools/
+          mkdir -p admin-visuals/tools/@esbuild
+          cp -R node_modules/@esbuild/linux-x64 admin-visuals/tools/@esbuild/
+          curl --fail --location --silent --show-error https://repo.maven.apache.org/maven2/org/hsqldb/hsqldb/2.3.4/hsqldb-2.3.4.jar --output admin-visuals/lib/hsqldb-2.3.4.jar
+          printf 'THREE.OgreMaxLoader %s\n' "$(git -C .ogre-source rev-parse HEAD)" > admin-visuals/SOURCE.txt
+          sha256sum admin-visuals/visuals.js admin-visuals/lib/hsqldb-2.3.4.jar >> admin-visuals/SOURCE.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: admin-visuals
+          path: admin-visuals/
+          retention-days: 7
