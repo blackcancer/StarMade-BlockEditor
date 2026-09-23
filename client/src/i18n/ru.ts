@@ -85,7 +85,7 @@ const ru: Translations = {
   app: {
     settings: "Настройки",
     title:    '⚙ StarMade Block Editor',
-    subtitle: 'v1.1.0',
+    subtitle: 'v1.1.1',
     dirValid:   (name: string) => `✓ ${name}`,
     dirInvalid: '⚠ Директория StarMade не настроена',
     blockCount: (n: number) => {

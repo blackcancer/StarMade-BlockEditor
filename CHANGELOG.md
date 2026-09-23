@@ -7,6 +7,14 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.1.1] — 2026-09-23
+
+- Updated the pinned StarMade-3D archive to 1.0.1.
+- Added the native Display Module (479) screen/text pass to the existing physical cube, using installation-owned screen and Monda font resources.
+- Matched all six native Display face frames and included the supplemental layer in orthographic icon exports.
+- Kept demonstration text separate from block definitions: previews show “Display” without fabricating saved entity text or live ship values.
+- Added confined Display resource routes, resource cleanup tests and real-browser screen/text pixel checks.
+
 ## [1.1.0] — 2026-09-23
 
 - Integrated StarMade-Decoder 2.0.0 and StarMade-3D 1.0.0 using verified, pinned local archives.

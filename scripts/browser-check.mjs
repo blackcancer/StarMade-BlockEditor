@@ -13,6 +13,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
 import { chromium } from 'playwright-core';
 import sharp from 'sharp';
+import { observeNativePreview, checkDisplayPreview } from './display-browser-check.mjs';
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 assert(process.env.STARMADE_DIR, 'Set STARMADE_DIR to a readable StarMade installation.');
@@ -23,7 +24,7 @@ const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'blockeditor-browser-dat
 const game = path.join(workspace, 'StarMade');
 const oldCwd = process.cwd();
 const oldFixed = process.env.EDITOR_FIXED_STARMADE_DIR;
-const paths = ['data/config', 'data/shader', 'data/models/lod', 'data/textures/block/Default/64', 'data/image-resource', 'customBlockConfig', 'customBlockTextures/64'];
+const paths = ['data/config', 'data/font', 'data/shader', 'data/models/lod', 'data/textures/block/Default/64', 'data/image-resource', 'customBlockConfig', 'customBlockTextures/64'];
 const report = { source, receipt, checks: [], pageErrors: [], failedRequests: [] };
 let browser;
 let server;
@@ -97,6 +98,7 @@ try {
   }
   async function reloadSelection(block) { await page.reload(); await page.waitForSelector('.block-card'); await select(block); }
 
+  await observeNativePreview(page);
   await page.goto(origin);
   await page.waitForSelector('.block-card');
   const config = await (await api.get(`${origin}/api/config`)).json();
@@ -109,6 +111,8 @@ try {
   const vanilla = initial.find(block => !block.isCustom && !block.isDeprecated && block.blockStyle === 0 && !block.extraProperties.LodShape && block.icon >= 0);
   assert(vanilla, 'A vanilla cube is needed for the override recipe.');
   check('configuration, fixed installation guard and catalogue', { blocks: initial.length });
+  const display = await checkDisplayPreview(page, origin, receipt);
+  check('native Display screen, text, six orientations and icon export', { orientations: display.length });
   await select(vanilla);
   assert.equal(await nameInput().inputValue(), vanilla.name);
   check('search and block selection', { id: vanilla.id });

@@ -158,3 +158,13 @@ assetsRouter.get('/lod/*', route((req, res) => {
   if (['.scene', '.xml', '.material'].includes(extension)) validateLodReferences(lodRoot, requested, bytes);
   res.type(extension === '.scene' ? 'xml' : extension === '.material' ? 'text' : extension).send(bytes);
 }));
+
+// Only these installation-owned resources are exposed; arbitrary display paths are not accepted.
+assetsRouter.get('/display/:kind', route((req, res) => {
+  const kind = req.params.kind;
+  if (kind !== 'font' && kind !== 'screen') throw new AssetError('Unknown Display resource.', 404);
+  const file = confinedPath(installationRoot(), kind === 'font'
+    ? 'data/font/Monda-Regular.ttf' : 'data/image-resource/screen-gui-blue.png');
+  if (!fs.existsSync(file)) throw new AssetError('Native Display resource is missing.', 404);
+  res.type(kind === 'font' ? 'font/ttf' : 'png').send(fs.readFileSync(file));
+}));

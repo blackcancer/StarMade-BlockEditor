@@ -67,7 +67,7 @@ describe('complete locale contracts', () => {
       }
     }
     expect(functions.sort()).toEqual(Object.keys(formatters).sort());
-    expect(dictionary.app.subtitle).toBe('v1.1.0');
+    expect(dictionary.app.subtitle).toBe('v1.1.1');
     expect(dictionary.viewer.activePreviewTooltip).toContain('LOD');
     expect(dictionary.faceSelector.hintAnimated).toContain('StarMade');
     expect(dictionary.flag.animated.tooltip).toContain('StarMade');

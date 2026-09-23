@@ -10,6 +10,7 @@ import { applyStarMadeBlockLightSourcesToCubeShaderMaterial, applyStarMadeBlockL
   updateStarMadeBlockLightSourcesViewSpace,
   type BlockDefinition, type StarMadeLodBlockInstance, type StarMadeEncodedCubeShapeFace } from 'starmade-3d';
 import type { RenderAssets } from './renderAssets.js';
+import { loadDisplayPreview } from './displayPreview.js';
 
 /** One independently disposable native preview object, updated by the host render loop. */
 export interface NativePreview {
@@ -62,9 +63,11 @@ export async function createNativePreview(options: {
   const geometries = new Set<BufferGeometry>(), ownedMaterials = new Set<Material>(), textures = new Set<Texture>();
   const shared = new Set([...assets.pack.layers.values(), ...assets.pack.normalLayers?.values() ?? [], assets.pack.overlay]);
   const materials: ShaderMaterial[] = [];
+  let display: Awaited<ReturnType<typeof loadDisplayPreview>> | undefined;
   let disposed = false;
   const dispose = () => {
     if (disposed) return; disposed = true;
+    display?.dispose();
     resources(object, geometries, ownedMaterials, textures);
     object.removeFromParent();
     for (const geometry of geometries) geometry.dispose();
@@ -103,6 +106,10 @@ export async function createNativePreview(options: {
       object.add(mesh);
       if (options.highlightFace >= 0) object.add(highlight(geometry, options.highlightFace));
     }
+    if (block.id === 479) {
+      display = await loadDisplayPreview(orientation);
+      object.add(display.root);
+    }
     if (block.lightSource && active) {
       const [r, g, b, intensity] = block.lightSourceColor;
       const light = new PointLight(0xffffff, intensity * 2.5, 22, 1);
@@ -112,6 +119,7 @@ export async function createNativePreview(options: {
       revision: assets.manifest.revision, native: true };
     return { object, materials, dispose, update(delta, camera) {
       camera.updateMatrixWorld();
+      display?.updateVisibility(camera);
       for (const material of materials) {
         updateStarMadeCubeShaderTime(material, delta);
         updateStarMadeCubeShaderClipPlanes(material, camera.near, camera.far);

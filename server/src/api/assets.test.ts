@@ -185,4 +185,20 @@ describe('native render assets HTTP contract', () => {
     await request(app).get(url).expect(400);
   });
 
+  it('serves only the native Display screen and font, rejects missing files and escaping symlinks', async () => {
+    const font = Buffer.from('test-font');
+    const screen = await sharp({ create: { width: 2, height: 2, channels: 4, background: 'blue' } }).png().toBuffer();
+    await request(app).get('/api/render-assets/display/font').expect(404);
+    await request(app).get('/api/render-assets/display/screen').expect(404);
+    await request(app).get('/api/render-assets/display/other').expect(404);
+    await write('data/font/Monda-Regular.ttf', font);
+    await write('data/image-resource/screen-gui-blue.png', screen);
+    await request(app).get('/api/render-assets/display/font').expect(200).expect('Content-Type', /font\/ttf/);
+    await request(app).get('/api/render-assets/display/screen').expect(200).expect(res => expect(res.body).toEqual(screen));
+    fs.unlinkSync(path.join(game, 'data/font/Monda-Regular.ttf'));
+    fs.symlinkSync(path.join(tmp, 'private.ttf'), path.join(game, 'data/font/Monda-Regular.ttf'));
+    fs.writeFileSync(path.join(tmp, 'private.ttf'), 'private');
+    await request(app).get('/api/render-assets/display/font').expect(400);
+  });
+
 });

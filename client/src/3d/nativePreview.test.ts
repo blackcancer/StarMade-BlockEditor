@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BoxGeometry, Group, Mesh, MeshStandardMaterial, PerspectiveCamera, ShaderMaterial, Texture } from 'three';
 import * as native from 'starmade-3d';
+import * as display from './displayPreview.js';
 import { createNativePreview } from './nativePreview.js';
 import { toRenderBlock } from './renderBlock.js';
 import type { BlockDef } from '../store/blockStore.js';
@@ -80,4 +81,20 @@ describe('real StarMade preview objects', () => {
     await expect(createNativePreview({ block: block({ extraProperties: { LodShape: 'desk' } }),
       assets: assets(), orientation: 0, active: true, highlightFace: -1 })).rejects.toThrow(/desk/);
   });
+});
+
+it('attaches the native Display pass only to block 479 and gives it independent resource ownership', async () => {
+  const root = new Group(); root.name = 'StarMade display 479';
+  const updateVisibility = vi.fn();
+  const dispose = vi.fn(() => root.removeFromParent());
+  const loader = vi.spyOn(display, 'loadDisplayPreview').mockResolvedValue({ root, updateVisibility, dispose } as any);
+  const preview = await createNativePreview({ block: block({ id: 479 }), assets: assets(), orientation: 5, active: false, highlightFace: -1 });
+  expect(loader).toHaveBeenCalledWith(5);
+  expect(preview.object.getObjectByName('native-block-mesh')).toBeTruthy();
+  expect(preview.object.getObjectByName('StarMade display 479')).toBe(root);
+  const camera = new PerspectiveCamera(); preview.update(0.1, camera);
+  expect(updateVisibility).toHaveBeenCalledWith(camera);
+  preview.dispose(); preview.dispose(); expect(dispose).toHaveBeenCalledOnce();
+  loader.mockRejectedValueOnce(new Error('Missing Display assets'));
+  await expect(createNativePreview({ block: block({ id: 479 }), assets: assets(), orientation: 0, active: true, highlightFace: -1 })).rejects.toThrow('Missing Display assets');
 });

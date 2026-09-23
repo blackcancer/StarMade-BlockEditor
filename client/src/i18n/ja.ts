@@ -88,7 +88,7 @@ const ja: Translations = {
   app: {
     settings: "設定",
     title:    '⚙ StarMade ブロックエディター',
-    subtitle: 'v1.1.0',
+    subtitle: 'v1.1.1',
     dirValid:   (name: string) => `✓ ${name}`,
     dirInvalid: '⚠ StarMade ディレクトリが未設定',
     blockCount: (n: number) => `${n} 個のブロック`,
