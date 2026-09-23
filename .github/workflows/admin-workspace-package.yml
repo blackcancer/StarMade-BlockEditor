@@ -1,0 +1,75 @@
+name: Package admin workspace dependencies
+on:
+  push:
+    branches: [feature/admin-workspace-package]
+    paths: [.github/workflows/admin-workspace-package.yml]
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: StarMade-BlockEditor
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+      - name: Build the existing block editor
+        working-directory: StarMade-BlockEditor
+        run: |
+          npm ci
+          npm run build
+      - name: Build public SDK source checkouts
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth=1 https://github.com/blackcancer/StarMade-Decoder.git
+          git clone --depth=1 https://github.com/blackcancer/StarMade-NPCCreator.git
+          git clone --depth=1 https://github.com/blackcancer/THREE.OgreMaxLoader.git
+          cd StarMade-Decoder
+          npm ci --ignore-scripts
+          npm run build
+          cd ../StarMade-NPCCreator
+          npm ci --ignore-scripts
+          npm run build --if-present
+          node ui/build.mjs
+      - name: Assemble reproducible consumer inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p consumer
+          cd consumer
+          npm init -y
+          npm install --save-exact esbuild@0.25.12 three@0.164.1 adm-zip fast-xml-parser blockly
+          mkdir -p ../admin-workspace-dependencies/sdk ../admin-workspace-dependencies/web ../admin-workspace-dependencies/sources
+          ./node_modules/.bin/esbuild ../StarMade-Decoder/dist/index.js --bundle --platform=node --format=esm --banner:js="import { createRequire as __adminCreateRequire } from 'node:module'; const require = __adminCreateRequire(import.meta.url);" --outfile=../admin-workspace-dependencies/sdk/decoder.mjs
+          cp node_modules/three/build/three.module.js ../admin-workspace-dependencies/web/three.module.js
+          cp node_modules/three/examples/jsm/controls/OrbitControls.js ../admin-workspace-dependencies/web/OrbitControls.js
+          cp -R node_modules/blockly ../admin-workspace-dependencies/web/blockly
+          cp ../THREE.OgreMaxLoader/OgreMaxLoader.js ../admin-workspace-dependencies/web/OgreMaxLoader.js
+          cp ../THREE.OgreMaxLoader/LICENSE ../admin-workspace-dependencies/web/OgreMaxLoader.LICENSE
+          cp node_modules/three/LICENSE ../admin-workspace-dependencies/web/three.LICENSE
+          cp package-lock.json ../admin-workspace-dependencies/consumer-package-lock.json
+          cd ..
+          cp -R StarMade-BlockEditor/client/dist admin-workspace-dependencies/block-editor-client
+          cp -R StarMade-NPCCreator/ui admin-workspace-dependencies/npc-editor
+          cp -R StarMade-Decoder/dist admin-workspace-dependencies/sources/decoder-dist
+          cp -R StarMade-BlockEditor/server/src admin-workspace-dependencies/sources/block-editor-server
+          cp -R StarMade-BlockEditor/client/src admin-workspace-dependencies/sources/block-editor-client
+          cp -R StarMade-NPCCreator/src admin-workspace-dependencies/sources/npc-sdk
+          for repo in StarMade-Decoder StarMade-BlockEditor StarMade-NPCCreator THREE.OgreMaxLoader; do
+            printf '%s %s\n' "$repo" "$(git -C "$repo" rev-parse HEAD)" >> admin-workspace-dependencies/SOURCE-COMMITS.txt
+            cp "$repo/README.md" "admin-workspace-dependencies/$repo.README.md"
+            if test -f "$repo/LICENSE"; then cp "$repo/LICENSE" "admin-workspace-dependencies/$repo.LICENSE"; fi
+          done
+          find admin-workspace-dependencies -type f \( -iname '*.ttf' -o -iname '*.woff*' -o -iname '*.otf' \) -delete
+          find admin-workspace-dependencies -type f -print0 | sort -z | xargs -0 sha256sum > admin-workspace-dependencies.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: admin-workspace-dependencies
+          path: |
+            admin-workspace-dependencies/
+            admin-workspace-dependencies.sha256
+          retention-days: 7
