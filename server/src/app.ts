@@ -68,7 +68,7 @@ export function createApp(options: AppOptions = {}) {
   });
   app.use(compression({ threshold: 1024, filter: (req, res) => !req.path.startsWith('/api/textures/') && compression.filter(req, res) }));
   app.use(express.json({ limit: '1mb' }));
-  app.get('/api/health', (_req, res) => { res.json({ ok: true, version: '1.1.2', mode: production ? 'production' : 'development' }); });
+  app.get('/api/health', (_req, res) => { res.json({ ok: true, version: '1.1.3', mode: production ? 'production' : 'development' }); });
   app.use('/api/config', configRouter);
   app.use('/api/blocks', blocksRouter);
   app.use('/api/textures', texturesRouter);

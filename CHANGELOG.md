@@ -7,6 +7,12 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.1.3] — 2026-09-23
+
+- Publish the current editor implementation as the requested 1.1.3 release, aligning package metadata, the interface version and the health endpoint.
+- Include the previously qualified Display animation, icon export and responsive editor fixes in the installable distribution.
+- Retain the existing pinned dependencies unchanged: StarMade-3D 1.0.2 and StarMade-Decoder 2.0.0.
+
 ## [1.1.2] — 2026-09-23
 
 - Updated the pinned StarMade-3D archive to 1.0.2, including support for the updated native shader sources.

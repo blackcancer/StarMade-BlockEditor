@@ -85,7 +85,7 @@ const de: Translations = {
   app: {
     settings: "Einstellungen",
     title:    '⚙ StarMade Block Editor',
-    subtitle: 'v1.1.2',
+    subtitle: 'v1.1.3',
     dirValid:   (name: string) => `✓ ${name}`,
     dirInvalid: '⚠ Kein StarMade-Verzeichnis konfiguriert',
     blockCount: (n: number) => `${n} ${n === 1 ? 'Block' : 'Blöcke'}`,

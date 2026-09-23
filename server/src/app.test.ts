@@ -17,7 +17,7 @@ describe('local HTTP boundary', () => {
   afterEach(() => { fs.rmSync(directory, { recursive: true, force: true }); vi.unstubAllEnvs(); });
   it('serves the API and native asset router with safe response headers', async () => {
     const app = createApp();
-    await request(app).get('/api/health').expect(200).expect('X-Content-Type-Options', 'nosniff').expect(({ body }) => expect(body.version).toBe('1.1.2'));
+    await request(app).get('/api/health').expect(200).expect('X-Content-Type-Options', 'nosniff').expect(({ body }) => expect(body.version).toBe('1.1.3'));
     await request(app).get('/api/render-assets/manifest').expect(200, { native: true });
     await request(app).get('/api/config').expect(200, { configured: true });
   });

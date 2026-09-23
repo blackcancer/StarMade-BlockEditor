@@ -1,4 +1,4 @@
-# StarMade Block Editor 1.1.2
+# StarMade Block Editor 1.1.3
 
 A StarMade block editor using **StarMade-Decoder 2.0.0** for definitions and **StarMade-3D 1.0.2** for native rendering. The interface is available in English, French, German, Spanish, Russian and Japanese.
 
