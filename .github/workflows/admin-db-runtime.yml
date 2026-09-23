@@ -1,0 +1,51 @@
+name: Admin database runtime
+on:
+  push:
+    branches: [integration/starmade-admin-runtime-20260923]
+    paths: [.github/workflows/admin-db-runtime.yml]
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: blackcancer/StarMade-Decoder
+          ref: 8707f2293f8b389e044f68cfb9fb01b635db8886
+          path: StarMade-Decoder
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: blackcancer/StarMade-DB
+          ref: v2.0.2
+          path: StarMade-DB
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Build explicit SDK and native JDBC runtime
+        run: |
+          set -eu
+          (cd StarMade-Decoder && npm ci --ignore-scripts && npm run build)
+          (cd StarMade-DB && npm ci && npm run build)
+          (cd StarMade-DB && npm prune --omit=dev --ignore-scripts)
+          mkdir -p delivery/StarMade-DB delivery/StarMade-Decoder
+          cp -a StarMade-DB/src StarMade-DB/dist StarMade-DB/node_modules StarMade-DB/package.json StarMade-DB/package-lock.json StarMade-DB/LICENSE StarMade-DB/docs delivery/StarMade-DB/
+          cp -a StarMade-Decoder/dist StarMade-Decoder/node_modules StarMade-Decoder/package.json StarMade-Decoder/LICENSE delivery/StarMade-Decoder/
+          (cd StarMade-DB && git rev-parse HEAD) > delivery/db.commit
+          find delivery -type f \( -name '*.woff' -o -name '*.woff2' -o -name '*.ttf' -o -name '*.otf' \) -delete
+          tar -czf admin-db-runtime.tgz delivery
+          sha256sum admin-db-runtime.tgz > admin-db-runtime.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: admin-db-runtime
+          path: |
+            admin-db-runtime.tgz
+            admin-db-runtime.sha256
+          retention-days: 7
