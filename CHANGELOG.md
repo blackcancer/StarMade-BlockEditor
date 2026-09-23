@@ -9,6 +9,8 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ## [1.1.1] — 2026-09-23
 
+- Fixed icon action sizing: import, restore and generate buttons now each span the available panel width, with wrapping for long translations.
+
 - Updated the pinned StarMade-3D archive to 1.0.1.
 - Added the native Display Module (479) screen/text pass to the existing physical cube, using installation-owned screen and Monda font resources.
 - Matched all six native Display face frames and included the supplemental layer in orthographic icon exports.
