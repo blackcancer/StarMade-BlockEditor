@@ -1,0 +1,70 @@
+name: Build embedded admin host
+on:
+  push:
+    branches: [feature/admin-workspace-package]
+    paths: [scripts/build-admin-host.mjs, .github/workflows/admin-host-build.yml]
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: StarMade-BlockEditor
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Build editor host
+        working-directory: StarMade-BlockEditor
+        run: |
+          npm ci
+          npm run build
+          node scripts/build-admin-host.mjs
+      - name: Package additional libraries
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth=1 https://github.com/blackcancer/StarMade-Decoder.git
+          git clone --depth=1 https://github.com/blackcancer/StarMade-DB.git
+          git clone --depth=1 https://github.com/blackcancer/StarMade-NPCCreator.git
+          cd StarMade-Decoder
+          npm ci --ignore-scripts
+          npm run build
+          cd ../StarMade-DB
+          npm ci
+          npm run build
+          npm prune --omit=dev --ignore-scripts
+          cd ..
+          mkdir -p admin-workspace-dependencies/db-runtime
+          cp -R StarMade-DB/dist StarMade-DB/node_modules StarMade-DB/package.json admin-workspace-dependencies/db-runtime/
+          rm -f admin-workspace-dependencies/db-runtime/node_modules/starmade-decoder
+          cp -R StarMade-Decoder admin-workspace-dependencies/db-runtime/node_modules/starmade-decoder
+          rm -rf admin-workspace-dependencies/db-runtime/node_modules/starmade-decoder/.git admin-workspace-dependencies/db-runtime/node_modules/starmade-decoder/test
+          cd StarMade-BlockEditor
+          node --input-type=module - <<'JS'
+          import {build} from 'esbuild';
+          await build({entryPoints:['../StarMade-NPCCreator/src/index.ts'],outfile:'../admin-workspace-dependencies/sdk/npccreator.mjs',platform:'node',format:'esm',bundle:true});
+          JS
+          mkdir -p ../admin-workspace-dependencies/native-node-modules
+          cp -R node_modules/sharp ../admin-workspace-dependencies/native-node-modules/
+          for module in @img detect-libc semver color color-convert color-name color-string simple-swizzle is-arrayish; do
+            if test -e "node_modules/$module"; then cp -R "node_modules/$module" ../admin-workspace-dependencies/native-node-modules/; fi
+          done
+          cd ..
+          for repo in StarMade-Decoder StarMade-BlockEditor StarMade-DB StarMade-NPCCreator; do
+            printf '%s %s\n' "$repo" "$(git -C "$repo" rev-parse HEAD)" >> admin-workspace-dependencies/SOURCE-COMMITS-EMBEDDED.txt
+            if test -f "$repo/LICENSE"; then cp "$repo/LICENSE" "admin-workspace-dependencies/$repo.LICENSE"; fi
+          done
+          find admin-workspace-dependencies -type f \( -iname '*.ttf' -o -iname '*.woff*' -o -iname '*.otf' \) -delete
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: admin-embedded-host
+          path: admin-workspace-dependencies/
+          retention-days: 7
