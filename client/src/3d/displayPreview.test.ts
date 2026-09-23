@@ -1,12 +1,14 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { MeshBasicMaterial, PerspectiveCamera, SRGBColorSpace, Texture, TextureLoader } from 'three';
-import { starMadeDisplayMatrix } from 'starmade-3d';
+import { starMadeDisplayMatrix, setStarMadeShaderSources } from 'starmade-3d';
 import { loadDisplayPreview } from './displayPreview.js';
 
 let background: Texture;
 let context: Record<string, any>;
 let fontLoad: ReturnType<typeof vi.fn>;
 beforeEach(() => {
+  // Original minimal GLSL fixture; real installation shaders are exercised by the browser recipe.
+  setStarMadeShaderSources({ 'data/shader/scanline/scanline.frag.glsl': 'uniform float uTime; uniform sampler2D uDiffuseTexture; void main() { gl_FragColor = texture2D(uDiffuseTexture, gl_TexCoord[0].xy); }' });
   context = { measureText: () => ({ width: 48, fontBoundingBoxAscent: 16, fontBoundingBoxDescent: 4 }),
     scale: vi.fn(), strokeText: vi.fn(), fillText: vi.fn() };
   vi.stubGlobal('document', { fonts: { add: vi.fn(), delete: vi.fn() },
@@ -28,7 +30,7 @@ it('uses the native screen/text geometry, six face frames, font and depth-tested
     expect(panel.background.material).toMatchObject({ depthTest: true, depthWrite: false, toneMapped: false });
     expect(context.fillText).toHaveBeenCalledWith('Display', 1, 17);
     expect(document.fonts.add).toHaveBeenCalled();
-    const camera = new PerspectiveCamera(); camera.position.z = 40; camera.updateMatrixWorld();
+    const camera = new PerspectiveCamera(); camera.position.z = 501; camera.updateMatrixWorld();
     panel.updateVisibility(camera); expect(panel.text.visible).toBe(false);
     camera.position.z = 2; camera.updateMatrixWorld(); panel.updateVisibility(camera); expect(panel.text.visible).toBe(true);
     panel.dispose(); expect(panel.root.parent).toBe(null);

@@ -1,6 +1,6 @@
 {
   "name": "starmade-blockeditor",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Visual block editor for StarMade \u2014 3D preview with texture atlas mapping",
   "private": true,
   "workspaces": [

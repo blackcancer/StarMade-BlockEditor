@@ -86,7 +86,7 @@ const en = {
   app: {
     settings: "Settings",
     title:    '⚙ StarMade Block Editor',
-    subtitle: 'v1.1.1',
+    subtitle: 'v1.1.2',
     /** Shown in the header path indicator when the directory is valid. */
     dirValid: (name: string) => `✓ ${name}`,
     /** Shown in the header path indicator when no directory is configured. */

@@ -120,6 +120,7 @@ export async function createNativePreview(options: {
     return { object, materials, dispose, update(delta, camera) {
       camera.updateMatrixWorld();
       display?.updateVisibility(camera);
+      display?.updateTime(delta);
       for (const material of materials) {
         updateStarMadeCubeShaderTime(material, delta);
         updateStarMadeCubeShaderClipPlanes(material, camera.near, camera.far);

@@ -7,6 +7,13 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.1.2] — 2026-09-23
+
+- Updated the pinned StarMade-3D archive to 1.0.2, including support for the updated native shader sources.
+- Connected the Display scanline animation clock to the editor render loop and adopted the native 500-unit text visibility distance.
+- Extended browser checks to verify the actual Display shader clock, six-face rendering and icon export with the new SDK.
+- StarMade-Decoder remains at 2.0.0; StarMade-3D has no runtime Decoder dependency.
+
 ## [1.1.1] — 2026-09-23
 
 - Made the custom atlas manager button span the viewer panel width, with wrapped labels and a 44-pixel minimum touch height on mobile.

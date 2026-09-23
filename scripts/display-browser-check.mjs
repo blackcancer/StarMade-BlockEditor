@@ -53,13 +53,18 @@ export async function checkDisplayPreview(page, origin, receipt) {
       camera.lookAt(0,0,0); camera.updateMatrixWorld();
       // Let the application's frame callback update its native shader uniforms.
       await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      const gl = state.gl.getContext();
+      const program = state.gl.properties.get(panel.children[0].material).currentProgram.program;
+      const clock = () => gl.getUniform(program, gl.getUniformLocation(program, 'uTime'));
+      const beforeTime = clock();
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      const afterTime = clock();
       const scene = state.scene.clone(false); scene.add(object.clone(true));
       const screen = scene.getObjectByName('StarMade display 479');
       const draw = () => { state.gl.render(scene, camera); return state.gl.domElement.toDataURL('image/png'); };
       const full = draw(); screen.children[1].visible = false; const noText = draw();
       screen.visible = false; const cube = draw();
-      const gl = state.gl.getContext();
-      const result = { full, noText, cube, orientation, font: document.fonts.check('16px StarMadeDisplay'),
+      const result = { full, noText, cube, orientation, beforeTime, afterTime, font: document.fonts.check('16px StarMadeDisplay'),
         cubeShader: object.getObjectByName('native-block-mesh').material.type,
         screenMaterial: panel.children[0].material.type,
         screenTexture: panel.children[0].material.map.image.src,
@@ -79,6 +84,8 @@ export async function checkDisplayPreview(page, origin, receipt) {
     }
     assert(screenPixels > 100, `Display screen pixels for orientation ${orientation}: ${screenPixels}`);
     assert(textPixels > 5, `Display text pixels for orientation ${orientation}: ${textPixels}`);
+    assert.equal(typeof result.beforeTime, 'number');
+    assert(result.afterTime > result.beforeTime, 'Native Display scanline clock must advance');
     assert.equal(result.error, 0); assert.equal(result.linked, true); assert.equal(result.font, true);
     assert.equal(result.cubeShader, 'ShaderMaterial'); assert.equal(result.screenMaterial, 'MeshBasicMaterial');
     assert.match(result.screenTexture, /\/display\/screen$/);

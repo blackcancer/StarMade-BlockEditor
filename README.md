@@ -1,6 +1,6 @@
-# StarMade Block Editor 1.1.1
+# StarMade Block Editor 1.1.2
 
-A StarMade block editor using **StarMade-Decoder 2.0.0** for definitions and **StarMade-3D 1.0.1** for native rendering. The interface is available in English, French, German, Spanish, Russian and Japanese.
+A StarMade block editor using **StarMade-Decoder 2.0.0** for definitions and **StarMade-3D 1.0.2** for native rendering. The interface is available in English, French, German, Spanish, Russian and Japanese.
 
 All six languages have the same 396 verified entries, including error messages, rendering warnings and mobile controls.
 
@@ -40,7 +40,7 @@ Importing a texture or icon writes an image immediately, independently of saving
 
 Rendering uses StarMade-3D's native geometry, orientations, shaders, lighting and LOD models. Style 6 is **Normal, 24 orientations**. Active/inactive states, slab thicknesses, animated textures and normal maps follow the native data. The editor loads resources from the selected installation; proprietary game resources are not distributed.
 
-Display Module (479) includes the native holographic screen and Monda text pass on all six orientations, in addition to its physical cube. The preview uses the sample text “Display”: this block-definition editor does not load entity text or simulate live ship values. The screen and font are loaded from `data/image-resource/screen-gui-blue.png` and `data/font/Monda-Regular.ttf` in the selected installation. Missing resources produce a visible rendering error. The same screen/text layer is included in generated icons.
+Display Module (479) includes the native animated scanline screen and Monda text pass on all six orientations, in addition to its physical cube. The preview uses the sample text “Display”: this block-definition editor does not load entity text or simulate live ship values. The screen and font are loaded from `data/image-resource/screen-gui-blue.png` and `data/font/Monda-Regular.ttf` in the selected installation. Missing resources produce a visible rendering error. The same screen/text layer is included in generated icons.
 
 In the block properties, **Generate from block** creates a transparent **64 × 64 pixel** PNG preview. The orthographic camera matches the angle and margins of existing cube icons: a centered cube with a 48 × 48 pixel footprint. The orientation and active state selected in the viewer are retained; the grid and selection highlight are excluded from the image. **Apply icon** writes the displayed slot. **Cancel** discards the preview. The interactive view is restored after export.
 
@@ -69,10 +69,10 @@ A missing installation fails this check; partial validation is not reported as c
 The SDKs are not published on the public npm registry. Verified archives are therefore included in `vendor/`, without symlinks to neighboring repositories. `vendor/manifest.json` records versions, source commits and SHA-256 hashes; `npm run vendor:check` verifies the archives. The lockfile provides reproducible installation with `npm ci`.
 
 - StarMade-Decoder: commit `4cb21bd72258c87eb8115f90449a8334c34658a6` (2.0.0).
-- StarMade-3D: commit `6e3b23392fcb0549b9db5e08b1dbe112e96a6532` (1.0.1).
+- StarMade-3D: commit `237f95687c6fac468728c71240ca300243bc2db0` (1.0.2).
 
 ## Remote preview
 
 An HTTPS proxy can expose the local server. `EDITOR_PUBLIC_ORIGIN` defines the allowed origin, and `EDITOR_FIXED_STARMADE_DIR` confines the editor to its test copy. The requested preview is directly accessible at **https://initsysrev.net:8003/**, without a token or login. The proxy preserves the Host header. See the [preview configuration](docs/PREVIEW_DEPLOYMENT.md).
 
-Release results and limitations are documented in the [1.1.1 qualification report](docs/QUALIFICATION_1.1.1.md) and the historical [1.1.0 report](docs/QUALIFICATION_1.1.0.md). The initial audit is retained in [AUDIT_INTEGRATION_2026-09-23.md](docs/AUDIT_INTEGRATION_2026-09-23.md). The [historical English user guide](docs/guide_en.md) describes the 1.0 interface; the saving, rendering and export behavior described on this page is authoritative for version 1.1.
+Release results and limitations are documented in the [1.1.2 qualification report](docs/QUALIFICATION_1.1.2.md) and the historical [1.1.0 report](docs/QUALIFICATION_1.1.0.md). The initial audit is retained in [AUDIT_INTEGRATION_2026-09-23.md](docs/AUDIT_INTEGRATION_2026-09-23.md). The [historical English user guide](docs/guide_en.md) describes the 1.0 interface; the saving, rendering and export behavior described on this page is authoritative for version 1.1.

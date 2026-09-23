@@ -13,13 +13,13 @@
     },
     {
       "name": "starmade-3d",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "source": "https://github.com/blackcancer/StarMade-3D",
-      "commit": "6e3b23392fcb0549b9db5e08b1dbe112e96a6532",
-      "file": "starmade-3d-1.0.1.tgz",
-      "sha256": "9ff62751424dd45941b8596d5e51a01ae70b9bce5323805b220278044cadca41",
-      "integrity": "sha512-BdUS5g0EQy3Id7dlZaFgKCiNm4VDQ9RUqUnG6tAyHerT/V7n7PPt3VytG7FuwKZJ2a6F/S6RMNM2HkmEcm7F0Q==",
-      "files": 209
+      "commit": "237f95687c6fac468728c71240ca300243bc2db0",
+      "file": "starmade-3d-1.0.2.tgz",
+      "sha256": "e7c72682461bf3c1a7bd96c8fdf3262060fafdfaa1e4ba4dd0135f68aed999ce",
+      "integrity": "sha512-5LHqPVoi7duJzKBmyVeHuVfexR54nQhRjYBfa4xKpiGWrbGxx7o46CY07vDb+0wcuC00iQXvH4WKM17k4Pgi/w==",
+      "files": 214
     }
   ]
 }
