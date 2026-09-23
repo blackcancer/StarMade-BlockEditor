@@ -1,16 +1,16 @@
-# Aperçu de test
+# Test preview
 
-Le port public demandé est **8003**, libre lors de la réservation. L’aperçu utilise HTTPS sur `initsysrev.net:8003` et un serveur Node local sur `127.0.0.1:38475`. Les aperçus existants sur 8000/8002 ne sont pas modifiés.
+The requested public port is **8003**, which was available when reserved. The preview uses HTTPS on `initsysrev.net:8003` and a local Node server on `127.0.0.1:38475`. Existing previews on 8000/8002 are not modified.
 
-Les données sont copiées dans `/srv/dev/.starmade-blockeditor-preview/game`. `EDITOR_FIXED_STARMADE_DIR` interdit de basculer vers l’installation originale par l’API. Le processus dispose seulement d’un accès en écriture au répertoire de cet aperçu.
+Game data is copied to `/srv/dev/.starmade-blockeditor-preview/game`. `EDITOR_FIXED_STARMADE_DIR` prevents switching to the original installation through the API. The process has write access only to this preview directory.
 
-L’accès est public, sans jeton ni connexion, conformément à la demande de l’utilisateur. Le lien direct est `https://initsysrev.net:8003/`. `EDITOR_ACCESS_TOKEN` est absent de la configuration du service ; les validations Host/Origin, le confinement des chemins et le dossier de jeu fixe restent actifs.
+Access is public, without a token or login, as requested by the user. The direct link is `https://initsysrev.net:8003/`. `EDITOR_ACCESS_TOKEN` is absent from the service configuration; Host/Origin validation, path confinement and the fixed game directory remain active.
 
-Les fichiers préparés dans `/srv/dev/.starmade-blockeditor-preview/deploy` définissent :
+The files prepared in `/srv/dev/.starmade-blockeditor-preview/deploy` define:
 
-- `starmade-blockeditor-preview.service` : Node 22, utilisateur ubuntu, redémarrage après échec, système de fichiers protégé, seul le répertoire d’aperçu est accessible en écriture.
-- `starmade-blockeditor-8003-ssl.conf` : nouveau vhost HTTPS, proxy Host préservé, certificat du domaine déjà présent.
+- `starmade-blockeditor-preview.service`: Node 22, ubuntu user, restart on failure, protected filesystem, with write access limited to the preview directory.
+- `starmade-blockeditor-8003-ssl.conf`: a new HTTPS virtual host, preserved proxy Host header, and the domain's existing certificate.
 
-Chaque déploiement copie les builds dans un nouveau dossier `releases/` et actualise le lien `current` ; la configuration et la copie du jeu restent séparées. Vérifier `apache2ctl configtest` avant d’activer le vhost et `/api/health` après démarrage. Une réponse 200 sur `/api/config` sans cookie est attendue.
+Each deployment copies the builds into a new `releases/` directory and updates the `current` symlink; configuration and the game copy remain separate. Check `apache2ctl configtest` before enabling the virtual host and `/api/health` after startup. A 200 response from `/api/config` without a cookie is expected.
 
-Pour arrêter cet aperçu uniquement : `sudo systemctl stop starmade-blockeditor-preview`. Ne pas arrêter les autres services StarMade.
+To stop only this preview: `sudo systemctl stop starmade-blockeditor-preview`. Do not stop other StarMade services.

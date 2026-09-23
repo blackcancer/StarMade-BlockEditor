@@ -1,76 +1,76 @@
-# Qualification de StarMade-BlockEditor 1.1.0
+# StarMade-BlockEditor 1.1.0 qualification
 
-23 septembre 2026. Livraison de l’intégration StarMade-Decoder 2.0.0 et StarMade-3D 1.0.0, de l’export d’icônes, de l’interface mobile et des six langues.
+September 23, 2026. Delivery of StarMade-Decoder 2.0.0 and StarMade-3D 1.0.0 integration, icon export, the mobile interface and six interface languages.
 
-## Résultat
+## Result
 
-**PASS sur le périmètre de l’éditeur décrit ci-dessous.** Le contrôle couvre tous les fichiers exécutables de `server/src` et `client/src`, y compris les points d’entrée. La dette de couverture constatée dans l’audit initial a été résorbée ; aucune exclusion de code de production ni directive d’ignore n’est utilisée.
+**PASS for the editor scope described below.** The gate covers every executable file in `server/src` and `client/src`, including entry points. The coverage debt identified by the initial audit has been resolved; no production code exclusions or coverage ignore directives are used.
 
-| Contrôle | Résultat |
+| Check | Result |
 | --- | --- |
-| Provenance des deux archives SDK et SHA-256 | PASS, `npm run vendor:check` |
-| Documentation et types serveur/client | PASS, 46 sources |
-| Tests serveur | 150 réussis |
-| Tests client | 275 réussis |
-| Tests du contrôle de couverture et des archives | 6 réussis |
-| Couverture serveur | 846/846 lignes ; 700/700 branches |
-| Couverture client | 1416/1416 lignes ; 933/933 branches |
-| Seuil indépendant bloquant | 46 fichiers à 100 % lignes et branches ; aucun absent ou ignoré |
-| Build de production | PASS, TypeScript et Vite |
-| Installation propre `npm ci` | PASS avec Node 22 ; installation production séparée également réussie |
-| `npm audit` | 0 vulnérabilité signalée dans le graphe verrouillé |
-| Recette navigateur sur copie jetable | PASS, 11 contrôles, aucune erreur JavaScript |
-| Rendu WebGL2 natif | PASS, 124 observations |
-| Export PNG | PASS, 9 captures et comparaison aux icônes existantes |
-| Aperçu public | PASS, accès anonyme sur HTTPS 8003, sans requête de mutation pendant la vérification |
+| Provenance and SHA-256 of both SDK archives | PASS, `npm run vendor:check` |
+| Documentation and server/client types | PASS, 46 sources |
+| Server tests | 150 passed |
+| Client tests | 275 passed |
+| Coverage-gate and archive-verification tests | 6 passed |
+| Server coverage | 846/846 lines; 700/700 branches |
+| Client coverage | 1416/1416 lines; 933/933 branches |
+| Independent blocking gate | 46 files at 100% lines and branches; none missing or ignored |
+| Production build | PASS, TypeScript and Vite |
+| Clean `npm ci` installation | PASS with Node 22; separate production installation also passed |
+| `npm audit` | 0 reported vulnerabilities in the locked dependency graph |
+| Browser acceptance on a disposable copy | PASS, 11 checks, no JavaScript errors |
+| Native WebGL2 rendering | PASS, 124 observations |
+| PNG export | PASS, 9 captures and comparison with existing icons |
+| Public preview | PASS, anonymous HTTPS access on 8003, with no mutation requests during verification |
 
-Commandes exécutées : `npm run validate`, puis `npm run test:browser` avec `STARMADE_DIR=/srv/StarMade` et Chromium. La validation porte sur le code final, incluant le retour du focus et les dimensions des commandes tactiles. `npm run release:check` enchaîne ces deux contrôles pour une reproduction complète. Les rapports détaillés sont rassemblés dans `release/qualification-1.1.0/` et dans l’archive de livraison.
+Commands executed: `npm run validate`, followed by `npm run test:browser` with `STARMADE_DIR=/srv/StarMade` and Chromium. Validation covers the final code, including focus restoration and touch target dimensions. `npm run release:check` runs both checks for a complete reproduction. Detailed reports are collected in `release/qualification-1.1.0/` and in the delivery archive.
 
-## Persistance et intégration
+## Persistence and integration
 
-Le navigateur a chargé 1516 définitions. Les tests couvrent la conservation des attributs et extensions XML, les validations d’entrée, les écritures atomiques avec sauvegarde, le contrôle de révision et les réponses asynchrones obsolètes. La suppression d’une surcharge restitue le bloc vanilla. Les écritures de la recette utilisent exclusivement une copie jetable.
+The browser loaded 1516 definitions. Tests cover preservation of XML attributes and extensions, input validation, atomic writes with backups, revision checks and stale asynchronous responses. Deleting an override restores the vanilla block. Acceptance-test writes use only a disposable copy.
 
-Empreinte de la source avant **et** après la recette : `331b3289f03b876f671155aeb913e6fdc6543fe96d13151b01b56d81e90673c7`. Le contrôle porte sur l’ensemble des répertoires sources copiés par le script, dont les configurations, shaders, modèles LOD, textures et icônes.
+Source hash before **and** after the acceptance check: `331b3289f03b876f671155aeb913e6fdc6543fe96d13151b01b56d81e90673c7`. The check covers all source directories copied by the script, including configuration, shaders, LOD models, textures and icons.
 
-Contrôles de la recette finale :
+Final acceptance checks:
 
-- Chargement du catalogue et confinement à l’installation configurée.
-- Recherche et sélection d’un bloc.
-- Création, sauvegarde et rechargement avec conservation des sous-arbres XML.
-- Refus d’une sauvegarde obsolète avec erreur visible et conservation du brouillon.
-- Conservation du brouillon après rechargement, puis reprise explicite de la version serveur.
-- Suppression d’une surcharge et réapparition immédiate de la définition vanilla.
-- Import d’icône, sauvegarde de l’original et restauration exacte du slot.
-- Génération native d’un bloc incliné, aperçu, application et restauration exacte.
-- Persistance de la suppression d’un bloc personnalisé.
-- Parcours mobile français : langue conservée, capture depuis Propriétés, édition et dialogues accessibles.
-- Même parcours mobile en anglais, avec retour du focus vérifié.
+- Catalogue loading and confinement to the configured installation.
+- Block search and selection.
+- Creation, saving and reloading with XML subtree preservation.
+- Rejection of a stale save with a visible error and the draft retained.
+- Draft preservation after reloading, followed by explicitly restoring the server version.
+- Override deletion and immediate reappearance of the vanilla definition.
+- Icon import, original backup and exact slot restoration.
+- Native wedge generation, preview, application and exact restoration.
+- Persistent deletion of a custom block.
+- French mobile workflow: retained language, capture from Properties, editing and accessible dialogs.
+- The same mobile workflow in English, with focus restoration verified.
 
-## Rendu et icônes
+## Rendering and icons
 
-La matrice native couvre les sept styles, 88 orientations, les slabs, les animations, les lumières, la transparence, les modèles LOD, les textures personnalisées et la perte/restauration du contexte graphique. Les shaders ont été compilés dans un vrai contexte WebGL2 Chromium/SwiftShader.
+The native matrix covers all seven styles, 88 orientations, slabs, animations, lights, transparency, LOD models, custom textures and graphics context loss/restoration. Shaders were compiled in a real Chromium/SwiftShader WebGL2 context.
 
-Les icônes sont des PNG transparents de 64 × 64 pixels, avec une caméra orthographique standardisée. Le cube de référence et le cube généré occupent les pixels 8 à 55 sur les deux axes. La comparaison contrôle trois zones de faces avec une tolérance maximale de 12 par canal RGB. Les captures couvrent aussi wedge, slab, LOD, verre et lumière active/inactive. L’export est indépendant de l’orbite interactive et restaure la caméra, les uniforms et les réglages du moteur.
+Icons are transparent 64 × 64 pixel PNGs captured with a standardized orthographic camera. The reference cube and generated cube occupy pixels 8 through 55 on both axes. The comparison checks three face regions with a maximum tolerance of 12 per RGB channel. Captures also cover wedges, slabs, LOD, glass and active/inactive lights. Export is independent of the interactive orbit and restores the camera, uniforms and renderer settings.
 
-Sur mobile, la capture avant la première visite de l’aperçu produit exactement le même PNG que sur ordinateur. Le rendu masqué ne calcule plus de frames ; il reprend et se redimensionne lors du retour à l’onglet Aperçu. La génération seule ne modifie aucun fichier : l’utilisateur doit appliquer l’icône, et peut ensuite restaurer le slot d’origine.
+On mobile, capture before the first visit to the preview produces exactly the same PNG as on desktop. The hidden renderer stops producing frames; it resumes and resizes when returning to the Preview tab. Generation alone changes no files: the user must apply the icon and can subsequently restore the original slot.
 
-## Mobile et langues
+## Mobile and languages
 
-Trois onglets jusqu’à 1024 pixels conservent le brouillon et les panneaux montés. Les dialogues natifs contiennent le focus et le restituent à leur fermeture. Les aides sont accessibles au toucher et au clavier. Les contrôles de navigation et d’en-tête atteignent au moins 44 pixels dans les six langues à 360 pixels de largeur.
+Three tabs at widths up to 1024 pixels preserve the draft and keep panels mounted. Native dialogs contain focus and restore it when closed. Help is accessible through touch and keyboard. Navigation and header controls are at least 44 pixels in all six languages at a viewport width of 360 pixels.
 
-Les recettes contrôlent le français et l’anglais à 390 × 844, la persistance de langue, l’édition/sauvegarde, les sélecteurs de textures/icônes et la génération depuis Propriétés. Le lien public a été vérifié à 360 × 800, 390 × 844, 768 × 1024, 844 × 390 et 1440 × 1000, sans débordement horizontal de page.
+Acceptance checks cover French and English at 390 × 844, language persistence, editing/saving, texture/icon pickers and generation from Properties. The public link was checked at 360 × 800, 390 × 844, 768 × 1024, 844 × 390 and 1440 × 1000, without horizontal page overflow.
 
-Chaque langue possède **396 entrées** : 363 textes et 33 fonctions de formatage, en français, anglais, allemand, espagnol, russe et japonais. Les tests vérifient la même structure, les paramètres, les pluriels, les diagnostics et les avertissements natifs. Les noms et descriptions issus des données du jeu ainsi que les identifiants XML restent des données du jeu ; les diagnostics inconnus restent consultables dans un panneau de détails techniques.
+Each language has **396 entries**: 363 strings and 33 formatting functions, in English, French, German, Spanish, Russian and Japanese. Tests verify matching structure, parameters, plurals, diagnostics and native warnings. Names and descriptions supplied by the game and XML identifiers remain game data; unknown diagnostics remain available in a technical details panel.
 
-## Déploiement et limites vérifiées
+## Deployment and verification limits
 
-Adresse directe : **https://initsysrev.net:8003/**, sans jeton ni connexion. Le service dédié utilise Node 22 et une copie indépendante du jeu ; le proxy HTTPS transmet vers le backend local sur 38475. La configuration et les données de cette copie sont conservées lors du remplacement du dossier de livraison.
+Direct address: **https://initsysrev.net:8003/**, without a token or login. The dedicated service uses Node 22 and an independent game copy; the HTTPS proxy forwards to the local backend on 38475. Configuration and data in that copy are preserved when replacing the release directory.
 
-Les recettes graphiques ont été exécutées avec Chromium sous Linux et SwiftShader, avec dimensions et interactions mobiles émulées. Aucun téléphone physique, Safari/iOS ou lancement du script Windows n’a été qualifié dans cet environnement. Aucun import ni redémarrage du jeu StarMade en cours d’exécution n’a été effectué. Les pourcentages ci-dessus qualifient l’éditeur ; ils ne prétendent pas mesurer à nouveau les suites internes complètes des deux SDK.
+Graphical checks ran with Chromium on Linux and SwiftShader, with emulated mobile dimensions and interactions. No physical phone, Safari/iOS or Windows launcher execution was qualified in this environment. No import into or restart of the running StarMade game was performed. The percentages above qualify the editor; they do not claim to remeasure the complete internal test suites of both SDKs.
 
-## Couverture exacte par fichier
+## Exact coverage by file
 
-| Fichier exécutable | Lignes | Branches |
+| Executable file | Lines | Branches |
 | --- | ---: | ---: |
 | `server/src/api/assets.ts` | 104/104 | 81/81 |
 | `server/src/api/blocks.ts` | 58/58 | 24/24 |

@@ -1,122 +1,129 @@
 # Changelog
 
-Toutes les modifications notables de ce projet sont documentées dans ce fichier.
+All notable changes to this project are documented in this file.
 
-Format basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/).
-Ce projet suit le [Versionnage Sémantique](https://semver.org/lang/fr/).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
 ## [1.1.0] — 2026-09-23
 
-- Intégration de StarMade-Decoder 2.0.0 et StarMade-3D 1.0.0, archives locales vérifiées et verrouillées.
-- Rendu natif des sept styles, orientations, slabs, animations, lumières, transparence et modèles LOD activables.
-- Génération d’icônes PNG de 64 × 64 pixels en vue orthographique, cadrées sur les cubes existants, avec aperçu avant application et restauration du slot original.
-- Interface mobile et tablette à trois onglets, commandes tactiles, dialogues accessibles et brouillons conservés lors de la navigation.
-- Traductions complétées dans les six langues, y compris les messages d’erreur, les avertissements du rendu et les propriétés avancées.
-- Correction de l’en-tête PC : listes déroulantes et boutons alignés, espacement explicite et hauteur adaptée aux fenêtres plus étroites.
-- Retour du focus au bouton d’ouverture après fermeture des sélecteurs d’icônes et de textures ; rendu 3D suspendu lorsqu’il est masqué sur mobile.
-- Conservation des attributs/XML inconnus, sauvegardes atomiques avec backups, ETag obligatoire et refus des écritures concurrentes obsolètes.
-- Protection des brouillons et des réponses asynchrones, erreurs explicites et restrictions de l’aperçu distant à une copie de jeu.
-- Node.js 22.16+, dépendances actualisées, couverture bloquante à 100 % des lignes et branches par fichier, recette navigateur sur copie isolée.
-- Qualification : 425 tests applicatifs et 6 tests d’outillage réussis ; recettes navigateur d’édition, de rendu natif, d’export et de mise en page PC/mobile. Voir les rapports de qualification et du correctif d’en-tête dans `docs/`.
+- Integrated StarMade-Decoder 2.0.0 and StarMade-3D 1.0.0 using verified, pinned local archives.
+- Native rendering for all seven styles, orientations, slabs, animations, lights, transparency and activatable LOD models.
+- Orthographic 64 × 64 pixel PNG icon generation, framed to match existing cube icons, with a preview before applying and restoration of the original slot.
+- Three-tab phone and tablet interface, touch controls, accessible dialogs and drafts preserved while navigating.
+- Completed all six interface translations, including error messages, rendering warnings and advanced properties.
+- Fixed the desktop header: aligned dropdowns and buttons, explicit spacing and adaptive height for narrower windows.
+- Restored focus to the opening button after closing icon and texture pickers; paused 3D rendering while its panel is hidden on mobile.
+- Preserved unknown XML attributes and structures; added atomic saves with backups, mandatory ETags and rejection of stale concurrent writes.
+- Protected drafts and asynchronous responses, exposed errors clearly and confined the remote preview to a game copy.
+- Required Node.js 22.16+, updated dependencies, enforced 100% line and branch coverage per file, and added browser acceptance checks on an isolated copy.
+- Qualification: 425 application tests and 6 tooling tests passed; browser checks cover editing, native rendering, export and desktop/mobile layouts. See the qualification and header-fix reports in `docs/`.
 
 ## [1.0.0] — 2026-05-11
 
-Première version stable du StarMade Block Editor.
+First stable release of StarMade Block Editor.
 
-### Ajouté
+### Added
 
-#### Interface 3D
-- Prévisualisation 3D temps réel des 6 formes de blocs StarMade (Cube, Wedge, Corner, Cross, Tetra, Penta)
-- Mappage UV par face depuis l'atlas de textures StarMade (64×32 tuiles, 8 pages)
-- OrbitControls (rotation, zoom) avec damping
-- Grille de référence et sol d'aperçu
-- Support des normal maps (convention Y inversée pour StarMade)
-- Prévisualisation lumière active/inactive (`LightSource`, `HasActivationTexture`)
-- Footprint radial de lumière pour évaluer la portée d'émission
-- Aperçu des slab verticaux (3/4, 1/2, 1/4)
-- Cycle d'animation de textures (4 tuiles × 0,5 s)
+#### 3D interface
 
-#### Éditeur de propriétés
-- Tous les champs `BlockConfig.xml` exposés : HP, masse, volume, prix, armure, flags
-- Éditeur de couleur de lumière (picker + saisie hex + curseur intensité + palette)
-- Armure par type de dommage (Heat, Kinetic, EM)
-- Sélecteurs de variantes (slabIds, styleIds)
-- 60+ propriétés avancées structurées en sous-éditeurs dédiés :
-  - Ressources / Recettes (Consistence, InRecipe, RecipeBuyResource…)
-  - Usine / Production (ProducedInFactory, FactoryBakeTime…)
-  - Chambres réacteur (arbre d'amélioration, capacité, groupes…)
-  - Contrôleurs (ControlledBy, Controlling, combinaisons…)
-  - Collision / Physique (formes None / BlockType / ConvexHull)
-  - LOD / Maillage (LodShape, activation animation style)
-  - Logique / Gameplay (SensorInput, Beacon, ResourceInjection…)
-  - Réacteur / Structure, Inventaire / Métadonnées, Autres
+- Real-time 3D preview of all 6 block shapes (Cube, Wedge, Corner, Cross, Tetra, Penta)
+- Per-face UV mapping from the StarMade texture atlas (64 × 32 tiles, 8 pages)
+- OrbitControls (rotation, zoom) with damping
+- Reference grid and preview floor
+- Normal map support (StarMade's inverted Y convention)
+- Active/inactive lighting preview (`LightSource`, `HasActivationTexture`)
+- Radial light footprint to visualize emission range
+- Vertical slab preview (3/4, 1/2, 1/4)
+- Texture animation cycle (4 tiles × 0.5 s)
 
-#### Sélecteur de faces et atlas
-- 6 boutons de face avec mise en évidence dans le viewer 3D
-- Respect des modes `IndividualSides` (1 / 3 / 6 faces)
-- Sélecteur d'atlas interactif (picker mode + manager mode)
-- Import d'atlas personnalisé complet (diffuse + normal)
-- Remplacement d'un tuyau individuel dans la zone custom (page 7, tuiles 1792–2047)
-- Sélecteur d'icônes de construction (6 feuilles × 256 slots)
-- Import d'icônes personnalisées
+#### Property editor
 
-#### Données et API
-- Lecture de 1 500+ blocs vanilla depuis `BlockConfig.xml`
-- Résolution des IDs via `BlockTypes.properties`
-- Écriture uniquement dans `customBlockConfig/BlockConfigImport.xml`
-- Système de draft (édition sans sauvegarde immédiate) avec tracking dirty
-- Promotion automatique des blocs vanilla en custom à la première sauvegarde
-- Cache serveur invalidé par mtime des fichiers XML
-- Endpoints RESTful : `GET/PUT/POST/DELETE /api/blocks`, `/api/config`, `/api/textures`
-- Support WSL : conversion automatique des chemins Windows ↔ WSL
+- All `BlockConfig.xml` fields exposed: HP, mass, volume, price, armour, flags
+- Light colour editor (picker, hex input, intensity slider and palette)
+- Armour by damage type (Heat, Kinetic, EM)
+- Variant selectors (slabIds, styleIds)
+- 60+ advanced properties structured into dedicated sub-editors:
+  - Resources / Recipes (Consistence, InRecipe, RecipeBuyResource…)
+  - Factory / Production (ProducedInFactory, FactoryBakeTime…)
+  - Reactor chambers (upgrade tree, capacity, groups…)
+  - Controllers (ControlledBy, Controlling, combinations…)
+  - Collision / Physics (None / BlockType / ConvexHull shapes)
+  - LOD / Mesh (LodShape, activation animation style)
+  - Logic / Gameplay (SensorInput, Beacon, ResourceInjection…)
+  - Reactor / Structure, Inventory / Metadata, Other
 
-#### Localisation
-- Système i18n basé sur Zustand avec persistance localStorage
-- Détection automatique de la langue du navigateur
-- Sélecteur de langue dans le header
-- **6 langues complètes** : Anglais, Français, Allemand, Espagnol, Russe, Japonais
-- 370+ chaînes par locale, incluant tooltips StarMade détaillés
+#### Face and atlas pickers
 
-#### Qualité
-- TypeScript strict — 0 erreur sur l'ensemble du projet
-- 121 tests (20 fichiers de test — client + serveur)
-- 100% de couverture des branches (client)
-- Documentation JSDoc exhaustive : chaque fichier, fonction, type et constante
-- Sources annotées : `ElementInformation.java`, `starmade_gl.js`, `Occlusion.java`
+- 6 face buttons with highlighting in the 3D viewer
+- Support for `IndividualSides` modes (1 / 3 / 6 faces)
+- Interactive atlas picker (picker and manager modes)
+- Full custom atlas import (diffuse and normal)
+- Individual tile replacement in the custom region (page 7, tiles 1792–2047)
+- Build icon picker (6 sheets × 256 slots)
+- Custom icon import
 
-#### Build de production
-- Code splitting Vite : vendor-three / vendor-r3f / vendor-react / vendor-zustand
-- Serveur Express en mode production sert le client statique + l'API sur un seul port
-- Variable d'environnement `PORT` pour le déploiement flexible
-- Script `npm run preview` pour tester le build de production en local
+#### Data and API
+
+- Read 1,500+ vanilla blocks from `BlockConfig.xml`
+- Resolve IDs through `BlockTypes.properties`
+- Write block definitions only to `customBlockConfig/BlockConfigImport.xml`
+- Draft editing without immediate saving, with dirty-state tracking
+- Automatically promote vanilla blocks to custom definitions on first save
+- Invalidate the server cache using XML file modification times
+- RESTful endpoints: `GET/PUT/POST/DELETE /api/blocks`, `/api/config`, `/api/textures`
+- WSL support: automatic Windows ↔ WSL path conversion
+
+#### Localization
+
+- Zustand-based i18n with localStorage persistence
+- Automatic browser language detection
+- Language selector in the header
+- **6 complete languages**: English, French, German, Spanish, Russian, Japanese
+- 370+ strings per locale, including detailed StarMade tooltips
+
+#### Quality
+
+- Strict TypeScript — 0 errors across the project
+- 121 tests (20 test files — client and server)
+- 100% branch coverage (client)
+- Comprehensive JSDoc documentation: every file, function, type and constant
+- Annotated sources: `ElementInformation.java`, `starmade_gl.js`, `Occlusion.java`
+
+#### Production build
+
+- Vite code splitting: vendor-three / vendor-r3f / vendor-react / vendor-zustand
+- Express production server serves the static client and API on a single port
+- `PORT` environment variable for flexible deployment
+- `npm run preview` script for local production-build testing
 
 ---
 
-## [0.x] — Historique de développement
+## [0.x] — Development history
 
 | Commit | Description |
 |---|---|
-| `3942981` | feat: amélioration textures et éclairage du preview bloc |
-| `67ab96e` | feat: prévisualisation slab + champs armure d'effets |
-| `ce0ffdd` | feat: propriétés brutes et slabs verticaux |
-| `70a268e` | feat: structure UI des propriétés supplémentaires |
-| `af0570a` | feat: amélioration UI du panneau de propriétés |
-| `4e81196` | feat: éditeur de ressources/recettes ergonomique |
-| `16d9d82` | feat: éditeurs de propriétés avancées ergonomiques |
-| `bd7deb2` | chore: simplification des labels dropdown |
-| `301bf01` | chore: masquage des IDs techniques dans l'UI |
-| `9e5ef1f` | chore: suppression des labels techniques restants |
-| `b4e65dd` | docs: amélioration des tooltips de propriétés de blocs |
-| `c4f6b10` | feat: centralisation des imports d'atlas personnalisés |
-| `0810f4a` | refactor: découpage du panneau de propriétés |
-| `4819b16` | refactor: extraction des composants de contrôle |
-| `b8a52e7` | refactor: extraction des éditeurs de propriétés avancées |
-| `44134fe` | test: couverture unitaire des helpers principaux |
-| `201eb92` | test: expansion couverture UI et configuration |
-| `ee26012` | test: augmentation couverture client |
-| `353ce85` | docs: documentation exhaustive du codebase |
-| `c776753` | feat: système i18n EN + FR |
-| `dcc1e23` | feat: localisation DE + ES |
-| `3ad7b8e` | feat: localisation RU + JA |
+| `3942981` | feat: improve block preview textures and lighting |
+| `67ab96e` | feat: slab preview and effect armour fields |
+| `ce0ffdd` | feat: raw properties and vertical slabs |
+| `70a268e` | feat: UI structure for additional properties |
+| `af0570a` | feat: improve property panel UI |
+| `4e81196` | feat: usable resource/recipe editor |
+| `16d9d82` | feat: usable advanced property editors |
+| `bd7deb2` | chore: simplify dropdown labels |
+| `301bf01` | chore: hide technical IDs in the UI |
+| `9e5ef1f` | chore: remove remaining technical labels |
+| `b4e65dd` | docs: improve block property tooltips |
+| `c4f6b10` | feat: centralize custom atlas imports |
+| `0810f4a` | refactor: split the property panel |
+| `4819b16` | refactor: extract control components |
+| `b8a52e7` | refactor: extract advanced property editors |
+| `44134fe` | test: unit coverage for core helpers |
+| `201eb92` | test: expand UI and configuration coverage |
+| `ee26012` | test: increase client coverage |
+| `353ce85` | docs: comprehensive codebase documentation |
+| `c776753` | feat: English and French i18n |
+| `dcc1e23` | feat: German and Spanish localization |
+| `3ad7b8e` | feat: Russian and Japanese localization |
